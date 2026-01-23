@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -29,19 +29,23 @@ const COMPAT = {
     Love: 1,
     Heartbreak: 1,
     Party: 1,
-    Nostalgia: 0,
     Empowerment: 1,
-    Rebellion: 0,
+    // More swingy risky pairs
+    Rebellion: -1,
+    Adventure: -1,
+    Nostalgia: 0,
     Melancholy: 0,
-    Synthwave: 0,
   },
   Rock: {
     Rebellion: 1,
     Freedom: 1,
+    Empowerment: 1,
+    // Risky contrasts
+    Dreams: -1,
+    Nostalgia: -1,
     Love: 0,
     Heartbreak: 0,
     Party: 0,
-    Empowerment: 1,
     Melancholy: 0,
   },
   EDM: {
@@ -50,13 +54,17 @@ const COMPAT = {
     Love: -1,
     Dreams: 0,
     Adventure: 1,
+    Melancholy: -1,
   },
   "Hip-Hop": {
     Rebellion: 1,
     Empowerment: 1,
+    Party: 1,
+    // Risky: introspective/dreamy themes
+    Dreams: -1,
+    Melancholy: -1,
     Love: 0,
     Heartbreak: 0,
-    Party: 1,
     Nostalgia: 0,
   },
   Jazz: {
@@ -64,35 +72,42 @@ const COMPAT = {
     Melancholy: 1,
     Nostalgia: 1,
     Party: -1,
+    Rebellion: -1,
   },
   Country: {
     Heartbreak: 1,
     Love: 1,
     Adventure: 1,
     Party: -1,
+    Rebellion: -1,
   },
   "R&B": {
     Love: 1,
     Heartbreak: 1,
     Dreams: 1,
     Rebellion: -1,
+    Freedom: -1,
   },
   Metal: {
     Rebellion: 1,
     Freedom: 1,
-    Melancholy: 0,
     Love: -1,
+    Party: -1,
+    Melancholy: 0,
   },
   Folk: {
     Nostalgia: 1,
     Adventure: 1,
     Dreams: 1,
     Party: -1,
+    Empowerment: -1,
   },
   Synthwave: {
     Nostalgia: 1,
     Dreams: 1,
     Party: 1,
+    Empowerment: -1,
+    Heartbreak: -1,
     Melancholy: 0,
   },
 };
@@ -102,10 +117,10 @@ function clamp(n, min, max) {
 }
 
 function gradeFromScore(score) {
-  if (score >= 90) return "S";
-  if (score >= 80) return "A";
-  if (score >= 70) return "B";
-  if (score >= 60) return "C";
+  if (score >= 94) return "S";
+  if (score >= 82) return "A";
+  if (score >= 72) return "B";
+  if (score >= 62) return "C";
   return "D";
 }
 
@@ -114,7 +129,7 @@ function randInt(min, max) {
 }
 
 // Pair bonus algorithm constants
-const COMPAT_BONUS_GOOD = 8;
+const COMPAT_BONUS_GOOD = 6;
 const RISKY_BIG_BOOST = 12;
 const RISKY_PENALTY = 8;
 
@@ -131,6 +146,30 @@ function computePairBonus(genre, theme, randomize = false) {
   return roll === 1 ? RISKY_BIG_BOOST : -RISKY_PENALTY;
 }
 
+// Swingier, release-time only bonus based on weakest roll quality
+// s, w, p are inverted normalized dice results in [0,1], higher = better
+function computePairSwingBonus(compat, s, w, p) {
+  const q = Math.min(s || 0, w || 0, p || 0); // weakest link
+  const a = ((s || 0) + (w || 0) + (p || 0)) / 3; // average
+  const good = q >= 0.74 && a >= 0.78;
+  const mid = !good && q >= 0.45; // anything above bad but not meeting good gate
+  // const bad = !good && !mid;
+  if (compat < 0) {
+    if (good) return 12;
+    if (mid) return -10;
+    return -14;
+  } else if (compat === 0) {
+    if (good) return 3;
+    if (mid) return 0;
+    return -6;
+  } else {
+    // compat > 0 (great)
+    if (good) return 6;
+    if (mid) return 4;
+    return 2;
+  }
+}
+
 function computeChartPosition(score, fans) {
   const base = 120 - score; // higher score -> better (lower) position
   const fanBoost = Math.min(40, Math.floor(Math.log10((fans || 0) + 10) * 14));
@@ -141,12 +180,7 @@ function computeChartPosition(score, fans) {
 
 function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, compat, genre, theme, songHistory, score }) {
   const tips = [];
-  // Compatibility advice
-  if (compat < 0) {
-    tips.push("Genre/theme pairing is risky — try a different combo.");
-  } else if (compat === 0 && score < 80) {
-    tips.push("Consider a stronger genre/theme match for higher potential.");
-  }
+  // (Compatibility advice removed to encourage discovery)
   // Triad contribution breakdown
   const mel = practiceT * (1 + vocals / 12) * 8;
   const lyr = writeT * (1 + writing / 12) * 8;
@@ -170,6 +204,11 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
 }
 
 const REVIEW_LINES = {
+  Masterpiece: [
+    "A once-in-a-generation masterpiece!",
+    "Unbelievable perfection — instant legend.",
+    "A timeless classic — pure magic.",
+  ],
   S: ["Instant classic!", "A career-defining hit!", "You owned the stage."],
   A: ["Strong release - fans will love it.", "A big step up!", "This one has real sparkle."],
   B: ["Solid track with potential.", "Good, but could be sharper.", "Nice vibe - keep going."],
@@ -246,8 +285,8 @@ export default function App() {
   const [songName, setSongName] = useState("");
   const [conceptLocked, setConceptLocked] = useState(false);
 
-  // Time allocation via instructions (7 days per week)
-  const TOTAL_TIME = 7;
+  // Time allocation via instructions (4 days per week)
+  const TOTAL_TIME = 4;
   const [practiceT, setPracticeT] = useState(0);
   const [writeT, setWriteT] = useState(0);
   const [performT, setPerformT] = useState(0);
@@ -271,9 +310,13 @@ export default function App() {
   const [facingLeft, setFacingLeft] = useState(false);
   const [isPerforming, setIsPerforming] = useState(false);
   const [performingVenue, setPerformingVenue] = useState(null);
+  const performAudioRef = useRef(null);
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [earlyFinishEnabled, setEarlyFinishEnabled] = useState(true);
+  const [pairFeedback, setPairFeedback] = useState(null); // 'great combination' | 'okay combination' | 'risky combination' | null
   // Dice mode state (per week)
   const [rollBest, setRollBest] = useState({ sing: null, write: null, perform: null });
   const [rollHistory, setRollHistory] = useState([]); // {day, action, value, faces}
@@ -282,14 +325,33 @@ export default function App() {
   const [rollFx, setRollFx] = useState({ show:false, faces:0, current:null, final:null, settled:false });
 
   function facesFor(stat) {
-    if (stat >= 9.5) return 6;
-    if (stat >= 9) return 8;
-    if (stat >= 7) return 10;
-    if (stat >= 5) return 12;
+    if (stat >= 9.9) return 6;
+    if (stat >= 9.5) return 8;
+    if (stat >= 8) return 10;
+    if (stat >= 6) return 12;
     return 20;
   }
   function rollDie(faces) {
     return Math.max(1, Math.floor(Math.random() * faces) + 1);
+  }
+  const singAudioRef = useRef(null);
+  const lastSingSfxAtRef = useRef(0);
+  function playSingSfx() {
+    try {
+      const now = Date.now();
+      // Guard: avoid double-triggering within a short window
+      if (now - (lastSingSfxAtRef.current || 0) < 250) return;
+      lastSingSfxAtRef.current = now;
+      // Stop any existing clip
+      if (singAudioRef.current) {
+        try { singAudioRef.current.pause(); } catch (_) {}
+      }
+      const idx = 1 + Math.floor(Math.random() * 6);
+      const audio = new Audio(`/sounds/singing${idx}.ogg`);
+      audio.volume = 0.6;
+      singAudioRef.current = audio;
+      audio.play().catch(() => {});
+    } catch (_) {}
   }
   const [started, setStarted] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -303,7 +365,11 @@ export default function App() {
 
   const compat = COMPAT[genre]?.[theme] ?? 0;
 
-  const remaining = useMemo(() => TOTAL_TIME - actions.length, [actions]);
+  // Bonus rolls purchased this week
+  const [bonusRolls, setBonusRolls] = useState(0);
+
+  const totalRolls = useMemo(() => TOTAL_TIME + (bonusRolls || 0), [bonusRolls]);
+  const remaining = useMemo(() => totalRolls - actions.length, [actions, totalRolls]);
 
   // Track training gains within the current week (for UI + undo/clear)
   const [weekVocGain, setWeekVocGain] = useState(0);
@@ -311,11 +377,12 @@ export default function App() {
   const [weekStageGain, setWeekStageGain] = useState(0);
 
   function diminishFactor(nth) {
-    // Smooth diminishing: 0.85^(n-1), floor to 0.3 minimum effectiveness
-    return Math.max(0.3, Math.pow(0.85, Math.max(0, nth - 1)));
+    // Smooth diminishing: 0.85^(n-1), floor to 0.2 minimum effectiveness (slower leveling)
+    return Math.max(0.2, Math.pow(0.85, Math.max(0, nth - 1)));
   }
 
-  const canRelease = remaining === 0 && week <= MAX_WEEKS;
+  const allDiceSet = useMemo(() => !!(rollBest?.sing && rollBest?.write && rollBest?.perform), [rollBest]);
+  const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
 
   const gains = useMemo(() => ({
     vocals: +weekVocGain.toFixed(1),
@@ -329,7 +396,7 @@ export default function App() {
   }
 
   function nextDieInfo(stat) {
-    const tiers = [ { t:5, f:12 }, { t:7, f:10 }, { t:9, f:8 }, { t:9.5, f:6 } ];
+    const tiers = [ { t:6, f:12 }, { t:8, f:10 }, { t:9.5, f:8 }, { t:9.9, f:6 } ];
     for (let i=0;i<tiers.length;i++) {
       if (stat < tiers[i].t) return tiers[i];
     }
@@ -409,7 +476,7 @@ export default function App() {
 
   function instruct(type) {
     if (!conceptLocked || remaining <= 0 || finishedReady) return;
-    const base = 0.15;
+    const base = 0.10; // slower leveling per action
     // nth action for this type this week (1-based)
     const nth = type === "practice" ? practiceT + 1 : type === "write" ? writeT + 1 : performT + 1;
     const delta = +(base * diminishFactor(nth)).toFixed(3);
@@ -450,6 +517,8 @@ export default function App() {
     setActivity("walk");
   }
 
+  // (Confirmation removed) Directly reroll/consume day via instruct
+
   // End-of-week reset: keep training gains; just clear plan and counters
   function resetWeekProgress() {
     setWeekVocGain(0);
@@ -461,6 +530,7 @@ export default function App() {
     setPerformT(0);
     setRollBest({ sing: null, write: null, perform: null });
     setRollHistory([]);
+    setBonusRolls(0);
   }
 
   // --- Persistence (localStorage) ---
@@ -485,6 +555,8 @@ export default function App() {
       if (typeof s.started === "boolean") setStarted(s.started);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
+      if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
+      if (typeof s.bonusRolls === "number") setBonusRolls(s.bonusRolls);
       if (s.rollBest) setRollBest(s.rollBest);
       if (Array.isArray(s.rollHistory)) setRollHistory(s.rollHistory);
       if (Array.isArray(s.actions)) {
@@ -546,6 +618,8 @@ export default function App() {
       weekWriGain,
       weekStageGain,
       lastResult,
+      earlyFinishEnabled,
+      bonusRolls,
       ts: Date.now(),
     };
     try {
@@ -553,7 +627,7 @@ export default function App() {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
@@ -573,6 +647,8 @@ export default function App() {
         writeT,
         performT,
         lastResult,
+        earlyFinishEnabled,
+        bonusRolls,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -607,8 +683,8 @@ export default function App() {
       const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
       const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
       const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
-      // Weight roughly equal; scale to 100
-      triadBase = (0.34 * s + 0.33 * w + 0.33 * p) * 100;
+      // Weight roughly equal; Option 1: lower base scaling for tighter early game
+      triadBase = (0.34 * s + 0.33 * w + 0.33 * p) * 92;
     } else {
       // Sum triad contributions from recorded actions (exclude gigs)
       const triadSum = actions.reduce((acc, a) => a.t === 'gig' ? acc : acc + (a.m||0) + (a.l||0) + (a.p||0), 0);
@@ -618,13 +694,24 @@ export default function App() {
       triadBase *= earlyFactor;
     }
 
-    const variance = randInt(-5, 5) + randInt(-venue.rng, venue.rng);
-    const pairBonus = computePairBonus(genre, theme, true);
+    let variance = randInt(-5, 5) + randInt(-venue.rng, venue.rng);
+    if (compat < 0) variance += randInt(-1, 1); // slightly swingier feel for risky
+    let pairBonus = 0;
+    if (DICE_MODE) {
+      const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
+      const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
+      const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
+      pairBonus = computePairSwingBonus(compat, s, w, p);
+    } else {
+      pairBonus = computePairBonus(genre, theme, true);
+    }
     const score = clamp(triadBase + pairBonus + variance, 0, 100);
-    const grade = gradeFromScore(score);
+    let grade = gradeFromScore(score);
+    const isMasterpiece = !!(DICE_MODE && rollBest?.sing?.value === 1 && rollBest?.write?.value === 1 && rollBest?.perform?.value === 1);
+    if (isMasterpiece) grade = 'Masterpiece';
 
     // Fans: base by grade, scaled by venue
-    const fansGainByGrade = { S: 60, A: 40, B: 25, C: 12, D: 5 };
+    const fansGainByGrade = { Masterpiece: 80, S: 60, A: 40, B: 25, C: 12, D: 5 };
 
     // Small scaling with existing fans so growth feels good
     const fanBonus = Math.floor(fans * 0.05); // +5% of current fans
@@ -690,14 +777,38 @@ export default function App() {
     setVenueOpen(false);
     setPerformingVenue(venueKey);
     setIsPerforming(true);
-    setActivity('idle');
+    // Center performer on stage and play full song
+    setTarget(null);
+    setPos({ x: 50, y: 62 });
+    setActivity('singing');
     setStatus(`Performing at ${venue.name}...`);
     setFinishedReady(false);
-    setTimeout(() => {
-      setIsPerforming(false);
-      setReleaseOpen(true);
-      setActivity('idle');
-    }, 5000);
+    try {
+      if (performAudioRef.current) {
+        try { performAudioRef.current.pause(); } catch (_) {}
+      }
+      const audio = new Audio('/sounds/fullsinging.ogg');
+      audio.onended = () => {
+        setIsPerforming(false);
+        setReleaseOpen(true);
+        setActivity('idle');
+        performAudioRef.current = null;
+      };
+      performAudioRef.current = audio;
+      audio.play().catch(() => {});
+    } catch (_) {}
+  }
+
+  function skipPerformance() {
+    try {
+      if (performAudioRef.current) {
+        try { performAudioRef.current.pause(); } catch (_) {}
+        performAudioRef.current = null;
+      }
+    } catch (_) {}
+    setIsPerforming(false);
+    setReleaseOpen(true);
+    setActivity('idle');
   }
 
   function finishSong() {
@@ -755,6 +866,7 @@ export default function App() {
             } else if (act === "practice") {
               setActivity("singing");
               setStatus("Practicing vocal runs...");
+              playSingSfx();
               if (DICE_MODE) {
                 const faces = facesFor(vocals);
                 const value = rollDie(faces);
@@ -877,7 +989,7 @@ export default function App() {
 
   const bestGrade = useMemo(() => {
     if (!songHistory || songHistory.length === 0) return null;
-    const order = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+    const order = { Masterpiece: 6, S: 5, A: 4, B: 3, C: 2, D: 1 };
     return songHistory.reduce((best, s) => (order[s.grade] > (order[best] ?? 0) ? s.grade : best), 'D');
   }, [songHistory]);
 
@@ -962,12 +1074,10 @@ export default function App() {
                   >Random</button>
                 </div>
 
-                <div style={{ ...styles.sub, marginTop: 8 }}>
-                  Compatibility: <b>{compat === 1 ? "Great" : compat === 0 ? "Okay" : "Risky"}</b>
-                </div>
+                {/* Compatibility indicator removed */}
 
                 <button
-                  onClick={() => setConceptLocked(true)}
+                  onClick={() => { setConceptLocked(true); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }}
                   disabled={!songName.trim()}
                   style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}
                 >
@@ -1012,6 +1122,9 @@ export default function App() {
                   ); })()}
                 </div>
               )}
+              {isPerforming && (
+                <button onClick={skipPerformance} style={{ position:'absolute', right:10, top:10, zIndex:2, ...styles.secondaryBtn }} title="Skip performance">Skip performance</button>
+              )}
               <div
                 style={{ ...styles.station, left: "10%", top: "28%", cursor: 'pointer', transform: 'translate(-50%, -50%) translate(280px, 55px)' }}
                 onClick={() => setFinanceOpen(true)}
@@ -1027,7 +1140,11 @@ export default function App() {
                     <div style={{ ...styles.station, left: "45%", top: "60%", transform: 'translate(-50%, -50%) translate(-30px, 0px)' }} title="Mic">
                       <img src="/art/microphone.png" alt="Microphone" style={styles.stationImg} />
                     </div>
-                    <div style={{ ...styles.station, left: "80%", top: "65%", transform: 'translate(-50%, -50%) translate(40px, 20px)' }} title="Mirror">
+                    <div
+                      style={{ ...styles.station, left: "80%", top: "65%", transform: 'translate(-50%, -50%) translate(40px, 20px)', cursor: 'pointer' }}
+                      title="Mirror"
+                      onClick={() => setStatsOpen(true)}
+                    >
                       <img src="/art/mirror.png" alt="Mirror" style={styles.stationImg} />
                     </div>
                   </>
@@ -1040,14 +1157,15 @@ export default function App() {
                     top: `${pos.y}%`,
                     transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${activity === 'walk' ? 2.3 : activity === 'singing' ? 1.06 : 1})${activity === 'dancing' ? ' rotate(2deg)' : ''}`,
                   }}
-                  onClick={() => setStatsOpen(true)}
                   title="Your performer"
                 >
-                  {activity === 'walk' && !isPerforming ? (
-                    <img src="/art/walking.gif" alt="Performer walking" style={styles.performerImg} />
-                  ) : activity === 'singing' && !isPerforming ? (
+                  {isPerforming ? (
                     <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
-                  ) : activity === 'dancing' && !isPerforming ? (
+                  ) : activity === 'walk' ? (
+                    <img src="/art/walking.gif" alt="Performer walking" style={styles.performerImg} />
+                  ) : activity === 'singing' ? (
+                    <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
+                  ) : activity === 'dancing' ? (
                     <img src="/art/dancing.gif" alt="Performer dancing" style={styles.performerImg} />
                   ) : (
                     <img src="/art/idle.gif" alt="Performer idle" style={styles.performerImg} />
@@ -1113,6 +1231,7 @@ export default function App() {
                     <button style={styles.desktopIcon} title="Social" onClick={() => setSocialOpen(true)}>S</button>
                     <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>M</button>
                     <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>C</button>
+                    <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>Sh</button>
                     <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>✕</button>
                   </div>
                 </div>
@@ -1124,13 +1243,13 @@ export default function App() {
             {/* Gigs count removed per request */}
 
             <div style={styles.weekStrip}>
-              {Array.from({ length: TOTAL_TIME }).map((_, i) => {
+              {Array.from({ length: totalRolls }).map((_, i) => {
                 const a = actions[i];
                 const t = a?.t;
                 const icon = t === "practice" ? "🎤" : t === "write" ? "✍️" : t === "perform" ? "🎶" : t === "gig" ? "🎫" : "";
                 return (
                   <div key={i} style={styles.dayCell} title={t ? t : "Unused day"}>
-                    <div style={styles.dayLabel}>{DAYS[i]}</div>
+                    <div style={styles.dayLabel}>{i+1}</div>
                     <div style={t ? styles.dayIconOn : styles.dayIconOff}>{icon || ""}</div>
                   </div>
                 );
@@ -1216,6 +1335,12 @@ export default function App() {
                 <button onClick={() => { clearSave(); setMenuOpen(false); }} style={styles.secondaryBtn}>Clear save</button>
                 <button onClick={() => { restart(); setMenuOpen(false); }} style={styles.secondaryBtn}>Restart run</button>
               </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <input type="checkbox" checked={earlyFinishEnabled} onChange={(e)=>setEarlyFinishEnabled(e.target.checked)} />
+                  Allow Early Finish (once S/W/P rolled)
+                </label>
+              </div>
               <div style={{ ...styles.sub, marginTop: 10 }}>Autosave: On</div>
             </div>
           </div>
@@ -1226,7 +1351,7 @@ export default function App() {
             <div style={styles.modal}>
               <div style={styles.title}>Welcome</div>
               <div style={{ ...styles.sub, marginTop: 8 }}>
-                Each week you have 10 actions. Instruct your performer to Practice, Write, or Perform. Actions train stats with diminishing returns. When all 10 are used, release your song.
+                Each week you have {TOTAL_TIME} days. Instruct your performer to Practice, Write, or Perform. Actions train stats with diminishing returns. When your days are used, release your song.
               </div>
               <button onClick={() => { setShowWelcome(false); setShowConcept(true); }} style={{ ...styles.primaryBtn, marginTop: 14 }}>
                 Continue
@@ -1258,13 +1383,15 @@ export default function App() {
                 <input value={songName} onChange={(e) => setSongName(e.target.value)} placeholder="Type a song name..." style={styles.input} />
                 <button style={styles.smallBtn} onClick={() => setSongName(randomSongName(genre, theme))}>Random</button>
               </div>
-              <div style={{ ...styles.sub, marginTop: 8 }}>
-                Compatibility: <b>{compat === 1 ? "Great" : compat === 0 ? "Okay" : "Risky"}</b>
-              </div>
+              {compat < 0 && (
+                <div style={{ ...styles.sub, marginTop: 8, color: 'rgba(255,120,120,.95)' }}>
+                  Risky pairing
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button onClick={() => setShowConcept(false)} style={styles.secondaryBtn}>Cancel</button>
-                <button onClick={() => { setConceptLocked(true); setShowConcept(false); }} disabled={!songName.trim()} style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}>Begin week</button>
+                <button onClick={() => { setConceptLocked(true); setShowConcept(false); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }} disabled={!songName.trim()} style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}>Begin week</button>
               </div>
             </div>
           </div>
@@ -1325,6 +1452,45 @@ export default function App() {
                 <div style={styles.statRow}><span>⭐ Fans</span><b>{fans}</b></div>
               </div>
               <button onClick={() => setSocialOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+            </div>
+          </div>
+        )}
+
+        {shopOpen && (
+          <div style={styles.overlay} onClick={() => setShopOpen(false)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Shop</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>Rolls available this week: <b>{Math.max(0, totalRolls - actions.length)}</b> / {totalRolls}</div>
+              <div style={{ display:'grid', gap:8, marginTop: 10 }}>
+                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                  <div style={{ fontWeight:700 }}>Extra d20 roll</div>
+                  <div style={styles.sub}>Adds +1 roll this week. Cheap.</div>
+                  <button
+                    disabled={money < 15}
+                    onClick={() => { if (money>=15){ setMoney(m=>m-15); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d20 roll (+1)'); } }}
+                    style={money<15? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy (15)</button>
+                </div>
+                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                  <div style={{ fontWeight:700 }}>Extra d12 roll</div>
+                  <div style={styles.sub}>Adds +1 roll this week. Pricier.</div>
+                  <button
+                    disabled={money < 40}
+                    onClick={() => { if (money>=40){ setMoney(m=>m-40); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d12 roll (+1)'); } }}
+                    style={money<40? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy (40)</button>
+                </div>
+                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                  <div style={{ fontWeight:700 }}>Extra d6 roll</div>
+                  <div style={styles.sub}>Adds +1 roll this week. Most expensive.</div>
+                  <button
+                    disabled={money < 100}
+                    onClick={() => { if (money>=100){ setMoney(m=>m-100); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d6 roll (+1)'); } }}
+                    style={money<100? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy (100)</button>
+                </div>
+              </div>
+              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
           </div>
         )}
@@ -1404,6 +1570,17 @@ export default function App() {
           </div>
         )}
 
+        {pairFeedback && (
+          <div style={styles.overlay} onClick={() => setPairFeedback(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>{pairFeedback}</div>
+              <button onClick={() => setPairFeedback(null)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {releaseOpen && lastResult && (
           <div style={styles.overlay} onClick={() => setReleaseOpen(false)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -1454,7 +1631,7 @@ export default function App() {
                     const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
                     const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
                     const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
-                    expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*100 + computePairBonus(genre, theme, false), 0, 100));
+                    expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*92 + computePairBonus(genre, theme, false), 0, 100));
                   } else {
                     const triadE = actions.reduce((acc,a)=> a.t==='gig'? acc : acc + (a.m||0)+(a.l||0)+(a.p||0), 0);
                     const baseE = triadE * 5;
@@ -1468,6 +1645,7 @@ export default function App() {
                   const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
                   const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
                   const locked = (fans < (VENUE_FAN_REQ[key] ?? 0));
+                  const isSwingy = (compat < 0);
                   const reqText = VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null;
                   return (
                     <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
@@ -1484,6 +1662,7 @@ export default function App() {
                         <div>Turnout: <b>{turnout}</b></div>
                         <div>Risk: <b>{risk}</b></div>
                         <div>Fans: <b>{fansPot}</b></div>
+                        {isSwingy && <div style={{ color: 'rgba(255,220,140,.95)' }}>Swingy</div>}
                         {locked && reqText && <div style={{ color: 'rgba(255,120,120,.9)' }}>{reqText}</div>}
                       </div>
                       <button disabled={locked} onClick={() => performRelease(key)} style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}>
@@ -2258,3 +2437,6 @@ const ROOM_HEIGHT = 260;
     </div>
   );
 }
+
+
+
