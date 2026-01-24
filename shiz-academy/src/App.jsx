@@ -4,8 +4,10 @@ const ROOM_HEIGHT = 260;
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
 // Feature flag: enable dice-based song system
 const DICE_MODE = true;
-// Optional: show persistent dice chips in room (we'll use animated roll FX instead)
+// Optional: show persistent dice chips bar in room (we'll use animated roll FX instead)
 const SHOW_DICE_BAR = false;
+// Optional: show mini dice HUD top-left in the room
+const SHOW_DICE_MINI = false;
 
 const GENRES = ["Pop", "Rock", "EDM", "Hip-Hop", "Jazz", "Country", "R&B", "Metal", "Folk", "Synthwave"];
 const THEMES = [
@@ -35,6 +37,16 @@ const COMPAT = {
     Adventure: -1,
     Nostalgia: 0,
     Melancholy: 0,
+  },
+  actionBtnWrap: { position:'relative', display:'inline-block' },
+  actionBtnRoll: {
+    position:'absolute',
+    left: 18,
+    bottom: 16,
+    color: '#fff',
+    fontWeight: 900,
+    fontSize: 16,
+    textShadow: '0 1px 2px rgba(0,0,0,.7)'
   },
   Rock: {
     Rebellion: 1,
@@ -322,7 +334,12 @@ export default function App() {
   const [rollHistory, setRollHistory] = useState([]); // {day, action, value, faces}
   const [prevFaces, setPrevFaces] = useState({ sing: facesFor(0), write: facesFor(0), perform: facesFor(0) });
   const [toasts, setToasts] = useState([]); // {id, text}
-  const [rollFx, setRollFx] = useState({ show:false, faces:0, current:null, final:null, settled:false });
+  const [rollFx, setRollFx] = useState({ show:false, faces:0, current:null, final:null, settled:false, action:null });
+  const [rollRing, setRollRing] = useState({ show:false, action:null, color:null });
+  const [rollGlow, setRollGlow] = useState({ sing: null, write: null, perform: null });
+  const [bubbleGlow, setBubbleGlow] = useState({ show:false, color:null });
+  const [celebrateFx, setCelebrateFx] = useState({ show:false, text:'', color:'#fff', startX:0, startY:0, phase:'start', key:0 });
+  const [rollFxHoldMs, setRollFxHoldMs] = useState(2500);
 
   function facesFor(stat) {
     if (stat >= 9.9) return 6;
@@ -419,6 +436,23 @@ export default function App() {
     return 'rgba(200,90,90,.85)';
   }
 
+  // Build a thicker, more solid outline using stacked drop-shadows around the image silhouette
+  function solidOutlineFilter(color) {
+    const s = 0; // thickness in px (no hard edge)
+    return [
+      `drop-shadow(0 0 0 ${color})`,
+      `drop-shadow(${s}px 0 0 ${color})`,
+      `drop-shadow(${-s}px 0 0 ${color})`,
+      `drop-shadow(0 ${s}px 0 ${color})`,
+      `drop-shadow(0 ${-s}px 0 ${color})`,
+      `drop-shadow(${s}px ${s}px 0 ${color})`,
+      `drop-shadow(${-s}px ${s}px 0 ${color})`,
+      `drop-shadow(${s}px ${-s}px 0 ${color})`,
+      `drop-shadow(${-s}px ${-s}px 0 ${color})`,
+      `drop-shadow(0 0 10px ${color})`,
+    ].join(' ');
+  }
+
   // Detect dice upgrades when stats change
   useEffect(()=>{
     if (!DICE_MODE) return;
@@ -441,20 +475,62 @@ export default function App() {
   // Animated roll FX: flicker numbers above the performer
   useEffect(()=>{
     if (!rollFx.show) return;
+    const hold = Math.max(700, rollFxHoldMs || 2500);
+    const settleMs = Math.max(300, hold - 300);
+    const hideMs = hold + 300;
     let tick = setInterval(()=>{
       setRollFx(prev=> ({ ...prev, current: 1 + Math.floor(Math.random() * (prev.faces||20)) }));
-    }, 70);
+    }, 40);
     let settle = setTimeout(()=>{
-      // Stop flicker and show final value with pop
       clearInterval(tick);
       setRollFx(prev=> ({ ...prev, current: prev.final, settled: true }));
-    }, 900);
-    // Hold the final number visibly for longer (~1.6s after settle)
+    }, settleMs);
     let hide = setTimeout(()=>{
-      setRollFx({ show:false, faces:0, current:null, final:null, settled:false });
-    }, 2500);
+      setRollFx({ show:false, faces:0, current:null, final:null, settled:false, action:null });
+    }, hideMs);
     return ()=> { clearInterval(tick); clearTimeout(settle); clearTimeout(hide); };
-  }, [rollFx.show]);
+  }, [rollFx.show, rollFxHoldMs]);
+
+  // On settle, briefly show cues: button glow and dice glow; also persist per-button glow
+  useEffect(() => {
+    if (!rollFx.settled || !rollFx.action || !rollFx.final || !rollFx.faces) return;
+    const faces = rollFx.faces; const value = rollFx.final;
+    const frac = (faces + 1 - value) / faces; // low is better
+    let color = 'rgba(200,90,90,.95)'; // bad
+    if (frac >= 0.66) { color = 'rgba(80,180,120,.95)'; }
+    else if (frac >= 0.33) { color = 'rgba(200,160,80,.95)'; }
+    // Persist glow color on the action button
+    setRollGlow(prev => ({ ...prev, [rollFx.action]: color }));
+    setRollRing({ show:true, action: rollFx.action, color });
+    setBubbleGlow({ show:true, color });
+    // Celebration text for top results: 3, 2, 1
+    let ctext = '';
+    let ccolor = 'rgba(80,180,120,.95)';
+    if (value === 3) { ctext = 'Great'; ccolor = 'rgba(200,160,80,.95)'; }
+    if (value === 2) { ctext = 'Amazing'; ccolor = 'rgba(120,200,140,.95)'; }
+    if (value === 1) { ctext = 'Perfect'; ccolor = 'rgba(80,200,150,.95)'; }
+    if (ctext) {
+      const key = Date.now();
+      setCelebrateFx({ show:true, text: ctext, color: ccolor, startX: pos.x, startY: pos.y, phase:'start', key });
+      // Move to center shortly after render to trigger CSS transition
+      setTimeout(() => {
+        setCelebrateFx(prev => prev.key===key ? { ...prev, phase:'center' } : prev);
+      }, 60);
+      // Linger at center, then fade
+      setTimeout(() => {
+        setCelebrateFx(prev => prev.key===key ? { ...prev, phase:'fade' } : prev);
+      }, 1400);
+      // Remove after fade completes
+      setTimeout(() => {
+        setCelebrateFx(prev => prev.key===key ? { show:false, text:'', color:'#fff', startX:0, startY:0, phase:'start', key:0 } : prev);
+      }, 2000);
+    }
+    const t = setTimeout(() => {
+      setRollRing({ show:false, action:null, color:null });
+      setBubbleGlow({ show:false, color:null });
+    }, 650);
+    return () => { clearTimeout(t); };
+  }, [rollFx.settled]);
 
   function stationTarget(type) {
     // Base positions match station 'left'/'top' percentages; apply pixel offsets to stay aligned
@@ -464,7 +540,7 @@ export default function App() {
       return { x, y };
     }
     if (type === 'practice') {
-      const x = percentWithOffset(45, -30, roomWidth);
+      const x = percentWithOffset(45, -70, roomWidth);
       const y = percentWithOffset(60, 30, ROOM_HEIGHT);
       return { x, y };
     }
@@ -531,6 +607,7 @@ export default function App() {
     setRollBest({ sing: null, write: null, perform: null });
     setRollHistory([]);
     setBonusRolls(0);
+    setRollGlow({ sing:null, write:null, perform:null });
   }
 
   // --- Persistence (localStorage) ---
@@ -861,7 +938,8 @@ export default function App() {
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, write: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
-                setRollFx({ show:true, faces, current:null, final:value, settled:false });
+                setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
+                setRollFxHoldMs(1200);
               }
             } else if (act === "practice") {
               setActivity("singing");
@@ -872,7 +950,8 @@ export default function App() {
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, sing: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'sing', value, faces }]);
-                setRollFx({ show:true, faces, current:null, final:value, settled:false });
+                setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'sing' });
+                setRollFxHoldMs(5000);
               }
             } else if (act === "perform") {
               setActivity("dancing");
@@ -882,7 +961,8 @@ export default function App() {
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, perform: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'perform', value, faces }]);
-                setRollFx({ show:true, faces, current:null, final:value, settled:false });
+                setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'perform' });
+                setRollFxHoldMs(5000);
               }
             }
             const dur = act === 'practice' ? 5000 : act === 'perform' ? 5000 : 1200;
@@ -1100,7 +1180,7 @@ export default function App() {
               <div style={{ ...styles.room, width: roomWidth, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackground.png')" }}>
               {/* Room HUD removed per request (Week/Remaining moved to Calendar) */}
               <div style={styles.hudMoney}>💷 {money}</div>
-              {DICE_MODE && (
+              {DICE_MODE && SHOW_DICE_MINI && (
                 <div style={styles.diceMiniOverlay}>
                   {(() => { const rb=rollBest.sing; const faces = rb? rb.faces : facesFor(vocals); const val = rb? rb.value : null; const bg = bubbleBg(val||0, faces); return (
                     <div style={{...styles.diceMiniChip, background:bg}} title="Sing">
@@ -1155,7 +1235,7 @@ export default function App() {
                     ...styles.performer,
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${activity === 'walk' ? 2.3 : activity === 'singing' ? 1.06 : 1})${activity === 'dancing' ? ' rotate(2deg)' : ''}`,
+                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1})${activity === 'dancing' ? ' rotate(2deg)' : ''}`,
                   }}
                   title="Your performer"
                 >
@@ -1179,12 +1259,43 @@ export default function App() {
                     ...styles.rollBubble,
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    background: bubbleBg(rollFx.current, rollFx.faces),
-                    transform: `translate(-50%, -115%) translateY(-35px) scale(${rollFx.settled?1.12:1})`
+                    background: rollFx.faces === 20 ? 'transparent' : bubbleBg(rollFx.current, rollFx.faces),
+                    transform: `translate(-50%, -115%) translateY(-45px) translate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}px, ${!rollFx.settled ? ((((rollFx.current||1)%3)-1)*2) : 0}px) rotate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}deg) scale(${rollFx.settled?1.12:1})`,
+                    ...(rollFx.faces === 20 ? { border: 'none', padding: 0, borderRadius: 0, gap: 0, alignItems: 'center' } : {}),
+                    ...(bubbleGlow.show ? { boxShadow: rollFx.faces === 20 ? undefined : `0 0 0 2px ${bubbleGlow.color}, 0 0 12px ${bubbleGlow.color}` } : {})
                   }}>
-                    <div style={{ fontWeight:800 }}>{rollFx.current ?? ''}</div>
-                    <div style={{ fontSize:11, opacity:.85 }}>d{rollFx.faces}</div>
+                    {rollFx.faces === 20 ? (
+                      <img
+                        src={`/art/d20/${Math.max(1, Math.min(20, rollFx.current || 1))}.png`}
+                        alt={`d20 ${rollFx.current || ''}`}
+                        style={{ width: 45, height: 45, filter: bubbleGlow.show ? `drop-shadow(0 0 8px ${bubbleGlow.color})` : undefined }}
+                      />
+                    ) : (
+                      <>
+                        <div style={{ fontWeight:800 }}>{rollFx.current ?? ''}</div>
+                        <div style={{ fontSize:11, opacity:.85 }}>d{rollFx.faces}</div>
+                      </>
+                    )}
                   </div>
+                )}
+                {celebrateFx.show && (
+                  <div style={{
+                    position:'absolute',
+                    left: celebrateFx.phase==='start' ? `${celebrateFx.startX}%` : '50%',
+                    top: celebrateFx.phase==='start' ? `${celebrateFx.startY}%` : '50%',
+                    transform: celebrateFx.phase==='start'
+                      ? 'translate(-50%, -115%) translateY(-75px)'
+                      : 'translate(-50%, -50%)',
+                    color: celebrateFx.color,
+                    fontWeight: 900,
+                    fontSize: celebrateFx.phase==='start' ? 14 : 28,
+                    opacity: celebrateFx.phase==='fade' ? 0 : 1,
+                    transition: 'left 650ms ease, top 650ms ease, transform 650ms ease, font-size 650ms ease, opacity 600ms ease',
+                    textShadow: '0 1px 2px rgba(0,0,0,.6)',
+                    letterSpacing: 0.3,
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                  }}>{celebrateFx.text}</div>
                 )}
                 {DICE_MODE && SHOW_DICE_BAR && (
                   <div style={styles.diceOverlay}>
@@ -1213,15 +1324,39 @@ export default function App() {
                 {/* Overlayed action buttons on room */}
                 {!isPerforming && !financeOpen && (
                   <div style={styles.buttonsOverlay}>
-                    <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("practice")} style={styles.actionBtn}>
-                      <img src="/art/singbutton.png" alt="Sing" style={styles.actionImg} />
-                    </button>
-                    <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("write")} style={styles.actionBtn}>
-                      <img src="/art/writebutton.png" alt="Write" style={styles.actionImg} />
-                    </button>
-                    <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("perform")} style={styles.actionBtn}>
-                      <img src="/art/dancebutton.png" alt="Perform" style={styles.actionImg} />
-                    </button>
+                    <div style={styles.actionBtnWrap}>
+                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("practice")} style={styles.actionBtn}>
+                        <img src="/art/singbutton2.png" alt="Sing" style={{
+                          ...styles.actionImg,
+                          ...((rollRing.show && rollRing.action==='sing') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.sing ? { filter: solidOutlineFilter(rollGlow.sing) } : {})),
+                        }} />
+                        {DICE_MODE && (rollBest?.sing?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='sing') && (
+                          <div style={styles.actionBtnRoll}>{rollBest.sing.value}</div>
+                        )}
+                      </button>
+                    </div>
+                    <div style={styles.actionBtnWrap}>
+                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("write")} style={styles.actionBtn}>
+                        <img src="/art/writebutton2.png" alt="Write" style={{
+                          ...styles.actionImg,
+                          ...((rollRing.show && rollRing.action==='write') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.write ? { filter: solidOutlineFilter(rollGlow.write) } : {})),
+                        }} />
+                        {DICE_MODE && (rollBest?.write?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='write') && (
+                          <div style={styles.actionBtnRoll}>{rollBest.write.value}</div>
+                        )}
+                      </button>
+                    </div>
+                    <div style={styles.actionBtnWrap}>
+                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("perform")} style={styles.actionBtn}>
+                        <img src="/art/dancebutton2.png" alt="Perform" style={{
+                          ...styles.actionImg,
+                          ...((rollRing.show && rollRing.action==='perform') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.perform ? { filter: solidOutlineFilter(rollGlow.perform) } : {})),
+                        }} />
+                        {DICE_MODE && (rollBest?.perform?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='perform') && (
+                          <div style={styles.actionBtnRoll}>{rollBest.perform.value}</div>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1304,17 +1439,34 @@ export default function App() {
         {progressOpen && (
           <div style={styles.overlay} onClick={() => setProgressOpen(false)}>
             <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Current Song Progress</div>
+              <div style={styles.title}>Current Song</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
-                {conceptLocked && songName ? (<span>Working on: <b>{songName}</b></span>) : (<span>No active song yet.</span>)}
+                {conceptLocked && songName ? (
+                  <span>Working on: <b>{songName}</b></span>
+                ) : (
+                  <span>No active song yet.</span>
+                )}
+                {false && DICE_MODE && (
+                  <div style={styles.progressHelp}>
+                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` Next: d${nextDieInfo(stage).f} at ${nextDieInfo(stage).t.toFixed(1)}` : ' Max die unlocked'}
+                  </div>
+                )}
+                {false && DICE_MODE && (
+                  <div style={styles.progressHelp}>
+                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` Next: d${nextDieInfo(stage).f} at ${nextDieInfo(stage).t.toFixed(1)}` : ' Max die unlocked'}
+                  </div>
+                )}
               </div>
-              <TriadBarChart
-                actions={actions}
-                vocals={vocals}
-                writing={writing}
-                stage={stage}
-                totalDays={TOTAL_TIME}
-              />
+              {conceptLocked && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ ...styles.sub, fontSize: 14 }}>
+                    Pairing: <b>{genre}</b> + <b>{theme}</b>
+                  </div>
+                  <div style={{ marginTop: 6, fontWeight: 800, color: compat>0 ? '#64d49a' : compat<0 ? '#e37a7a' : '#e1b768' }}>
+                    {compat>0 ? 'great combination' : compat<0 ? 'risky combination' : 'okay combination'}
+                  </div>
+                </div>
+              )}
               <button onClick={() => setProgressOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
                 Close
               </button>
@@ -1405,31 +1557,86 @@ export default function App() {
                 <div style={styles.progressLabel}><span>Vocals</span><span>{vocals.toFixed(2)} / 10</span></div>
                 <div style={styles.progressTrack}>
                   <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (vocals/10)*100))}%`, background: '#9AE6B4' }} />
+                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
+                    {[6,8,9.5,9.9].map((t, i, arr) => {
+                      const pos = Math.max(0, Math.min(100, (t/10)*100));
+                      const unlocked = vocals >= t;
+                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
+                      const isCurrent = unlocked && vocals < next;
+                      return (
+                        <div key={i} style={{
+                          ...styles.barTick,
+                          left: `calc(${pos}% - 1px)`,
+                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
+                        }} />
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={styles.progressHelp}>Affects singing quality in the final song score; trained by Practice and gigs.</div>
-                {DICE_MODE && (
+                
+                {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
                     Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` • Next: d${nextDieInfo(vocals).f} at ≥ ${nextDieInfo(vocals).t.toFixed(1)}` : ' • Max die unlocked'}
+                  </div>
+                )}
+                {false && DICE_MODE && (
+                  <div style={styles.progressHelp}>
+                    Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` Next: d${nextDieInfo(vocals).f} at ${nextDieInfo(vocals).t.toFixed(1)}` : ' Max die unlocked'}
                   </div>
                 )}
 
                 <div style={styles.progressLabel}><span>Writing</span><span>{writing.toFixed(2)} / 10</span></div>
                 <div style={styles.progressTrack}>
                   <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (writing/10)*100))}%`, background: '#63B3ED' }} />
+                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
+                    {[6,8,9.5,9.9].map((t, i, arr) => {
+                      const pos = Math.max(0, Math.min(100, (t/10)*100));
+                      const unlocked = writing >= t;
+                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
+                      const isCurrent = unlocked && writing < next;
+                      return (
+                        <div key={i} style={{
+                          ...styles.barTick,
+                          left: `calc(${pos}% - 1px)`,
+                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
+                        }} />
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={styles.progressHelp}>Improves composition quality; pairs with Write days for higher song scores.</div>
-                {DICE_MODE && (
+                
+                {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
                     Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` • Next: d${nextDieInfo(writing).f} at ≥ ${nextDieInfo(writing).t.toFixed(1)}` : ' • Max die unlocked'}
+                  </div>
+                )}
+                {false && DICE_MODE && (
+                  <div style={styles.progressHelp}>
+                    Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` Next: d${nextDieInfo(writing).f} at ${nextDieInfo(writing).t.toFixed(1)}` : ' Max die unlocked'}
                   </div>
                 )}
 
                 <div style={styles.progressLabel}><span>Stage</span><span>{stage.toFixed(2)} / 10</span></div>
                 <div style={styles.progressTrack}>
                   <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (stage/10)*100))}%`, background: '#F6AD55' }} />
+                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
+                    {[6,8,9.5,9.9].map((t, i, arr) => {
+                      const pos = Math.max(0, Math.min(100, (t/10)*100));
+                      const unlocked = stage >= t;
+                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
+                      const isCurrent = unlocked && stage < next;
+                      return (
+                        <div key={i} style={{
+                          ...styles.barTick,
+                          left: `calc(${pos}% - 1px)`,
+                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
+                        }} />
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={styles.progressHelp}>Boosts performance presence; pairs with Perform days and gigs for impact.</div>
-                {DICE_MODE && (
+                
+                {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
                     Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` • Next: d${nextDieInfo(stage).f} at ≥ ${nextDieInfo(stage).t.toFixed(1)}` : ' • Max die unlocked'}
                   </div>
@@ -1518,40 +1725,7 @@ export default function App() {
                   Book Gig
                 </button>
               </div>
-              {DICE_MODE && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={styles.label}>This Week's Rolls</div>
-                  <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:6 }}>
-                    {(() => { const rb=rollBest.sing; const faces = rb? rb.faces : facesFor(vocals); const val = rb? rb.value : null; const frac = val? (faces+1-val)/faces : null; const bg = frac==null? 'rgba(0,0,0,.35)' : (frac>=0.66? 'rgba(80,180,120,.55)' : frac>=0.33? 'rgba(200,160,80,.55)' : 'rgba(200,90,90,.55)'); return (
-                      <div style={{...styles.diceChip, background:bg}} title="Sing">
-                        <div style={styles.diceLabel}>S</div>
-                        <div style={styles.diceVal}>{val? `${val}/${faces}` : `d${faces}`}</div>
-                      </div>
-                    ); })()}
-                    {(() => { const rb=rollBest.write; const faces = rb? rb.faces : facesFor(writing); const val = rb? rb.value : null; const frac = val? (faces+1-val)/faces : null; const bg = frac==null? 'rgba(0,0,0,.35)' : (frac>=0.66? 'rgba(80,180,120,.55)' : frac>=0.33? 'rgba(200,160,80,.55)' : 'rgba(200,90,90,.55)'); return (
-                      <div style={{...styles.diceChip, background:bg}} title="Write">
-                        <div style={styles.diceLabel}>W</div>
-                        <div style={styles.diceVal}>{val? `${val}/${faces}` : `d${faces}`}</div>
-                      </div>
-                    ); })()}
-                    {(() => { const rb=rollBest.perform; const faces = rb? rb.faces : facesFor(stage); const val = rb? rb.value : null; const frac = val? (faces+1-val)/faces : null; const bg = frac==null? 'rgba(0,0,0,.35)' : (frac>=0.66? 'rgba(80,180,120,.55)' : frac>=0.33? 'rgba(200,160,80,.55)' : 'rgba(200,90,90,.55)'); return (
-                      <div style={{...styles.diceChip, background:bg}} title="Perform">
-                        <div style={styles.diceLabel}>P</div>
-                        <div style={styles.diceVal}>{val? `${val}/${faces}` : `d${faces}`}</div>
-                      </div>
-                    ); })()}
-                  </div>
-                  <div style={{ display:'flex', gap:8, marginTop:8 }}>
-                    <button disabled={!conceptLocked || remaining<=0} style={styles.secondaryBtn}
-                      onClick={() => { setMyMusicOpen(false); setFinanceOpen(false); instruct('practice'); }}>Reroll Sing</button>
-                    <button disabled={!conceptLocked || remaining<=0} style={styles.secondaryBtn}
-                      onClick={() => { setMyMusicOpen(false); setFinanceOpen(false); instruct('write'); }}>Reroll Write</button>
-                    <button disabled={!conceptLocked || remaining<=0} style={styles.secondaryBtn}
-                      onClick={() => { setMyMusicOpen(false); setFinanceOpen(false); instruct('perform'); }}>Reroll Perform</button>
-                  </div>
-                  <div style={{ ...styles.sub, marginTop:6 }}>Lower rolls are better; better dice reduce worst-case.</div>
-                </div>
-              )}
+              
               <button onClick={() => setMyMusicOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
           </div>
@@ -1843,7 +2017,7 @@ const styles = {
     padding: 16,
     background: "#0b0f19",
     color: "white",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+    fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
   },
   card: {
     width: "100%",
@@ -1934,10 +2108,27 @@ const styles = {
     filter: 'drop-shadow(0 1px 1px rgba(0,0,0,.3))',
   },
   actionImg: {
-    width: 72,
-    height: 72,
+    width: 95,
+    height: 95,
     objectFit: 'contain',
     pointerEvents: 'none',
+  },
+  actionBtnWrap: { position:'relative', display:'inline-block' },
+  actionBtnRoll: {
+    position:'absolute',
+    left: 26,
+    bottom: 43,
+    color: '#574483',
+    fontWeight: 900,
+    fontSize: 8,
+    textShadow: '0 2px 4px rgba(0,0,0,.7)',
+    zIndex: 10,
+    pointerEvents: 'none',
+    transform: 'translateX(-50%)',
+    width: 18,
+    textAlign: 'center',
+    fontFamily: 'monospace',
+    fontVariantNumeric: 'tabular-nums',
   },
   chairImg: {
     width: 72,
@@ -2037,6 +2228,7 @@ const styles = {
     gap: 6,
   },
   actionBtn: {
+    position: 'relative',
     background: 'transparent',
     border: 'none',
     padding: 0,
@@ -2063,6 +2255,7 @@ const styles = {
     color: "black",
     fontWeight: 900,
     fontSize: 16,
+    fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
   },
   primaryBtnDisabled: {
     width: "100%",
@@ -2074,6 +2267,7 @@ const styles = {
     color: "rgba(255,255,255,.6)",
     fontWeight: 900,
     fontSize: 16,
+    fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
   },
   secondaryBtn: {
     background: "transparent",
@@ -2082,6 +2276,7 @@ const styles = {
     borderRadius: 12,
     padding: "8px 10px",
     fontWeight: 700,
+    fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
   },
   resultTop: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   grade: {
@@ -2127,11 +2322,13 @@ const styles = {
   barTrack: { position:'relative', flex: 1, height: 14, borderRadius: 8, background: 'rgba(255,255,255,.08)', overflow: 'hidden' },
   barBackGrid: { position:'absolute', inset:0, background: 'linear-gradient(90deg, rgba(255,255,255,.08) 0 20%, transparent 20% 40%, rgba(255,255,255,.08) 40% 60%, transparent 60% 80%, rgba(255,255,255,.08) 80% 100%)' },
   barRight: { width: 96, textAlign: 'right', fontSize: 12 },
+  barMarkers: { position: 'absolute', inset: 0, pointerEvents: 'none' },
+  barTick: { position:'absolute', top: 0, width: 2, height: '100%', background: 'rgba(255,255,255,.5)', borderRadius: 1, boxShadow: '0 0 4px rgba(0,0,0,.25)' },
   buttonsOverlay: {
     position: 'absolute',
     bottom: 8,
     left: '50%',
-    transform: 'translateX(-50%) translateY(25px)',
+    transform: 'translateX(-50%) translateY(40px)',
     display: 'flex',
     gap: 8,
     padding: 0,
