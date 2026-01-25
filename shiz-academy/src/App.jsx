@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -209,7 +209,7 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
   if (songHistory && songHistory.length > 0) {
     const prev = songHistory[0];
     if (prev && prev.genre === genre && prev.theme === theme) {
-      tips.push("Too similar to last release — try varying genre or theme.");
+      tips.push("Too similar to last release � try varying genre or theme.");
     }
   }
   return tips;
@@ -218,8 +218,8 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
 const REVIEW_LINES = {
   Masterpiece: [
     "A once-in-a-generation masterpiece!",
-    "Unbelievable perfection — instant legend.",
-    "A timeless classic — pure magic.",
+    "Unbelievable perfection � instant legend.",
+    "A timeless classic � pure magic.",
   ],
   S: ["Instant classic!", "A career-defining hit!", "You owned the stage."],
   A: ["Strong release - fans will love it.", "A big step up!", "This one has real sparkle."],
@@ -232,7 +232,7 @@ const REVIEW_LINES = {
 const VENUES = {
   busking: {
     name: "Busking",
-    icon: "🧢",
+    icon: "??",
     cost: 0,
     breakEven: 45,
     payoutPerPoint: 0.8,
@@ -243,7 +243,7 @@ const VENUES = {
   },
   ozdustball: {
     name: "Ozdust Ball",
-    icon: "🍺",
+    icon: "??",
     cost: 20,
     breakEven: 60,
     payoutPerPoint: 1.3,
@@ -253,7 +253,7 @@ const VENUES = {
   },
   stadium: {
     name: "Stadium",
-    icon: "🏟",
+    icon: "??",
     cost: 500,
     breakEven: 85,
     payoutPerPoint: 2.2,
@@ -328,7 +328,13 @@ export default function App() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [earlyFinishEnabled, setEarlyFinishEnabled] = useState(true);
+  const [performerName, setPerformerName] = useState('Your Performer');
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [mirrorAnim, setMirrorAnim] = useState(false);
   const [pairFeedback, setPairFeedback] = useState(null); // 'great combination' | 'okay combination' | 'risky combination' | null
+  // If set, the next roll (one action) will use these faces and buttons reflect this temporarily
+  const [nextRollOverride, setNextRollOverride] = useState(null); // 20 | 12 | 6 | null
   // Dice mode state (per week)
   const [rollBest, setRollBest] = useState({ sing: null, write: null, perform: null });
   const [rollHistory, setRollHistory] = useState([]); // {day, action, value, faces}
@@ -420,6 +426,61 @@ export default function App() {
     return null;
   }
 
+  function dieBadgePath(faces) {
+    if (faces === 20) return '/art/d20badge.png';
+    if (faces === 12) return '/art/d12badge.png';
+    if (faces === 6) return '/art/d6badge.png';
+    return null;
+  }
+
+  function dieProgress(stat){
+    const seq = [
+      { floor:0, t:6, curr:20, next:12 },
+      { floor:6, t:8, curr:12, next:10 },
+      { floor:8, t:9.5, curr:10, next:8 },
+      { floor:9.5, t:9.9, curr:8, next:6 },
+    ];
+    if (stat >= 9.9) return { curr:6, next:null, pct:1, floor:9.9, goal:10 };
+    for (let i=0;i<seq.length;i++){
+      const s = seq[i];
+      if (stat < s.t){
+        const pct = Math.max(0, Math.min(1, (stat - s.floor) / (s.t - s.floor)));
+        return { curr:s.curr, next:s.next, pct, floor:s.floor, goal:s.t };
+      }
+    }
+    return { curr:20, next:12, pct:0, floor:0, goal:6 };
+  }
+
+  function actionButtonSrc(type) {
+    // Resolve faces with one-shot override first
+    let faces = nextRollOverride || (type === 'practice' ? facesFor(vocals) : type === 'write' ? facesFor(writing) : facesFor(stage));
+    if (type === 'practice') {
+      if (faces === 12) return '/art/singd12button.png';
+      if (faces === 6) return '/art/singd6button.png';
+      return '/art/singbutton2.png';
+    }
+    if (type === 'write') {
+      if (faces === 12) return '/art/writed12button.png';
+      if (faces === 6) return '/art/writed6button.png';
+      return '/art/writebutton2.png';
+    }
+    // perform/dance
+    if (faces === 12) return '/art/danced12button.png';
+    if (faces === 6) return '/art/danced6button.png';
+    return '/art/dancebutton2.png';
+  }
+
+  // Animate mirror modal entry/exit
+  useEffect(() => {
+    if (statsOpen) {
+      // small delay to allow mount then animate
+      const t = setTimeout(() => setMirrorAnim(true), 10);
+      return () => clearTimeout(t);
+    } else {
+      setMirrorAnim(false);
+    }
+  }, [statsOpen]);
+
   function pushToast(text) {
     const id = Date.now() + Math.random();
     setToasts((arr)=>[...arr, {id, text}]);
@@ -466,7 +527,7 @@ export default function App() {
     if (curr.write < prevFaces.write) changes.push({label:'Write', from: prevFaces.write, to: curr.write});
     if (curr.perform < prevFaces.perform) changes.push({label:'Perform', from: prevFaces.perform, to: curr.perform});
     if (changes.length) {
-      changes.forEach(c=> pushToast(`${c.label} die upgraded: d${c.from} → d${c.to}`));
+      changes.forEach(c=> pushToast(`${c.label} die upgraded: d${c.from} ? d${c.to}`));
       pushToast('Train with actions and gigs to improve dice');
       setPrevFaces(curr);
     }
@@ -544,7 +605,7 @@ export default function App() {
       const y = percentWithOffset(60, 30, ROOM_HEIGHT);
       return { x, y };
     }
-    // perform → mirror
+    // perform ? mirror
     const x = percentWithOffset(80, 10, roomWidth);
     const y = percentWithOffset(65, 50, ROOM_HEIGHT);
     return { x, y };
@@ -633,7 +694,9 @@ export default function App() {
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
-      if (typeof s.bonusRolls === "number") setBonusRolls(s.bonusRolls);
+      if (typeof s.performerName === "string") setPerformerName(s.performerName);
+      if (typeof s.performerName === "string") setPerformerName(s.performerName);
+      if (typeof s.nextRollOverride === "number") setNextRollOverride(s.nextRollOverride);
       if (s.rollBest) setRollBest(s.rollBest);
       if (Array.isArray(s.rollHistory)) setRollHistory(s.rollHistory);
       if (Array.isArray(s.actions)) {
@@ -696,6 +759,8 @@ export default function App() {
       weekStageGain,
       lastResult,
       earlyFinishEnabled,
+      performerName,
+      nextRollOverride,
       bonusRolls,
       ts: Date.now(),
     };
@@ -704,7 +769,7 @@ export default function App() {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
@@ -725,6 +790,8 @@ export default function App() {
         performT,
         lastResult,
         earlyFinishEnabled,
+        performerName,
+        nextRollOverride,
         bonusRolls,
         ts: Date.now(),
       };
@@ -766,7 +833,7 @@ export default function App() {
       // Sum triad contributions from recorded actions (exclude gigs)
       const triadSum = actions.reduce((acc, a) => a.t === 'gig' ? acc : acc + (a.m||0) + (a.l||0) + (a.p||0), 0);
       triadBase = triadSum * 5; // retuned lower early power
-      // Early-week dampener (weeks 1–6): gradually scales up to full power
+      // Early-week dampener (weeks 1�6): gradually scales up to full power
       const earlyFactor = Math.min(1, 0.75 + (week - 1) * 0.05);
       triadBase *= earlyFactor;
     }
@@ -800,7 +867,7 @@ export default function App() {
     let net = Math.floor(gross - (venue.cost ?? 0));
     // Busking never loses money; small tip floor
     if (venueKey === 'busking') net = Math.max(venue.tipFloor ?? 5, net);
-    // Early guardrail: weeks 1–3, cap losses
+    // Early guardrail: weeks 1�3, cap losses
     if (week <= 3) net = Math.max(net, -20);
 
     const moneyGain = net;
@@ -934,35 +1001,38 @@ export default function App() {
               setActivity("write");
               setStatus("Writing a catchy hook...");
               if (DICE_MODE) {
-                const faces = facesFor(writing);
+                const faces = nextRollOverride || facesFor(writing);
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, write: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
                 setRollFxHoldMs(1200);
+                if (nextRollOverride) setNextRollOverride(null);
               }
             } else if (act === "practice") {
               setActivity("singing");
               setStatus("Practicing vocal runs...");
               playSingSfx();
               if (DICE_MODE) {
-                const faces = facesFor(vocals);
+                const faces = nextRollOverride || facesFor(vocals);
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, sing: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'sing', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'sing' });
                 setRollFxHoldMs(5000);
+                if (nextRollOverride) setNextRollOverride(null);
               }
             } else if (act === "perform") {
               setActivity("dancing");
               setStatus("Rehearsing stage moves...");
               if (DICE_MODE) {
-                const faces = facesFor(stage);
+                const faces = nextRollOverride || facesFor(stage);
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, perform: { value, faces } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'perform', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'perform' });
                 setRollFxHoldMs(5000);
+                if (nextRollOverride) setNextRollOverride(null);
               }
             }
             const dur = act === 'practice' ? 5000 : act === 'perform' ? 5000 : 1200;
@@ -1179,7 +1249,8 @@ export default function App() {
             <div style={styles.roomOuter}>
               <div style={{ ...styles.room, width: roomWidth, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackground.png')" }}>
               {/* Room HUD removed per request (Week/Remaining moved to Calendar) */}
-              <div style={styles.hudMoney}>💷 {money}</div>
+              <div style={styles.hudMoney}>£ {money}</div>
+              <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               {DICE_MODE && SHOW_DICE_MINI && (
                 <div style={styles.diceMiniOverlay}>
                   {(() => { const rb=rollBest.sing; const faces = rb? rb.faces : facesFor(vocals); const val = rb? rb.value : null; const bg = bubbleBg(val||0, faces); return (
@@ -1250,9 +1321,9 @@ export default function App() {
                   ) : (
                     <img src="/art/idle.gif" alt="Performer idle" style={styles.performerImg} />
                   )}
-                  {activity === "write" && <div style={styles.actionEmoji}>✍️</div>}
-                  {activity === "sing" && <div style={styles.actionEmoji}>🎶</div>}
-                  {activity === "dance" && <div style={styles.actionEmoji}>💃</div>}
+                  {activity === "write" && <div style={styles.actionEmoji}>??</div>}
+                  {activity === "sing" && <div style={styles.actionEmoji}>??</div>}
+                  {activity === "dance" && <div style={styles.actionEmoji}>??</div>}
                 </div>
                 {DICE_MODE && rollFx.show && (
                   <div style={{
@@ -1326,7 +1397,7 @@ export default function App() {
                   <div style={styles.buttonsOverlay}>
                     <div style={styles.actionBtnWrap}>
                       <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("practice")} style={styles.actionBtn}>
-                        <img src="/art/singbutton2.png" alt="Sing" style={{
+                        <img src={actionButtonSrc('practice')} alt="Sing" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='sing') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.sing ? { filter: solidOutlineFilter(rollGlow.sing) } : {})),
                         }} />
@@ -1337,7 +1408,7 @@ export default function App() {
                     </div>
                     <div style={styles.actionBtnWrap}>
                       <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("write")} style={styles.actionBtn}>
-                        <img src="/art/writebutton2.png" alt="Write" style={{
+                        <img src={actionButtonSrc('write')} alt="Write" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='write') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.write ? { filter: solidOutlineFilter(rollGlow.write) } : {})),
                         }} />
@@ -1348,7 +1419,7 @@ export default function App() {
                     </div>
                     <div style={styles.actionBtnWrap}>
                       <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("perform")} style={styles.actionBtn}>
-                        <img src="/art/dancebutton2.png" alt="Perform" style={{
+                        <img src={actionButtonSrc('perform')} alt="Perform" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='perform') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.perform ? { filter: solidOutlineFilter(rollGlow.perform) } : {})),
                         }} />
@@ -1367,7 +1438,7 @@ export default function App() {
                     <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>M</button>
                     <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>C</button>
                     <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>Sh</button>
-                    <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>✕</button>
+                    <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>?</button>
                   </div>
                 </div>
               )}
@@ -1376,20 +1447,6 @@ export default function App() {
 
             {/* Book Gig moved into the computer modal */}
             {/* Gigs count removed per request */}
-
-            <div style={styles.weekStrip}>
-              {Array.from({ length: totalRolls }).map((_, i) => {
-                const a = actions[i];
-                const t = a?.t;
-                const icon = t === "practice" ? "🎤" : t === "write" ? "✍️" : t === "perform" ? "🎶" : t === "gig" ? "🎫" : "";
-                return (
-                  <div key={i} style={styles.dayCell} title={t ? t : "Unused day"}>
-                    <div style={styles.dayLabel}>{i+1}</div>
-                    <div style={t ? styles.dayIconOn : styles.dayIconOff}>{icon || ""}</div>
-                  </div>
-                );
-              })}
-            </div>
 
             {canRelease && !finishedReady && (
               <button
@@ -1401,7 +1458,7 @@ export default function App() {
             )}
             {finishedReady && (
               <>
-                <div style={{ ...styles.sub, marginTop: 8 }}>Song finished — ready to perform.</div>
+                <div style={{ ...styles.sub, marginTop: 8 }}>Song finished � ready to perform.</div>
                 <button
                   onClick={() => setVenueOpen(true)}
                   style={{ ...styles.primaryBtn, marginTop: 8 }}
@@ -1421,8 +1478,8 @@ export default function App() {
               <div style={styles.title}>Year Summary</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Songs Released</span><b>{songHistory.length}</b></div>
-                <div style={styles.statRow}><span>Best Chart</span><b>{bestChart != null ? `#${bestChart}` : '—'}</b></div>
-                <div style={styles.statRow}><span>Best Grade</span><b>{bestGrade ?? '—'}</b></div>
+                <div style={styles.statRow}><span>Best Chart</span><b>{bestChart != null ? `#${bestChart}` : ''}</b></div>
+                <div style={styles.statRow}><span>Best Grade</span><b>{bestGrade ?? ''}</b></div>
                 <div style={styles.statRow}><span>Total Earnings</span><b>{songHistory.reduce((sum,s)=> sum + (s.moneyGain||0), 0)}</b></div>
                 <div style={styles.statRow}><span>Final Fans</span><b>{fans}</b></div>
                 <div style={{ ...styles.sub, marginTop: 8 }}>
@@ -1479,7 +1536,7 @@ export default function App() {
             <div style={styles.modal}>
               <div style={styles.title}>Menu</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
-                Week {week} • Money {money} • Fans {fans}
+                Week {week} � Money {money} � Fans {fans}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
                 <button onClick={() => setMenuOpen(false)} style={styles.primaryBtn}>Resume</button>
@@ -1551,32 +1608,76 @@ export default function App() {
 
         {statsOpen && (
           <div style={styles.overlay} onClick={() => setStatsOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Performer Stats</div>
-              <div style={{ marginTop: 8 }}>
-                <div style={styles.progressLabel}><span>Vocals</span><span>{vocals.toFixed(2)} / 10</span></div>
-                <div style={styles.progressTrack}>
-                  <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (vocals/10)*100))}%`, background: '#9AE6B4' }} />
-                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
-                    {[6,8,9.5,9.9].map((t, i, arr) => {
-                      const pos = Math.max(0, Math.min(100, (t/10)*100));
-                      const unlocked = vocals >= t;
-                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
-                      const isCurrent = unlocked && vocals < next;
-                      return (
-                        <div key={i} style={{
-                          ...styles.barTick,
-                          left: `calc(${pos}% - 1px)`,
-                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
-                        }} />
-                      );
-                    })}
+            <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={styles.mirrorInner}>
+                  <div style={{
+                    ...styles.title,
+                    textAlign: 'center',
+                    marginTop: 5,
+                    fontFamily: "'Lobster', cursive",
+                    fontWeight: 400,
+                    color: '#fff',
+                    WebkitTextStroke: '1px #6b4a2b',
+                    textShadow: '1px 0 #6b4a2b, -1px 0 #6b4a2b, 0 1px #6b4a2b, 0 -1px #6b4a2b'
+                  }}>
+                  {editingName ? (
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      <input
+                        autoFocus
+                        value={tempName}
+                      onChange={(e)=>setTempName(e.target.value)}
+                      onKeyDown={(e)=>{ if(e.key==='Enter'){ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false);} if(e.key==='Escape'){ setEditingName(false);} }}
+                      style={{ ...styles.input, height:32, fontWeight:800 }}
+                    />
+                    <button className="btn" onClick={()=>{ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false); }} style={styles.smallBtn}>Save</button>
                   </div>
-                </div>
+                ) : (
+                  <span onClick={()=>{ setTempName(performerName); setEditingName(true); }} title="Click to rename" style={{ cursor:'text' }}>{performerName}</span>
+                )}
+                  </div>
+                  <div style={{ marginTop: 14, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
+                    <div style={styles.portraitWrap}>
+                      <img src="/art/mirrorportrait.png" alt="Performer portrait" style={styles.portraitImg} />
+                    </div>
+                    <div style={{ flex:1 }}>
+                  <div style={styles.progressLabel}><span>Vocals</span></div>
+                {(() => { 
+                  const pr = dieProgress(vocals); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
+                  const col1 = '#B084F5', col2 = '#7A4CC4';
+                  return (
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(176,132,245,.15)', border:'1px solid rgba(176,132,245,.35)', borderRadius:10, width:'72%' }}>
+                    {dieBadgePath(pr.curr) ? (
+                      <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
+                        <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>d{pr.curr}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#c39af7,#8d60d8)', border:'1px solid rgba(176,132,245,.8)' }}>d{pr.curr}</div>
+                    )}
+                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                      <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
+                        <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
+                        <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
+                      </div>
+                      {pr.next && (
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(176,132,245,.9)', border:'1px solid #6d49b7' }} />
+                      )}
+                    </div>
+                    {dieBadgePath(pr.next) ? (
+                      <div style={{...styles.dieBadgeWrap, marginRight:-6}}>
+                        <img src={dieBadgePath(pr.next)} alt={`d${pr.next}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>{nextLabel}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#d7c4fb,#9a79e5)', border:'1px solid rgba(176,132,245,.8)', opacity: pr.next? 1 : .5 }}>{nextLabel}</div>
+                    )}
+                  </div>
+                ); })()}
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` • Next: d${nextDieInfo(vocals).f} at ≥ ${nextDieInfo(vocals).t.toFixed(1)}` : ' • Max die unlocked'}
+                    Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` � Next: d${nextDieInfo(vocals).f} at = ${nextDieInfo(vocals).t.toFixed(1)}` : ' � Max die unlocked'}
                   </div>
                 )}
                 {false && DICE_MODE && (
@@ -1585,29 +1686,43 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={styles.progressLabel}><span>Writing</span><span>{writing.toFixed(2)} / 10</span></div>
-                <div style={styles.progressTrack}>
-                  <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (writing/10)*100))}%`, background: '#63B3ED' }} />
-                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
-                    {[6,8,9.5,9.9].map((t, i, arr) => {
-                      const pos = Math.max(0, Math.min(100, (t/10)*100));
-                      const unlocked = writing >= t;
-                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
-                      const isCurrent = unlocked && writing < next;
-                      return (
-                        <div key={i} style={{
-                          ...styles.barTick,
-                          left: `calc(${pos}% - 1px)`,
-                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
-                        }} />
-                      );
-                    })}
+                <div style={styles.progressLabel}><span>Writing</span></div>
+                {(() => { 
+                  const pr = dieProgress(writing); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
+                  const col1 = '#5FE7D9', col2 = '#2AA296';
+                  return (
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(95,231,217,.12)', border:'1px solid rgba(95,231,217,.35)', borderRadius:10, width:'72%' }}>
+                    {dieBadgePath(pr.curr) ? (
+                      <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
+                        <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>d{pr.curr}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#8ff1e8,#3dbbb0)', border:'1px solid rgba(95,231,217,.7)' }}>d{pr.curr}</div>
+                    )}
+                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                      <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
+                        <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
+                        <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
+                      </div>
+                      {pr.next && (
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(95,231,217,.9)', border:'1px solid #1f7f76' }} />
+                      )}
+                    </div>
+                    {dieBadgePath(pr.next) ? (
+                      <div style={{...styles.dieBadgeWrap, marginRight:-6}}>
+                        <img src={dieBadgePath(pr.next)} alt={`d${pr.next}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>{nextLabel}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#c0f7f0,#70d9cf)', border:'1px solid rgba(95,231,217,.7)', opacity: pr.next? 1 : .5 }}>{nextLabel}</div>
+                    )}
                   </div>
-                </div>
+                ); })()}
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` • Next: d${nextDieInfo(writing).f} at ≥ ${nextDieInfo(writing).t.toFixed(1)}` : ' • Max die unlocked'}
+                    Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` � Next: d${nextDieInfo(writing).f} at = ${nextDieInfo(writing).t.toFixed(1)}` : ' � Max die unlocked'}
                   </div>
                 )}
                 {false && DICE_MODE && (
@@ -1616,35 +1731,52 @@ export default function App() {
                   </div>
                 )}
 
-                <div style={styles.progressLabel}><span>Stage</span><span>{stage.toFixed(2)} / 10</span></div>
-                <div style={styles.progressTrack}>
-                  <div style={{ ...styles.progressFill, width: `${Math.min(100, Math.max(0, (stage/10)*100))}%`, background: '#F6AD55' }} />
-                  <div style={{ ...styles.barMarkers, ...(false ? {} : { display: 'none' }) }}>
-                    {[6,8,9.5,9.9].map((t, i, arr) => {
-                      const pos = Math.max(0, Math.min(100, (t/10)*100));
-                      const unlocked = stage >= t;
-                      const next = (i+1 < arr.length) ? arr[i+1] : 11;
-                      const isCurrent = unlocked && stage < next;
-                      return (
-                        <div key={i} style={{
-                          ...styles.barTick,
-                          left: `calc(${pos}% - 1px)`,
-                          background: isCurrent ? '#64d49a' : unlocked ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.35)'
-                        }} />
-                      );
-                    })}
+                <div style={styles.progressLabel}><span>Stage</span></div>
+                {(() => { 
+                  const pr = dieProgress(stage); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
+                  const col1 = '#F7D774', col2 = '#C79C2A';
+                  return (
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(247,215,116,.12)', border:'1px solid rgba(247,215,116,.35)', borderRadius:10, width:'72%' }}>
+                    {dieBadgePath(pr.curr) ? (
+                      <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
+                        <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>d{pr.curr}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#ffe39c,#e1b951)', border:'1px solid rgba(247,215,116,.7)' }}>d{pr.curr}</div>
+                    )}
+                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                      <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
+                        <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
+                        <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
+                      </div>
+                      {pr.next && (
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(247,215,116,.9)', border:'1px solid #c29a2a' }} />
+                      )}
+                    </div>
+                    {dieBadgePath(pr.next) ? (
+                      <div style={{...styles.dieBadgeWrap, marginRight:-6}}>
+                        <img src={dieBadgePath(pr.next)} alt={`d${pr.next}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>{nextLabel}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#ffeab6,#f2cd62)', border:'1px solid rgba(247,215,116,.7)', opacity: pr.next? 1 : .5 }}>{nextLabel}</div>
+                    )}
                   </div>
-                </div>
+                ); })()}
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` • Next: d${nextDieInfo(stage).f} at ≥ ${nextDieInfo(stage).t.toFixed(1)}` : ' • Max die unlocked'}
+                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` � Next: d${nextDieInfo(stage).f} at = ${nextDieInfo(stage).t.toFixed(1)}` : ' � Max die unlocked'}
                   </div>
                 )}
+                    </div>
+                  </div>
+                  <button onClick={() => setStatsOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12, alignSelf:'center', maxWidth: 160, padding:'6px 12px', fontSize: 12, borderRadius: 10 }}>
+                    Close
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setStatsOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
-                Close
-              </button>
             </div>
           </div>
         )}
@@ -1656,7 +1788,7 @@ export default function App() {
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Social</div>
               <div style={{ marginTop: 8 }}>
-                <div style={styles.statRow}><span>⭐ Fans</span><b>{fans}</b></div>
+                <div style={styles.statRow}><span>? Fans</span><b>{fans}</b></div>
               </div>
               <button onClick={() => setSocialOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
@@ -1670,29 +1802,38 @@ export default function App() {
               <div style={{ ...styles.sub, marginTop: 6 }}>Rolls available this week: <b>{Math.max(0, totalRolls - actions.length)}</b> / {totalRolls}</div>
               <div style={{ display:'grid', gap:8, marginTop: 10 }}>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ fontWeight:700 }}>Extra d20 roll</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                    <img src="/art/d20badge.png" alt="d20" style={{ width:20, height:20, objectFit:'contain' }} />
+                    Extra d20 roll
+                  </div>
                   <div style={styles.sub}>Adds +1 roll this week. Cheap.</div>
                   <button
                     disabled={money < 15}
-                    onClick={() => { if (money>=15){ setMoney(m=>m-15); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d20 roll (+1)'); } }}
+                    onClick={() => { if (money>=15){ setMoney(m=>m-15); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) ? next roll uses d20'); } }}
                     style={money<15? styles.primaryBtnDisabled : styles.primaryBtn}
                   >Buy (15)</button>
                 </div>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ fontWeight:700 }}>Extra d12 roll</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                    <img src="/art/d12badge.png" alt="d12" style={{ width:20, height:20, objectFit:'contain' }} />
+                    Extra d12 roll
+                  </div>
                   <div style={styles.sub}>Adds +1 roll this week. Pricier.</div>
                   <button
                     disabled={money < 40}
-                    onClick={() => { if (money>=40){ setMoney(m=>m-40); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d12 roll (+1)'); } }}
+                    onClick={() => { if (money>=40){ setMoney(m=>m-40); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) ? next roll uses d12'); } }}
                     style={money<40? styles.primaryBtnDisabled : styles.primaryBtn}
                   >Buy (40)</button>
                 </div>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ fontWeight:700 }}>Extra d6 roll</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                    <img src="/art/d6badge.png" alt="d6" style={{ width:20, height:20, objectFit:'contain' }} />
+                    Extra d6 roll
+                  </div>
                   <div style={styles.sub}>Adds +1 roll this week. Most expensive.</div>
                   <button
                     disabled={money < 100}
-                    onClick={() => { if (money>=100){ setMoney(m=>m-100); setBonusRolls(r=>r+1); pushToast('Purchased: Extra d6 roll (+1)'); } }}
+                    onClick={() => { if (money>=100){ setMoney(m=>m-100); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) ? next roll uses d6'); } }}
                     style={money<100? styles.primaryBtnDisabled : styles.primaryBtn}
                   >Buy (100)</button>
                 </div>
@@ -1761,7 +1902,7 @@ export default function App() {
               <div style={styles.title}>Release Results</div>
               <div style={{ marginTop: 8 }}>
                 <div style={{ ...styles.sub, marginBottom: 6 }}>
-                  🎵 <b>{lastResult.songName}</b> — {lastResult.genre} / {lastResult.theme}
+                  ?? <b>{lastResult.songName}</b> � {lastResult.genre} / {lastResult.theme}
                 </div>
                 <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
                 <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
@@ -1773,7 +1914,7 @@ export default function App() {
                   "{lastResult.review}"
                 </div>
                 <div style={{ ...styles.sub, marginTop: 8 }}>
-                  +{lastResult.moneyGain} money • +{lastResult.fansGain} fans
+                  +{lastResult.moneyGain} money � +{lastResult.fansGain} fans
                 </div>
                 {lastResult.feedback && lastResult.feedback.length > 0 && (
                   <div style={{ marginTop: 10 }}>
@@ -1863,7 +2004,7 @@ export default function App() {
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
                       <div>
                         <div style={{ fontWeight: 700 }}>{s.songName}</div>
-                        <div style={{ ...styles.sub }}>Grade {s.grade} • #{s.chartPos}</div>
+                        <div style={{ ...styles.sub }}>Grade {s.grade} � #{s.chartPos}</div>
                       </div>
                       <button style={styles.smallBtn} onClick={() => setSelectedGigSong(s)}>Select</button>
                     </div>
@@ -1872,7 +2013,7 @@ export default function App() {
               </div>
               {selectedGigSong && (
                 <div style={{ marginTop: 10 }}>
-                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> • Fixed score {selectedGigSong.score} • Gigs this week: {weeklyGigs}/{MAX_GIGS_PER_WEEK}</div>
+                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> � Fixed score {selectedGigSong.score} � Gigs this week: {weeklyGigs}/{MAX_GIGS_PER_WEEK}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {Object.entries(VENUES).map(([key, v]) => {
                       const expected = selectedGigSong.score;
@@ -1971,7 +2112,7 @@ export default function App() {
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <span>
                           <b>{s.songName}</b>
-                          <span style={{ opacity: .7 }}> • #{s.chartPos}</span>
+                          <span style={{ opacity: .7 }}> � #{s.chartPos}</span>
                         </span>
                         <span>
                           <span style={{ opacity: .8, marginRight: 8 }}>{s.grade}</span>
@@ -1984,8 +2125,8 @@ export default function App() {
                           <div style={{ marginTop: 4 }}>
                             {s.gigs.slice(-3).reverse().map((g, i2) => (
                               <div key={i2} style={{ display:'flex', justifyContent:'space-between' }}>
-                                <span>Week {g.week} • {g.venue}</span>
-                                <span>+{g.moneyGain} • +{g.fansGain} fans</span>
+                                <span>Week {g.week} � {g.venue}</span>
+                                <span>+{g.moneyGain} � +{g.fansGain} fans</span>
                               </div>
                             ))}
                             {s.gigs.length > 3 && <div style={{ opacity: .7 }}>(+{s.gigs.length - 3} more)</div>}
@@ -2295,13 +2436,14 @@ const styles = {
   overlay: {
     position: "absolute",
     inset: 0,
-    background: "rgba(0,0,0,.55)",
+    background: "rgba(0,0,0,.35)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     padding: 14,
     borderRadius: 16,
     zIndex: 1000,
+    backdropFilter: 'blur(4px)'
   },
   modal: {
     width: "100%",
@@ -2311,11 +2453,47 @@ const styles = {
     padding: 14,
     boxShadow: "0 10px 30px rgba(0,0,0,.4)",
   },
+  mirrorModal: {
+    width: '100%',
+    maxWidth: 500,
+    background: 'transparent',
+    borderRadius: 16,
+    padding: 0,
+    boxShadow: 'none'
+  },
+  mirrorFrame: {
+    position: 'relative',
+    width: '100%',
+    minHeight: 0,
+    borderRadius: 16,
+    backgroundImage: "url('/art/mirrormodalframe.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    overflow: 'hidden',
+    aspectRatio: '16 / 9',
+    filter: 'drop-shadow(0 0 16px rgba(160,255,200,.15))'
+  },
+  mirrorInner: {
+    position: 'relative',
+    padding: '25px 32px 26px 32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    maxWidth: 470,
+    margin: '0 auto'
+  },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
-  progressLabel: { display: 'flex', justifyContent: 'space-between', fontSize: 12, opacity: 0.9, marginTop: 8 },
-  progressTrack: { height: 10, borderRadius: 6, background: 'rgba(255,255,255,.12)', overflow: 'hidden', marginTop: 4 },
+  progressLabel: { display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 900, letterSpacing: .2, textTransform: 'uppercase', opacity: 0.95, marginTop: 8 },
+  progressTrack: { height: 10, borderRadius: 6, background: 'rgba(255,255,255,.12)', overflow: 'visible', marginTop: 4 },
   progressFill: { height: '100%', background: 'white' },
+  dieToken: { minWidth: 19, height: 12, borderRadius: 8, background:'rgba(255,255,255,.15)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:8, border:'1px solid rgba(255,255,255,.3)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.25), 0 2px 6px rgba(0,0,0,.25)' },
+  dieBadge: { width: 21, height: 21, objectFit: 'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,.35))' },
+  dieBadgeWrap: { position:'relative', width: 24, height: 24, display:'flex', alignItems:'center', justifyContent:'center', zIndex: 2 },
+  dieBadgeText: { position:'absolute', color:'#fff', fontWeight:900, fontSize: 9, textShadow: '0 1px 2px rgba(0,0,0,.6)',  },
+  portraitWrap: { width: 132, height: 132, borderRadius: 999, background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none', border:'none', marginTop: 10 },
+  portraitImg: { width: 116, height: 116, borderRadius: 999, objectFit: 'cover', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' },
   progressHelp: { fontSize: 11, opacity: 0.8, marginTop: 4 },
   barRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 },
   barLabel: { width: 90, fontSize: 12 },
@@ -2360,6 +2538,17 @@ const styles = {
     position: 'absolute',
     top: 8,
     right: 8,
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '6px 10px',
+    borderRadius: 12,
+    fontSize: 13,
+    zIndex: 3,
+  },
+  hudRolls: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
     background: 'rgba(0,0,0,.55)',
     border: '1px solid rgba(255,255,255,.35)',
     padding: '6px 10px',
@@ -2557,7 +2746,7 @@ function RadarSnapshot({ vocals, writing, stage, practiceT, writeT, performT, to
     const r = Math.max(0, Math.min(1, frac)) * R;
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
-  // Axes: 90° (Melody, up), 210° (Lyrics, down-left), 330° (Performance, down-right)
+  // Axes: 90� (Melody, up), 210� (Lyrics, down-left), 330� (Performance, down-right)
   const pMel = toXY(melFrac, -90 + 180); // adjust for SVG y downwards
   const pLyr = toXY(lyrFrac, 150);
   const pPer = toXY(perFrac, 30);
@@ -2634,6 +2823,19 @@ const ROOM_HEIGHT = 260;
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
