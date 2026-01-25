@@ -96,6 +96,125 @@ function effectSummary(eff) {
   return parts.join(' · ');
 }
 
+// Build 5 lightweight fan comments for a release entry
+function generateFanComments(entry, performerName) {
+  try {
+    const name = performerName || 'You';
+    const grade = entry?.grade || 'C';
+    const title = entry?.songName || 'your song';
+    const genre = entry?.genre;
+    const theme = entry?.theme;
+    const chart = entry?.chartPos;
+    const score = entry?.score;
+    const poolA = [
+      `On repeat! ${title} is unreal.`,
+      `Chills. ${name} absolutely delivered.`,
+      `That hook is living rent-free in my head.`,
+      `Peak ${genre}! Chef’s kiss.`,
+      `Instant fave — can’t stop humming it.`,
+    ];
+    const poolB = [
+      `Big step up — love the vibe.`,
+      `This chorus hits just right.`,
+      `Such a cool ${theme?.toLowerCase?.()||'mood'} energy.`,
+      `Solid track — more please!`,
+      `Clever lyrics and a catchy groove.`,
+    ];
+    const poolC = [
+      `I like this direction!`,
+      `Can’t wait to hear it live.`,
+      `Nice blend of styles.`,
+      `This will grow on people.`,
+      `Proud of the grind — keep going!`,
+    ];
+    const topNote = chart && chart <= 10 ? [`Top ${chart}! Legends in the making.`] : [];
+    const pickN = (arr, n) => {
+      const res = [];
+      const tmp = arr.slice();
+      for (let i=0; i<n && tmp.length>0; i++) {
+        const idx = randInt(0, tmp.length-1);
+        res.push(tmp[idx]);
+        tmp.splice(idx,1);
+      }
+      return res;
+    };
+    let base = poolC;
+    if (grade === 'B') base = poolB;
+    if (grade === 'A' || grade === 'S' || grade === 'Masterpiece') base = poolA;
+    const main = pickN(base, 4 - topNote.length);
+    const merged = [...topNote, ...main];
+    while (merged.length < 5) merged.push('Loving the growth each week!');
+    return merged.slice(0,5);
+  } catch (_) {
+    return ['Great track!', 'Love the vibe', 'On repeat', 'Can’t wait for next', 'Keep going!'];
+  }
+}
+
+// --- Global Trends (Top 5) ---
+const TREND_ARTISTS = [
+  'The Dillamond Dogs','Siren Soft-Step','Barnaby & The Beets','Lulu Lullaby','The Mossy Stones',
+  'Echo Mirage','Velvet Voltage','Neon Orchard','Crystal Caravan','Paper Suns',
+  'Golden Kites','Silver Harbor','Midnight Marmalade','Soft Static','Azure Bloom'
+];
+const TREND_TITLES = [
+  'Barking at the Pastel Moon','Dewdrop Symphony','Root Vegetable Blues','One More Nap','Rolling Down the Hill',
+  'City of Polaroids','Velvet Parachute','Northern Kite','Slow Glow','Soda Skies',
+  'Cloud Arcade','Lemon Nebula','Pocket Stardust','Sandy Echoes','Hollow Candies'
+];
+
+function pick(arr, r) { return arr[Math.floor(r()*arr.length)] }
+
+function genTrendsForWeek(week, performerName, seedTs) {
+  const rnd = rngFrom(hashSeed(`${performerName||'Performer'}|${seedTs||0}|W${week}`));
+  const items = [];
+  for (let i=0;i<5;i++) {
+    const artist = pick(TREND_ARTISTS, rnd);
+    const title = pick(TREND_TITLES, rnd);
+    const base = 75 + Math.floor(rnd()*18) + Math.floor((week/52)*4);
+    items.push({ rank:i+1, artist, title, score: base, isPlayer:false });
+  }
+  items.sort((a,b)=>b.score-a.score).forEach((it,idx)=>it.rank=idx+1);
+  return items;
+}
+
+// --- Fan avatars (spritesheet) ---
+const FAN_SPRITE = { path: '/art/socialmediaprofilepics.png', cols: 10, rows: 10, pad: 20 };
+function fanIdxFor(week, i, seedTs){
+  const total = (FAN_SPRITE.cols||10) * (FAN_SPRITE.rows||10);
+  const h = hashSeed(`${seedTs||0}|fan|${week}|${i}`);
+  return h % total;
+}
+function fanAvatarStyle(idx, size=24, meta){
+  const c = FAN_SPRITE.cols||10; const r = FAN_SPRITE.rows||10; const pad = FAN_SPRITE.pad||0;
+  const x = Math.max(0, idx % c); const y = Math.max(0, Math.floor(idx / c));
+  // If we have image meta (natural w/h), compute pixel-accurate background offset including padding
+  if (meta && meta.w && meta.h && typeof meta.tileW === 'number' && typeof meta.tileH === 'number') {
+    const scale = size / Math.max(1, meta.tileW);
+    const left = pad + x * (meta.tileW + pad);
+    const top  = pad + y * (meta.tileH + pad);
+    return {
+      width: size, height: size, borderRadius: 6,
+      backgroundImage: `url('${FAN_SPRITE.path}')`,
+      backgroundSize: `${meta.w * scale}px ${meta.h * scale}px`,
+      backgroundPosition: `-${left * scale}px -${top * scale}px`,
+      backgroundRepeat: 'no-repeat',
+      border: '1px solid rgba(255,255,255,.15)',
+      backgroundColor: 'rgba(255,255,255,.08)'
+    };
+  }
+  // Fallback: percent-based grid without padding awareness
+  const xPct = c>1 ? (x/(c-1))*100 : 0; const yPct = r>1 ? (y/(r-1))*100 : 0;
+  return {
+    width: size, height: size, borderRadius: 6,
+    backgroundImage: `url('${FAN_SPRITE.path}')`,
+    backgroundSize: `${c*100}% ${r*100}%`,
+    backgroundPosition: `${xPct}% ${yPct}%`,
+    backgroundRepeat: 'no-repeat',
+    border: '1px solid rgba(255,255,255,.15)',
+    backgroundColor: 'rgba(255,255,255,.08)'
+  };
+}
+
 // Compatibility hints: -1 (risky), 0 (okay), +1 (great)
 // Unlisted pairs default to 0
 const COMPAT = {
@@ -415,6 +534,11 @@ export default function App() {
   const [eventModal, setEventModal] = useState(null); // { event, pendingChoice: true|false }
   const [eventInfoModal, setEventInfoModal] = useState(null); // { events: [event,...] }
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
+
+  // Trends state
+  const [seedTs, setSeedTs] = useState(null);
+  const [trendsByWeek, setTrendsByWeek] = useState({}); // week -> TrendItem[]
+  const [fanSpriteMeta, setFanSpriteMeta] = useState(null); // { w,h,tileW,tileH }
 
   function facesFor(stat) {
     if (stat >= 9.9) return 6;
@@ -764,6 +888,8 @@ export default function App() {
       if (typeof s.started === "boolean") setStarted(s.started);
       if (Array.isArray(s.eventsSchedule)) setEventsSchedule(s.eventsSchedule);
       if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
+      if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
+      if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
@@ -821,6 +947,35 @@ export default function App() {
     }
   }, [eventsSchedule, performerName]);
 
+  // Seed for trends (stable per run)
+  useEffect(() => {
+    if (seedTs == null) setSeedTs(Date.now());
+  }, [seedTs]);
+
+  function ensureTrendsForWeek(wk) {
+    if (seedTs == null) return;
+    setTrendsByWeek(prev => {
+      if (prev && prev[wk]) return prev;
+      const base = genTrendsForWeek(wk, performerName, seedTs);
+      return { ...(prev||{}), [wk]: base };
+    });
+  }
+
+  // Load fan sprite image to compute tile sizes with padding
+  useEffect(() => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 0; const h = img.naturalHeight || 0;
+        const c = FAN_SPRITE.cols||10; const r = FAN_SPRITE.rows||10; const pad = FAN_SPRITE.pad||0;
+        const tileW = c>0 ? Math.max(1, Math.floor((w - (c+1)*pad) / c)) : 0;
+        const tileH = r>0 ? Math.max(1, Math.floor((h - (r+1)*pad) / r)) : 0;
+        setFanSpriteMeta({ w, h, tileW, tileH });
+      };
+      img.src = FAN_SPRITE.path;
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     const save = {
       week,
@@ -852,6 +1007,8 @@ export default function App() {
       bonusRolls,
       eventsSchedule,
       eventsResolved,
+      seedTs,
+      trendsByWeek,
       ts: Date.now(),
     };
     try {
@@ -885,6 +1042,8 @@ export default function App() {
         bonusRolls,
         eventsSchedule,
         eventsResolved,
+        seedTs,
+        trendsByWeek,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -1003,9 +1162,27 @@ export default function App() {
       moneyGain,
       fansGain: fansGainApplied,
       feedback,
+      fanComments: [],
     };
+    entry.fanComments = generateFanComments(entry, performerName);
     setLastResult(entry);
     setSongHistory((arr) => [entry, ...arr]);
+
+    // Update Global Trends for this release week (inject player A/S songs)
+    if (grade === 'A' || grade === 'S' || grade === 'Masterpiece') {
+      const wk = entry.releaseWeek;
+      setTrendsByWeek((prev) => {
+        const base = (prev && prev[wk]) ? prev[wk].slice() : genTrendsForWeek(wk, performerName, seedTs || Date.now());
+        const boost = Math.min(6, Math.floor(Math.log10((fans||0)+10) * 2));
+        const gradeBoost = grade === 'S' || grade === 'Masterpiece' ? 3 : 1;
+        const playerScore = score + boost + gradeBoost;
+        const existing = base.filter(it => !it.isPlayer);
+        existing.push({ rank:0, artist: performerName || 'You', title: songName || 'Your Song', score: playerScore, isPlayer:true });
+        existing.sort((a,b)=>b.score-a.score);
+        existing.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
+        return { ...(prev||{}), [wk]: existing.slice(0,5) };
+      });
+    }
 
     setWeek((w) => w + 1);
     resetWeekProgress();
@@ -1297,6 +1474,26 @@ export default function App() {
     setQueuedEventInfo(null);
   }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
 
+  // Ensure fan comments exist for this week's release once MyBubble opens
+  useEffect(() => {
+    if (!socialOpen) return;
+    const targetWeek = Math.max(1, week - 1);
+    const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek) || (songHistory||[])[0];
+    if (!entry) return;
+    if (!entry.fanComments || !entry.fanComments.length) {
+      const comments = generateFanComments(entry, performerName);
+      setSongHistory((arr) => {
+        const copy = arr.slice();
+        const idx = copy.findIndex((s) => s.releaseWeek === (entry.releaseWeek||entry.week) && s.songName === entry.songName);
+        if (idx >= 0) {
+          const e = { ...copy[idx], fanComments: comments };
+          copy[idx] = e;
+        }
+        return copy;
+      });
+    }
+  }, [socialOpen, week, performerName, songHistory]);
+
   // Title screen before starting
   if (!started) {
     return (
@@ -1586,7 +1783,7 @@ export default function App() {
                 {financeOpen && (
                   <div style={styles.desktopPanel}>
                     <div style={styles.desktopIcons}>
-                    <button style={styles.desktopIcon} title="Social" onClick={() => setSocialOpen(true)}>S</button>
+                    <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>Mb</button>
                     <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>M</button>
                     <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>C</button>
                     <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>Sh</button>
@@ -1937,10 +2134,57 @@ export default function App() {
 
         {socialOpen && (
           <div style={styles.overlay} onClick={() => setSocialOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Social</div>
-              <div style={{ marginTop: 8 }}>
-                <div style={styles.statRow}><span>Fans</span><b>{fans}</b></div>
+            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>MyBubble</div>
+              <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                <div style={{ flex:1 }}>
+                  <div style={styles.statRow}><span>Fans</span><b>{fans}</b></div>
+                  {(() => {
+                    const targetWeek = Math.max(1, week - 1);
+                    const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                    const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                    return (<div style={styles.statRow}><span>Fans this week</span><b>+{gain}</b></div>);
+                  })()}
+                </div>
+                <div style={{ flex:1.4, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
+                  <div style={{ fontWeight:900, marginBottom:6 }}>This Week's Buzz</div>
+                  {(() => {
+                    // Find latest release for current calendar week (week-1), fallback to most recent entry
+                    const targetWeek = Math.max(1, week - 1);
+                    let entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                    if (!entry) entry = (songHistory||[])[0];
+                    if (!entry) return (<div style={styles.sub}>No songs yet. Release a song to see fan comments.</div>);
+                    const header = (
+                      <div style={{ marginBottom:8 }}>
+                        <div style={{ fontWeight:800 }}>{entry.songName || 'Your Song'}</div>
+                        <div style={{ ...styles.sub }}>Grade {entry.grade}</div>
+                      </div>
+                    );
+                    let comments = entry.fanComments && entry.fanComments.length ? entry.fanComments : generateFanComments(entry, performerName);
+                    // Sanitize legacy metadata-style last line (e.g., 'Grade X · Genre · Theme')
+                    const cleaned = comments.filter(c => !/^Grade\s/i.test((c||'').trim()));
+                    if (cleaned.length < 3) {
+                      while (cleaned.length < 3) cleaned.push('Loving the growth each week!');
+                    }
+                    comments = cleaned.slice(0,3);
+                    return (
+                      <>
+                      {header}
+                      <div style={{ display:'grid', gap:8 }}>
+                        {comments.slice(0,3).map((t,i)=> {
+                          const idx = fanIdxFor(targetWeek, i, seedTs);
+                          return (
+                            <div key={i} style={{ border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:8 }}>
+                              <div style={fanAvatarStyle(idx, 44, fanSpriteMeta)} />
+                              <div style={{ ...styles.sub, opacity:.95 }}>{t}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
               <button onClick={() => setSocialOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
@@ -2053,28 +2297,49 @@ export default function App() {
 
         {myMusicOpen && (
           <div style={styles.overlay} onClick={() => setMyMusicOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>My Music</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
-                <button
-                  onClick={() => {
-                    setMyMusicOpen(false);
-                    if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
-                  }}
-                  style={styles.primaryBtn}
-                >
-                  {conceptLocked ? 'Current Song' : 'Create Song'}
-                </button>
-                <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
-                <button
-                  disabled={remaining<=0 || weeklyGigs >= MAX_GIGS_PER_WEEK}
-                  onClick={() => { setMyMusicOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
-                  style={styles.secondaryBtn}
-                >
-                  Book Gig
-                </button>
+              <div style={{ display:'flex', gap:12, marginTop: 10 }}>
+                <div style={{ flex: 1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <button
+                    onClick={() => {
+                      setMyMusicOpen(false);
+                      if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
+                    }}
+                    style={styles.primaryBtn}
+                  >
+                    {conceptLocked ? 'Current Song' : 'Create Song'}
+                  </button>
+                  <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
+                  <button
+                    disabled={remaining<=0 || weeklyGigs >= MAX_GIGS_PER_WEEK}
+                    onClick={() => { setMyMusicOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
+                    style={styles.secondaryBtn}
+                  >
+                    Book Gig
+                  </button>
+                </div>
+                <div style={{ flex: 1.2, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
+                  <div style={{ fontWeight:900, marginBottom:6 }}>Global Trends (Week {Math.min(week, MAX_WEEKS)})</div>
+                  {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
+                    <div style={{ display:'grid', gap:8 }}>
+                      {list.map(item => (
+                        <div key={`${item.rank}-${item.title}`} style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, background: item.isPlayer? 'rgba(100,212,154,.14)' : 'transparent' }}>
+                          <div style={{ minWidth:26, height:26, borderRadius:8, background:'rgba(255,255,255,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>#{item.rank}</div>
+                          <div style={{ width:30, height:30, borderRadius:6, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>
+                            {item.artist.slice(0,1)}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} — {item.title}</div>
+                            {item.isPlayer && <div style={{ ...styles.sub, fontWeight:800, color:'#64d49a' }}>You</div>}
+                          </div>
+                          <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>▶</button>
+                        </div>
+                      ))}
+                    </div>
+                  ); })()}
+                </div>
               </div>
-              
               <button onClick={() => setMyMusicOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
           </div>
@@ -3056,4 +3321,3 @@ function TriadBarChart({ actions, vocals, writing, stage, totalDays }) {
     </div>
   );
 }
-
