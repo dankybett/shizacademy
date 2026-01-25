@@ -2466,7 +2466,7 @@ const styles = {
     width: '100%',
     minHeight: 0,
     borderRadius: 16,
-    backgroundImage: "url('/art/mirrormodalframe.png')",
+    backgroundImage: "url('/art/animatedmodalframe.gif')",
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
