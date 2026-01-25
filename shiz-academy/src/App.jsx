@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -24,6 +24,78 @@ const THEMES = [
 ];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// --- Events (schedule + effects) ---
+// Event schema:
+// { id, week, key, title, short, details, type: 'bonus'|'penalty'|'choice'|'info',
+//   effect?: { fanMult?:number, payoutMult?:number, shopDiscount?:number, grantMoney?:number },
+//   choices?: [ { label, effect }, { label, effect } ] }
+
+function hashSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function rngFrom(seed) {
+  let s = seed >>> 0;
+  return () => {
+    // xorshift32
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 0xFFFFFFFF;
+  };
+}
+
+function genEventSchedule(performerName, startTs) {
+  const base = `${performerName || 'Performer'}-${startTs || Date.now()}`;
+  const rnd = rngFrom(hashSeed(base));
+  const evs = [];
+  const push = (week, key, title, short, details, type, effect, choices) => {
+    evs.push({ id: `${key}-${week}`, week, key, title, short, details, type, effect, choices });
+  };
+  // Anchors
+  push(3, 'grant', 'Arts Council Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
+  push(6, 'festival', 'Local Festival Week', 'Crowds are buzzing', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2 });
+  push(12, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.8 });
+  push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
+  push(24, 'openmic', 'Open Mic Marathon', 'Pick your focus', 'Choose between quick cash or fan hype.', 'choice', undefined, [
+    { label: 'Take tips (+£60 now)', effect: { grantMoney: 60 } },
+    { label: 'Hype it (fans x1.2 this week)', effect: { fanMult: 1.2 } },
+  ]);
+  push(28, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.85 });
+  push(34, 'festival', 'City Spotlight', 'Music week', 'Citywide spotlight increases turnout and payouts.', 'bonus', { fanMult: 1.3, payoutMult: 1.2 });
+  // One random mild penalty (spaced after week 16)
+  const randWeek = 16 + Math.floor(rnd() * 12); // 16..27
+  push(randWeek, 'offweek', 'Off-Week', 'Crowds feel quiet', 'Lower than usual interest this week.', 'penalty', { fanMult: 0.9, payoutMult: 0.9 });
+  // Sort by week
+  evs.sort((a,b)=>a.week-b.week);
+  return evs;
+}
+
+function mergeEffects(eventsForWeek) {
+  const eff = { fanMult: 1, payoutMult: 1, shopDiscount: 1 };
+  (eventsForWeek||[]).forEach(e => {
+    if (e && e.effect) {
+      if (typeof e.effect.fanMult === 'number') eff.fanMult *= e.effect.fanMult;
+      if (typeof e.effect.payoutMult === 'number') eff.payoutMult *= e.effect.payoutMult;
+      if (typeof e.effect.shopDiscount === 'number') eff.shopDiscount *= e.effect.shopDiscount;
+      if (typeof e.effect.grantMoney === 'number') eff.grantMoney = (eff.grantMoney||0) + e.effect.grantMoney;
+    }
+  });
+  return eff;
+}
+
+function effectSummary(eff) {
+  const parts = [];
+  if ((eff.fanMult||1) !== 1) parts.push(`Fans x${(eff.fanMult||1).toFixed(2)}`);
+  if ((eff.payoutMult||1) !== 1) parts.push(`Payout x${(eff.payoutMult||1).toFixed(2)}`);
+  if ((eff.shopDiscount||1) !== 1) parts.push(`Shop x${(eff.shopDiscount||1).toFixed(2)}`);
+  if (eff.grantMoney) parts.push(`+£${eff.grantMoney} now`);
+  return parts.join(' · ');
+}
+
 // Compatibility hints: -1 (risky), 0 (okay), +1 (great)
 // Unlisted pairs default to 0
 const COMPAT = {
@@ -37,16 +109,6 @@ const COMPAT = {
     Adventure: -1,
     Nostalgia: 0,
     Melancholy: 0,
-  },
-  actionBtnWrap: { position:'relative', display:'inline-block' },
-  actionBtnRoll: {
-    position:'absolute',
-    left: 18,
-    bottom: 16,
-    color: '#fff',
-    fontWeight: 900,
-    fontSize: 16,
-    textShadow: '0 1px 2px rgba(0,0,0,.7)'
   },
   Rock: {
     Rebellion: 1,
@@ -209,7 +271,7 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
   if (songHistory && songHistory.length > 0) {
     const prev = songHistory[0];
     if (prev && prev.genre === genre && prev.theme === theme) {
-      tips.push("Too similar to last release � try varying genre or theme.");
+      tips.push("Too similar to last release \u2014 try varying genre or theme.");
     }
   }
   return tips;
@@ -218,8 +280,8 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
 const REVIEW_LINES = {
   Masterpiece: [
     "A once-in-a-generation masterpiece!",
-    "Unbelievable perfection � instant legend.",
-    "A timeless classic � pure magic.",
+    "Unbelievable perfection \u2014 instant legend.",
+    "A timeless classic \u2014 pure magic.",
   ],
   S: ["Instant classic!", "A career-defining hit!", "You owned the stage."],
   A: ["Strong release - fans will love it.", "A big step up!", "This one has real sparkle."],
@@ -232,7 +294,7 @@ const REVIEW_LINES = {
 const VENUES = {
   busking: {
     name: "Busking",
-    icon: "??",
+    icon: "",
     cost: 0,
     breakEven: 45,
     payoutPerPoint: 0.8,
@@ -243,7 +305,7 @@ const VENUES = {
   },
   ozdustball: {
     name: "Ozdust Ball",
-    icon: "??",
+    icon: "",
     cost: 20,
     breakEven: 60,
     payoutPerPoint: 1.3,
@@ -253,7 +315,7 @@ const VENUES = {
   },
   stadium: {
     name: "Stadium",
-    icon: "??",
+    icon: "",
     cost: 500,
     breakEven: 85,
     payoutPerPoint: 2.2,
@@ -346,6 +408,13 @@ export default function App() {
   const [bubbleGlow, setBubbleGlow] = useState({ show:false, color:null });
   const [celebrateFx, setCelebrateFx] = useState({ show:false, text:'', color:'#fff', startX:0, startY:0, phase:'start', key:0 });
   const [rollFxHoldMs, setRollFxHoldMs] = useState(2500);
+
+  // Events state
+  const [eventsSchedule, setEventsSchedule] = useState(null); // array of events
+  const [eventsResolved, setEventsResolved] = useState({}); // id -> { status:'resolved'|'choice', choiceIndex? }
+  const [eventModal, setEventModal] = useState(null); // { event, pendingChoice: true|false }
+  const [eventInfoModal, setEventInfoModal] = useState(null); // { events: [event,...] }
+  const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
 
   function facesFor(stat) {
     if (stat >= 9.9) return 6;
@@ -527,7 +596,7 @@ export default function App() {
     if (curr.write < prevFaces.write) changes.push({label:'Write', from: prevFaces.write, to: curr.write});
     if (curr.perform < prevFaces.perform) changes.push({label:'Perform', from: prevFaces.perform, to: curr.perform});
     if (changes.length) {
-      changes.forEach(c=> pushToast(`${c.label} die upgraded: d${c.from} ? d${c.to}`));
+      changes.forEach(c=> pushToast(`${c.label} die upgraded: d${c.from} -> d${c.to}`));
       pushToast('Train with actions and gigs to improve dice');
       setPrevFaces(curr);
     }
@@ -669,6 +738,8 @@ export default function App() {
     setRollHistory([]);
     setBonusRolls(0);
     setRollGlow({ sing:null, write:null, perform:null });
+    // Clear any transient event modal
+    setEventModal(null);
   }
 
   // --- Persistence (localStorage) ---
@@ -691,6 +762,8 @@ export default function App() {
       if (typeof s.songName === "string") setSongName(s.songName);
       if (typeof s.conceptLocked === "boolean") setConceptLocked(s.conceptLocked);
       if (typeof s.started === "boolean") setStarted(s.started);
+      if (Array.isArray(s.eventsSchedule)) setEventsSchedule(s.eventsSchedule);
+      if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
@@ -728,10 +801,25 @@ export default function App() {
         if (typeof s.performT === "number") setPerformT(s.performT);
       }
       if (s.lastResult && typeof s.lastResult === "object") setLastResult(s.lastResult);
+      // Generate schedule if missing in save
+      if (!Array.isArray(s.eventsSchedule)) {
+        const baseTs = (s && s.ts) || Date.now();
+        const sched = genEventSchedule((s && s.performerName) || performerName, baseTs);
+        setEventsSchedule(sched);
+      }
     } catch (_) {
       // ignore corrupted saves
     }
   }, []);
+
+  // Fallback schedule generation if missing (e.g., fresh run without saved state)
+  useEffect(() => {
+    if (!eventsSchedule) {
+      const baseTs = Date.now();
+      const sched = genEventSchedule(performerName, baseTs);
+      setEventsSchedule(sched);
+    }
+  }, [eventsSchedule, performerName]);
 
   useEffect(() => {
     const save = {
@@ -762,6 +850,8 @@ export default function App() {
       performerName,
       nextRollOverride,
       bonusRolls,
+      eventsSchedule,
+      eventsResolved,
       ts: Date.now(),
     };
     try {
@@ -793,6 +883,8 @@ export default function App() {
         performerName,
         nextRollOverride,
         bonusRolls,
+        eventsSchedule,
+        eventsResolved,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -833,7 +925,7 @@ export default function App() {
       // Sum triad contributions from recorded actions (exclude gigs)
       const triadSum = actions.reduce((acc, a) => a.t === 'gig' ? acc : acc + (a.m||0) + (a.l||0) + (a.p||0), 0);
       triadBase = triadSum * 5; // retuned lower early power
-      // Early-week dampener (weeks 1�6): gradually scales up to full power
+      // Early-week dampener (weeks 1?6): gradually scales up to full power
       const earlyFactor = Math.min(1, 0.75 + (week - 1) * 0.05);
       triadBase *= earlyFactor;
     }
@@ -861,13 +953,13 @@ export default function App() {
     const fanBonus = Math.floor(fans * 0.05); // +5% of current fans
     let fansGain = Math.round((fansGainByGrade[grade] + fanBonus) * (venue.fanMult ?? 1));
 
-    // Money: venue economics
+    // Money: venue economics (apply payout multiplier from events)
     const margin = score - (venue.breakEven ?? 0);
-    let gross = Math.max(0, margin) * (venue.payoutPerPoint ?? 0);
+    let gross = Math.max(0, margin) * (venue.payoutPerPoint ?? 0) * (activeEffects?.payoutMult || 1);
     let net = Math.floor(gross - (venue.cost ?? 0));
     // Busking never loses money; small tip floor
     if (venueKey === 'busking') net = Math.max(venue.tipFloor ?? 5, net);
-    // Early guardrail: weeks 1�3, cap losses
+    // Early guardrail: weeks 1?3, cap losses
     if (week <= 3) net = Math.max(net, -20);
 
     const moneyGain = net;
@@ -878,7 +970,9 @@ export default function App() {
     }
 
     setMoney((m) => m + moneyGain);
-    setFans((f) => f + fansGain);
+    // Apply fan multiplier from events
+    const fansGainApplied = Math.round(fansGain * (activeEffects?.fanMult || 1));
+    setFans((f) => f + fansGainApplied);
 
     const chartPos = computeChartPosition(score, fans);
     const feedback = buildFeedback({
@@ -907,7 +1001,7 @@ export default function App() {
       chartPos,
       review: pickReview(grade),
       moneyGain,
-      fansGain,
+      fansGain: fansGainApplied,
       feedback,
     };
     setLastResult(entry);
@@ -1145,6 +1239,64 @@ export default function App() {
 
   const weeklyGigs = useMemo(() => (actions || []).filter((a) => a.t === 'gig').length, [actions]);
 
+  // Active events and effects for the current week
+  const activeEvents = useMemo(() => {
+    if (!eventsSchedule) return [];
+    return eventsSchedule.filter(e => e.week === week);
+  }, [eventsSchedule, week]);
+
+  const activeEffects = useMemo(() => mergeEffects(activeEvents.map(ev => {
+    // If event has choices, apply chosen effect only
+    const res = eventsResolved[ev.id];
+    if (ev.choices && res && typeof res.choiceIndex === 'number') {
+      return { effect: ev.choices[res.choiceIndex]?.effect || {} };
+    }
+    if (ev.choices) return { effect: {} }; // no choice made yet
+    return ev;
+  })), [activeEvents, eventsResolved]);
+
+  // On week start: if event grants money immediately or requires choice, handle modal/auto-grant once
+  useEffect(() => {
+    if (!eventsSchedule || !activeEvents || activeEvents.length === 0) return;
+    // Auto-grant one-time money if not resolved
+    activeEvents.forEach(ev => {
+      const res = eventsResolved[ev.id];
+      if ((!res || res.status !== 'resolved') && ev.effect && typeof ev.effect.grantMoney === 'number') {
+        setMoney(m => m + (ev.effect.grantMoney||0));
+        setEventsResolved(r => ({ ...r, [ev.id]: { status:'resolved' } }));
+      }
+    });
+    // If any event has choices pending, show the first pending
+    const pendingChoice = activeEvents.find(ev => ev.choices && !(eventsResolved[ev.id] && typeof eventsResolved[ev.id].choiceIndex === 'number'));
+    if (pendingChoice) {
+      setEventModal({ event: pendingChoice });
+    } else {
+      // Show a small info modal once per week for non-choice events (notified only once)
+      const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
+      if (toNotify.length) {
+        const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+        if (!overlaysOpen) {
+          setEventInfoModal({ events: toNotify });
+        } else {
+          setQueuedEventInfo({ events: toNotify });
+        }
+      }
+    }
+  }, [week, eventsSchedule]);
+
+  // When overlays clear, show any queued event info modal
+  useEffect(() => {
+    if (!queuedEventInfo || !queuedEventInfo.events || queuedEventInfo.events.length === 0) return;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+    if (overlaysOpen) return;
+    // Filter out any that were marked notified while queued
+    const remaining = queuedEventInfo.events.filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
+    if (remaining.length) {
+      setEventInfoModal({ events: remaining });
+    }
+    setQueuedEventInfo(null);
+  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
+
   // Title screen before starting
   if (!started) {
     return (
@@ -1248,8 +1400,8 @@ export default function App() {
             {/* Streamlined main view: room dominates, buttons underneath */}
             <div style={styles.roomOuter}>
               <div style={{ ...styles.room, width: roomWidth, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackground.png')" }}>
-              {/* Room HUD removed per request (Week/Remaining moved to Calendar) */}
-              <div style={styles.hudMoney}>£ {money}</div>
+              {/* Room HUD: show money and rolls */}
+              <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
               <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               {DICE_MODE && SHOW_DICE_MINI && (
                 <div style={styles.diceMiniOverlay}>
@@ -1438,7 +1590,7 @@ export default function App() {
                     <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>M</button>
                     <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>C</button>
                     <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>Sh</button>
-                    <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>?</button>
+                    <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>X</button>
                   </div>
                 </div>
               )}
@@ -1458,7 +1610,7 @@ export default function App() {
             )}
             {finishedReady && (
               <>
-                <div style={{ ...styles.sub, marginTop: 8 }}>Song finished � ready to perform.</div>
+                <div style={{ ...styles.sub, marginTop: 8 }}>Song finished \u2014 ready to perform.</div>
                 <button
                   onClick={() => setVenueOpen(true)}
                   style={{ ...styles.primaryBtn, marginTop: 8 }}
@@ -1536,7 +1688,7 @@ export default function App() {
             <div style={styles.modal}>
               <div style={styles.title}>Menu</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
-                Week {week} � Money {money} � Fans {fans}
+                Week {week} | Money {'\u00A3'}{money} | Fans {fans}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
                 <button onClick={() => setMenuOpen(false)} style={styles.primaryBtn}>Resume</button>
@@ -1677,7 +1829,7 @@ export default function App() {
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` � Next: d${nextDieInfo(vocals).f} at = ${nextDieInfo(vocals).t.toFixed(1)}` : ' � Max die unlocked'}
+                    Current die: d{facesFor(vocals)}{nextDieInfo(vocals) ? ` ? Next: d${nextDieInfo(vocals).f} at = ${nextDieInfo(vocals).t.toFixed(1)}` : ' ? Max die unlocked'}
                   </div>
                 )}
                 {false && DICE_MODE && (
@@ -1722,7 +1874,7 @@ export default function App() {
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` � Next: d${nextDieInfo(writing).f} at = ${nextDieInfo(writing).t.toFixed(1)}` : ' � Max die unlocked'}
+                    Current die: d{facesFor(writing)}{nextDieInfo(writing) ? ` ? Next: d${nextDieInfo(writing).f} at = ${nextDieInfo(writing).t.toFixed(1)}` : ' ? Max die unlocked'}
                   </div>
                 )}
                 {false && DICE_MODE && (
@@ -1767,7 +1919,7 @@ export default function App() {
                 
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
-                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` � Next: d${nextDieInfo(stage).f} at = ${nextDieInfo(stage).t.toFixed(1)}` : ' � Max die unlocked'}
+                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` ? Next: d${nextDieInfo(stage).f} at = ${nextDieInfo(stage).t.toFixed(1)}` : ' ? Max die unlocked'}
                   </div>
                 )}
                     </div>
@@ -1788,9 +1940,63 @@ export default function App() {
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Social</div>
               <div style={{ marginTop: 8 }}>
-                <div style={styles.statRow}><span>? Fans</span><b>{fans}</b></div>
+                <div style={styles.statRow}><span>Fans</span><b>{fans}</b></div>
               </div>
               <button onClick={() => setSocialOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+            </div>
+          </div>
+        )}
+
+        {eventModal && eventModal.event && (
+          <div style={styles.overlay} onClick={() => setEventModal(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>{eventModal.event.title}</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
+              {eventModal.event.choices && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
+                  {eventModal.event.choices.map((ch, idx) => (
+                    <button key={idx} style={styles.secondaryBtn} onClick={() => {
+                      // Apply immediate effect (grant/fanMult only matters this week, handled via activeEffects once stored)
+                      if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
+                      setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
+                      setEventModal(null);
+                    }}>{ch.label}</button>
+                  ))}
+                </div>
+              )}
+              {!eventModal.event.choices && (
+                <button onClick={() => setEventModal(null)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Okay</button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {eventInfoModal && eventInfoModal.events && (
+          <div style={styles.overlay} onClick={() => setEventInfoModal(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>This Week</div>
+              <div style={{ marginTop: 6, display:'grid', gap:6 }}>
+                {eventInfoModal.events.map(ev => (
+                  <div key={ev.id}>
+                    <div style={{ fontWeight: 700 }}>{ev.title}</div>
+                    <div style={{ ...styles.sub }}>{ev.short}</div>
+                    {ev.effect && (
+                      <div style={{ ...styles.sub, opacity: .9 }}>{effectSummary(ev.effect)}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => {
+                setEventsResolved(r => {
+                  const copy = { ...r };
+                  (eventInfoModal.events||[]).forEach(ev => {
+                    const prev = copy[ev.id] || {};
+                    copy[ev.id] = { ...prev, notified: true };
+                  });
+                  return copy;
+                });
+                setEventInfoModal(null);
+              }} style={{ ...styles.primaryBtn, marginTop: 12 }}>OK</button>
             </div>
           </div>
         )}
@@ -1801,6 +2007,7 @@ export default function App() {
               <div style={styles.title}>Shop</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>Rolls available this week: <b>{Math.max(0, totalRolls - actions.length)}</b> / {totalRolls}</div>
               <div style={{ display:'grid', gap:8, marginTop: 10 }}>
+                {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
                     <img src="/art/d20badge.png" alt="d20" style={{ width:20, height:20, objectFit:'contain' }} />
@@ -1808,10 +2015,10 @@ export default function App() {
                   </div>
                   <div style={styles.sub}>Adds +1 roll this week. Cheap.</div>
                   <button
-                    disabled={money < 15}
-                    onClick={() => { if (money>=15){ setMoney(m=>m-15); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) ? next roll uses d20'); } }}
-                    style={money<15? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy (15)</button>
+                    disabled={money < price20}
+                    onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
+                    style={money<price20? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy ({'\u00A3'}{price20})</button>
                 </div>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
@@ -1820,10 +2027,10 @@ export default function App() {
                   </div>
                   <div style={styles.sub}>Adds +1 roll this week. Pricier.</div>
                   <button
-                    disabled={money < 40}
-                    onClick={() => { if (money>=40){ setMoney(m=>m-40); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) ? next roll uses d12'); } }}
-                    style={money<40? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy (40)</button>
+                    disabled={money < price12}
+                    onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
+                    style={money<price12? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy ({'\u00A3'}{price12})</button>
                 </div>
                 <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
@@ -1832,11 +2039,12 @@ export default function App() {
                   </div>
                   <div style={styles.sub}>Adds +1 roll this week. Most expensive.</div>
                   <button
-                    disabled={money < 100}
-                    onClick={() => { if (money>=100){ setMoney(m=>m-100); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) ? next roll uses d6'); } }}
-                    style={money<100? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy (100)</button>
+                    disabled={money < price6}
+                    onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
+                    style={money<price6? styles.primaryBtnDisabled : styles.primaryBtn}
+                  >Buy ({'\u00A3'}{price6})</button>
                 </div>
+                </>); })()}
               </div>
               <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
@@ -1874,12 +2082,38 @@ export default function App() {
 
         {calendarOpen && (
           <div style={styles.overlay} onClick={() => setCalendarOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Calendar</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Week</span><b>{Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}</b></div>
-                <div style={styles.statRow}><span>Day</span><b>{Math.min(TOTAL_TIME - remaining, TOTAL_TIME)} / {TOTAL_TIME}</b></div>
               </div>
+              {!!activeEvents.length && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={styles.h3}>This Week</div>
+                  {activeEvents.map(ev => (
+                    <div key={ev.id} style={{ ...styles.sub }}>
+                      <b>{ev.title}</b> {'\u2014'} {ev.short}
+                      {ev.effect && (
+                        <div style={{ opacity: .9 }}>{effectSummary(ev.effect)}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {eventsSchedule && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={styles.h3}>Upcoming</div>
+                  {eventsSchedule.filter(e => e.week > week).slice(0,4).map(ev => (
+                    <div key={ev.id} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0' }}>
+                      <span>W{ev.week} {'\u00B7'} {ev.title}</span>
+                      <span style={{ ...styles.sub }}>{ev.short}</span>
+                    </div>
+                  ))}
+                  {eventsSchedule.filter(e => e.week > week).length === 0 && (
+                    <div style={styles.sub}>No upcoming events.</div>
+                  )}
+                </div>
+              )}
               <button onClick={() => setCalendarOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
             </div>
           </div>
@@ -1902,7 +2136,7 @@ export default function App() {
               <div style={styles.title}>Release Results</div>
               <div style={{ marginTop: 8 }}>
                 <div style={{ ...styles.sub, marginBottom: 6 }}>
-                  ?? <b>{lastResult.songName}</b> � {lastResult.genre} / {lastResult.theme}
+                  Song: <b>{lastResult.songName}</b> — {lastResult.genre} / {lastResult.theme}
                 </div>
                 <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
                 <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
@@ -1914,7 +2148,7 @@ export default function App() {
                   "{lastResult.review}"
                 </div>
                 <div style={{ ...styles.sub, marginTop: 8 }}>
-                  +{lastResult.moneyGain} money � +{lastResult.fansGain} fans
+                  +{'\u00A3'}{lastResult.moneyGain} +{lastResult.fansGain} fans
                 </div>
                 {lastResult.feedback && lastResult.feedback.length > 0 && (
                   <div style={{ marginTop: 10 }}>
@@ -1966,10 +2200,10 @@ export default function App() {
                     <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ fontWeight: 700 }}>
-                          {v.icon} {v.name}
+                          {v.name}
                         </div>
                         <div style={{ ...styles.sub }}>
-                          Cost: {v.cost}
+                          Cost: {'\u00A3'}{v.cost}
                         </div>
                       </div>
                       <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
@@ -2004,7 +2238,7 @@ export default function App() {
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
                       <div>
                         <div style={{ fontWeight: 700 }}>{s.songName}</div>
-                        <div style={{ ...styles.sub }}>Grade {s.grade} � #{s.chartPos}</div>
+                        <div style={{ ...styles.sub }}>Grade {s.grade} | #{s.chartPos}</div>
                       </div>
                       <button style={styles.smallBtn} onClick={() => setSelectedGigSong(s)}>Select</button>
                     </div>
@@ -2013,7 +2247,7 @@ export default function App() {
               </div>
               {selectedGigSong && (
                 <div style={{ marginTop: 10 }}>
-                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> � Fixed score {selectedGigSong.score} � Gigs this week: {weeklyGigs}/{MAX_GIGS_PER_WEEK}</div>
+                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score} | Gigs this week: {weeklyGigs}/{MAX_GIGS_PER_WEEK}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {Object.entries(VENUES).map(([key, v]) => {
                       const expected = selectedGigSong.score;
@@ -2027,8 +2261,8 @@ export default function App() {
                       return (
                         <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ fontWeight: 700 }}>{v.icon} {v.name}</div>
-                            <div style={{ ...styles.sub }}>Cost: {v.cost}</div>
+                            <div style={{ fontWeight: 700 }}>{v.name}</div>
+                            <div style={{ ...styles.sub }}>Cost: {'\u00A3'}{v.cost}</div>
                           </div>
                           <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
                           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
@@ -2055,9 +2289,9 @@ export default function App() {
                               const repFactor = repsThisWeek === 0 ? 1.0 : repsThisWeek === 1 ? 0.8 : repsThisWeek === 2 ? 0.6 : 0.5;
                               const weeklyGigs = (actions || []).filter(a => a.t === 'gig').length;
                               const softCap = weeklyGigs >= 3 ? 0.5 : 1.0;
-                              let fansGainLocal = Math.round((fansGainByGrade[grade] + fanBonus) * (vCfg.fanMult ?? 1) * freshness * repFactor * softCap);
+                              let fansGainLocal = Math.round((fansGainByGrade[grade] + fanBonus) * (vCfg.fanMult ?? 1) * freshness * repFactor * softCap * (activeEffects?.fanMult || 1));
                               const marginLocal = score - (vCfg.breakEven ?? 0);
-                              let gross = Math.max(0, marginLocal) * (vCfg.payoutPerPoint ?? 0) * freshness * repFactor * softCap;
+                              let gross = Math.max(0, marginLocal) * (vCfg.payoutPerPoint ?? 0) * freshness * repFactor * softCap * (activeEffects?.payoutMult || 1);
                               let net = Math.floor(gross - (vCfg.cost ?? 0));
                               if (key === 'busking') net = Math.max(vCfg.tipFloor ?? 5, net);
                               if (week <= 3) net = Math.max(net, -20);
@@ -2112,7 +2346,7 @@ export default function App() {
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <span>
                           <b>{s.songName}</b>
-                          <span style={{ opacity: .7 }}> � #{s.chartPos}</span>
+                          <span style={{ opacity: .7 }}> | #{s.chartPos}</span>
                         </span>
                         <span>
                           <span style={{ opacity: .8, marginRight: 8 }}>{s.grade}</span>
@@ -2125,8 +2359,8 @@ export default function App() {
                           <div style={{ marginTop: 4 }}>
                             {s.gigs.slice(-3).reverse().map((g, i2) => (
                               <div key={i2} style={{ display:'flex', justifyContent:'space-between' }}>
-                                <span>Week {g.week} � {g.venue}</span>
-                                <span>+{g.moneyGain} � +{g.fansGain} fans</span>
+                                <span>Week {g.week} | {g.venue}</span>
+                                <span>+{'\u00A3'}{g.moneyGain} +{g.fansGain} fans</span>
                               </div>
                             ))}
                             {s.gigs.length > 3 && <div style={{ opacity: .7 }}>(+{s.gigs.length - 3} more)</div>}
@@ -2746,7 +2980,7 @@ function RadarSnapshot({ vocals, writing, stage, practiceT, writeT, performT, to
     const r = Math.max(0, Math.min(1, frac)) * R;
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   };
-  // Axes: 90� (Melody, up), 210� (Lyrics, down-left), 330� (Performance, down-right)
+  // Axes: 90? (Melody, up), 210? (Lyrics, down-left), 330? (Performance, down-right)
   const pMel = toXY(melFrac, -90 + 180); // adjust for SVG y downwards
   const pLyr = toXY(lyrFrac, 150);
   const pPer = toXY(perFrac, 30);
@@ -2808,7 +3042,6 @@ function TriadBarChart({ actions, vocals, writing, stage, totalDays }) {
             <div style={styles.barLabel}>{a.key}</div>
             <div style={styles.barTrack}>
               <div style={{ ...styles.barBackGrid }} />
-const ROOM_HEIGHT = 260;
               <div style={{ position:'absolute', left:0, top:0, bottom:0, right:0, display:'flex' }}>
                 {a.parts.map((p,i)=>(
                   <div key={i} style={{ height:'100%', width: `${Math.max(1, p.w*100)}%`, background: a.color, opacity: 0.95, marginRight: 2, borderRadius: 6 }} />
@@ -2823,19 +3056,4 @@ const ROOM_HEIGHT = 260;
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
