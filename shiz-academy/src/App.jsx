@@ -510,6 +510,7 @@ export default function App() {
   const [shopOpen, setShopOpen] = useState(false);
   const [earlyFinishEnabled, setEarlyFinishEnabled] = useState(true);
   const [performerName, setPerformerName] = useState('Your Performer');
+  const [nudgeOpen, setNudgeOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [mirrorAnim, setMirrorAnim] = useState(false);
@@ -583,6 +584,8 @@ export default function App() {
 
   // Bonus rolls purchased this week
   const [bonusRolls, setBonusRolls] = useState(0);
+  // Single-use die improvement items
+  const [nudges, setNudges] = useState(0);
 
   const totalRolls = useMemo(() => TOTAL_TIME + (bonusRolls || 0), [bonusRolls]);
   const remaining = useMemo(() => totalRolls - actions.length, [actions, totalRolls]);
@@ -890,6 +893,7 @@ export default function App() {
       if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
       if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
+      if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
@@ -1005,6 +1009,7 @@ export default function App() {
       performerName,
       nextRollOverride,
       bonusRolls,
+      nudges,
       eventsSchedule,
       eventsResolved,
       seedTs,
@@ -1016,7 +1021,7 @@ export default function App() {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
@@ -1040,6 +1045,7 @@ export default function App() {
         performerName,
         nextRollOverride,
         bonusRolls,
+        nudges,
         eventsSchedule,
         eventsResolved,
         seedTs,
@@ -1274,7 +1280,7 @@ export default function App() {
               if (DICE_MODE) {
                 const faces = nextRollOverride || facesFor(writing);
                 const value = rollDie(faces);
-                setRollBest((r) => ({ ...r, write: { value, faces } }));
+                setRollBest((r) => ({ ...r, write: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
                 setRollFxHoldMs(1200);
@@ -1287,7 +1293,7 @@ export default function App() {
               if (DICE_MODE) {
                 const faces = nextRollOverride || facesFor(vocals);
                 const value = rollDie(faces);
-                setRollBest((r) => ({ ...r, sing: { value, faces } }));
+                setRollBest((r) => ({ ...r, sing: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'sing', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'sing' });
                 setRollFxHoldMs(5000);
@@ -1299,7 +1305,7 @@ export default function App() {
               if (DICE_MODE) {
                 const faces = nextRollOverride || facesFor(stage);
                 const value = rollDie(faces);
-                setRollBest((r) => ({ ...r, perform: { value, faces } }));
+                setRollBest((r) => ({ ...r, perform: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'perform', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'perform' });
                 setRollFxHoldMs(5000);
@@ -1600,6 +1606,15 @@ export default function App() {
               {/* Room HUD: show money and rolls */}
               <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
               <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
+              {nudges > 0 && (
+                <img
+                  src="/art/nudgebutton.png"
+                  alt="Nudge"
+                  title={`Nudges: ${nudges}`}
+                  onClick={() => setNudgeOpen(true)}
+                  style={styles.nudgeImgBtn}
+                />
+              )}
               {DICE_MODE && SHOW_DICE_MINI && (
                 <div style={styles.diceMiniOverlay}>
                   {(() => { const rb=rollBest.sing; const faces = rb? rb.faces : facesFor(vocals); const val = rb? rb.value : null; const bg = bubbleBg(val||0, faces); return (
@@ -1649,6 +1664,8 @@ export default function App() {
                     </div>
                   </>
                 )}
+
+                {/* Nudge badge is rendered inside the room overlay below */}
 
                 <div
                   style={{
@@ -2245,52 +2262,120 @@ export default function App() {
           </div>
         )}
 
+        {nudgeOpen && (
+          <div style={styles.overlay} onClick={() => setNudgeOpen(false)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Use Nudge</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>Nudges available: <b>{nudges}</b></div>
+              <div style={{ display:'grid', gap:8, marginTop: 10 }}>
+                <button
+                  disabled={!rollBest?.sing || (rollBest?.sing?.value||1) <= 1 || nudges<=0 || !!rollBest?.sing?.nudged}
+                  onClick={() => {
+                    if (nudges>0 && rollBest?.sing && rollBest.sing.value>1 && !rollBest.sing.nudged){
+                      setRollBest(r=>({ ...r, sing: { ...r.sing, value: Math.max(1, (r.sing?.value||1)-1), nudged:true } }));
+                      setNudges(n=>n-1);
+                      pushToast('Nudge used on Sing: -1');
+                    }
+                  }}
+                  style={(!rollBest?.sing || (rollBest?.sing?.value||1) <= 1 || nudges<=0 || !!rollBest?.sing?.nudged) ? styles.primaryBtnDisabled : styles.primaryBtn}
+                >Sing +1</button>
+                <button
+                  disabled={!rollBest?.write || (rollBest?.write?.value||1) <= 1 || nudges<=0 || !!rollBest?.write?.nudged}
+                  onClick={() => {
+                    if (nudges>0 && rollBest?.write && rollBest.write.value>1 && !rollBest.write.nudged){
+                      setRollBest(r=>({ ...r, write: { ...r.write, value: Math.max(1, (r.write?.value||1)-1), nudged:true } }));
+                      setNudges(n=>n-1);
+                      pushToast('Nudge used on Write: -1');
+                    }
+                  }}
+                  style={(!rollBest?.write || (rollBest?.write?.value||1) <= 1 || nudges<=0 || !!rollBest?.write?.nudged) ? styles.primaryBtnDisabled : styles.primaryBtn}
+                >Write +1</button>
+                <button
+                  disabled={!rollBest?.perform || (rollBest?.perform?.value||1) <= 1 || nudges<=0 || !!rollBest?.perform?.nudged}
+                  onClick={() => {
+                    if (nudges>0 && rollBest?.perform && rollBest.perform.value>1 && !rollBest.perform.nudged){
+                      setRollBest(r=>({ ...r, perform: { ...r.perform, value: Math.max(1, (r.perform?.value||1)-1), nudged:true } }));
+                      setNudges(n=>n-1);
+                      pushToast('Nudge used on Perform: -1');
+                    }
+                  }}
+                  style={(!rollBest?.perform || (rollBest?.perform?.value||1) <= 1 || nudges<=0 || !!rollBest?.perform?.nudged) ? styles.primaryBtnDisabled : styles.primaryBtn}
+                >Dance +1</button>
+              </div>
+              <button onClick={() => setNudgeOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+            </div>
+          </div>
+        )}
+
         {shopOpen && (
           <div style={styles.overlay} onClick={() => setShopOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Shop</div>
-              <div style={{ ...styles.sub, marginTop: 6 }}>Rolls available this week: <b>{Math.max(0, totalRolls - actions.length)}</b> / {totalRolls}</div>
-              <div style={{ display:'grid', gap:8, marginTop: 10 }}>
-                {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
-                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                    <img src="/art/d20badge.png" alt="d20" style={{ width:20, height:20, objectFit:'contain' }} />
-                    Extra d20 roll
-                  </div>
-                  <div style={styles.sub}>Adds +1 roll this week. Cheap.</div>
-                  <button
-                    disabled={money < price20}
-                    onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
-                    style={money<price20? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy ({'\u00A3'}{price20})</button>
+            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display:'flex', gap:12 }}>
+                <div style={{ flex:1, minHeight: 180, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)' }}>
+                  <img src="/art/shoplogo.png" alt="Shop" style={{ maxWidth:'100%', maxHeight: 160, objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
-                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                    <img src="/art/d12badge.png" alt="d12" style={{ width:20, height:20, objectFit:'contain' }} />
-                    Extra d12 roll
+                <div style={{ flex:1.4 }}>
+                  <div style={{ display:'grid', gap:8 }}>
+                    {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
+                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <img src="/art/d20badge.png" alt="d20" style={{ width:36, height:36, objectFit:'contain' }} />
+                          Extra d20 roll
+                        </div>
+                        <button
+                          disabled={money < price20}
+                          onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
+                          style={money<price20? styles.primaryBtnDisabled : styles.smallBtn}
+                        >Buy ({'\u00A3'}{price20})</button>
+                      </div>
+                    </div>
+                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <img src="/art/d12badge.png" alt="d12" style={{ width:36, height:36, objectFit:'contain' }} />
+                          Extra d12 roll
+                        </div>
+                        <button
+                          disabled={money < price12}
+                          onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
+                          style={money<price12? styles.primaryBtnDisabled : styles.smallBtn}
+                        >Buy ({'\u00A3'}{price12})</button>
+                      </div>
+                    </div>
+                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <img src="/art/d6badge.png" alt="d6" style={{ width:36, height:36, objectFit:'contain' }} />
+                          Extra d6 roll
+                        </div>
+                        <button
+                          disabled={money < price6}
+                          onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
+                          style={money<price6? styles.primaryBtnDisabled : styles.smallBtn}
+                        >Buy ({'\u00A3'}{price6})</button>
+                      </div>
+                    </div>
+                    </>); })()}
+                    </div>
+                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <img src="/art/nudgebadge.png" alt="nudge" style={{ width:36, height:36, objectFit:'contain' }} />
+                          Nudge
+                        </div>
+                        {(() => { const disc = activeEffects?.shopDiscount || 1; const priceN = Math.max(1, Math.ceil(30 * disc)); return (
+                          <button
+                            disabled={money < priceN}
+                            onClick={() => { if (money>=priceN){ setMoney(m=>m-priceN); setNudges(n=>n+1); pushToast('Purchased: Nudge (+1)'); } }}
+                            style={money<priceN? styles.primaryBtnDisabled : styles.smallBtn}
+                          >Buy ({'\u00A3'}{priceN})</button>
+                        ); })()}
+                      </div>
+                    </div>
                   </div>
-                  <div style={styles.sub}>Adds +1 roll this week. Pricier.</div>
-                  <button
-                    disabled={money < price12}
-                    onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
-                    style={money<price12? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy ({'\u00A3'}{price12})</button>
-                </div>
-                <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                    <img src="/art/d6badge.png" alt="d6" style={{ width:20, height:20, objectFit:'contain' }} />
-                    Extra d6 roll
-                  </div>
-                  <div style={styles.sub}>Adds +1 roll this week. Most expensive.</div>
-                  <button
-                    disabled={money < price6}
-                    onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
-                    style={money<price6? styles.primaryBtnDisabled : styles.primaryBtn}
-                  >Buy ({'\u00A3'}{price6})</button>
-                </div>
-                </>); })()}
               </div>
-              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, marginTop: 10 }}>Close</button>
             </div>
           </div>
         )}
@@ -3099,6 +3184,17 @@ const styles = {
   },
   diceLabel: { fontWeight: 800, fontSize: 12, opacity: .9 },
   diceVal: { fontWeight: 800, fontSize: 14 },
+  nudgeImgBtn: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    width: 36,
+    height: 36,
+    objectFit: 'contain',
+    cursor: 'pointer',
+    zIndex: 3,
+    filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.35))'
+  },
   restBtn: {
     height: 44,
     borderRadius: 10,
