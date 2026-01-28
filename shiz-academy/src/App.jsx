@@ -71,6 +71,12 @@ function genEventSchedule(performerName, startTs) {
   push(randWeek, 'offweek', 'Off-Week', 'Crowds feel quiet', 'Lower than usual interest this week.', 'penalty', { fanMult: 0.9, payoutMult: 0.9 });
   // Sort by week
   evs.sort((a,b)=>a.week-b.week);
+  // Finale marker on the last week for calendar visibility
+  try {
+    const MAX_WEEKS_LOCAL = 52; // keep in sync with MAX_WEEKS
+    evs.push({ id:`katie-${MAX_WEEKS_LOCAL}`, week: MAX_WEEKS_LOCAL, key:'katie', title:"Katie's Birthday Celebration", short:'Finale', details:"Choose a favorite song to perform at Katie's Birthday Party!", type:'info' });
+    evs.sort((a,b)=>a.week-b.week);
+  } catch(_) {}
   return evs;
 }
 
@@ -164,14 +170,36 @@ const TREND_TITLES = [
 
 function pick(arr, r) { return arr[Math.floor(r()*arr.length)] }
 
-function genTrendsForWeek(week, performerName, seedTs) {
+// Build a lowercase file-safe slug (for audio filenames)
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function genTrendsForWeek(week, performerName, seedTs, audioTracks) {
   const rnd = rngFrom(hashSeed(`${performerName||'Performer'}|${seedTs||0}|W${week}`));
   const items = [];
-  for (let i=0;i<5;i++) {
-    const artist = pick(TREND_ARTISTS, rnd);
-    const title = pick(TREND_TITLES, rnd);
-    const base = 75 + Math.floor(rnd()*18) + Math.floor((week/52)*4);
-    items.push({ rank:i+1, artist, title, score: base, isPlayer:false });
+  const useAudio = Array.isArray(audioTracks) && audioTracks.length > 0;
+  if (useAudio) {
+    // Sample up to 5 unique tracks from manifest using seeded RNG
+    const idxs = new Set();
+    const total = audioTracks.length;
+    const count = Math.min(5, total);
+    while (idxs.size < count) idxs.add(Math.floor(rnd()*total));
+    Array.from(idxs).forEach((i) => {
+      const t = audioTracks[i];
+      const base = 75 + Math.floor(rnd()*18) + Math.floor((week/52)*4);
+      items.push({ rank: items.length+1, artist: t.artist, title: t.title, score: base, isPlayer:false, audioSources: t.sources, cover: t.cover });
+    });
+  } else {
+    for (let i=0;i<5;i++) {
+      const artist = pick(TREND_ARTISTS, rnd);
+      const title = pick(TREND_TITLES, rnd);
+      const base = 75 + Math.floor(rnd()*18) + Math.floor((week/52)*4);
+      items.push({ rank:i+1, artist, title, score: base, isPlayer:false });
+    }
   }
   items.sort((a,b)=>b.score-a.score).forEach((it,idx)=>it.rank=idx+1);
   return items;
@@ -448,6 +476,7 @@ const VENUE_BG = {
   busking: '/art/venue1_busking.png',
   ozdustball: '/art/venue2_ozdustball.png',
   stadium: '/art/venue3_stadium.png',
+  katieparty: '/art/katieparty.png',
 };
 
 const VENUE_FAN_REQ = { busking: 0, ozdustball: 50, stadium: 1000 };
@@ -507,7 +536,17 @@ export default function App() {
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // Finale flow state
+  const [finalePending, setFinalePending] = useState(false);
+  const [finaleOpen, setFinaleOpen] = useState(false);
+  const [finaleSummaryOpen, setFinaleSummaryOpen] = useState(false);
+  const [finaleEndOpen, setFinaleEndOpen] = useState(false);
+  const [finaleSong, setFinaleSong] = useState(null);
+  const [suppressFinale, setSuppressFinale] = useState(false); // allow continuing play without further finales
+  const [releaseWasShown, setReleaseWasShown] = useState(false);
+  const [finaleInProgress, setFinaleInProgress] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [shopAnim, setShopAnim] = useState(false);
   const [earlyFinishEnabled, setEarlyFinishEnabled] = useState(true);
   const [performerName, setPerformerName] = useState('Your Performer');
   const [nudgeOpen, setNudgeOpen] = useState(false);
@@ -539,6 +578,10 @@ export default function App() {
   // Trends state
   const [seedTs, setSeedTs] = useState(null);
   const [trendsByWeek, setTrendsByWeek] = useState({}); // week -> TrendItem[]
+  const [audioTracks, setAudioTracks] = useState([]); // [{artist,title,sources:[url,...], cover?:string}]
+  const [playingTrend, setPlayingTrend] = useState(null); // { key, artist, title }
+  const audioRef = useRef(null);
+  const [audioTime, setAudioTime] = useState({ current: 0, duration: 0 });
   const [fanSpriteMeta, setFanSpriteMeta] = useState(null); // { w,h,tileW,tileH }
 
   function facesFor(stat) {
@@ -676,6 +719,16 @@ export default function App() {
       setMirrorAnim(false);
     }
   }, [statsOpen]);
+
+  // Animate shop modal entry/exit
+  useEffect(() => {
+    if (shopOpen) {
+      const t = setTimeout(() => setShopAnim(true), 10);
+      return () => clearTimeout(t);
+    } else {
+      setShopAnim(false);
+    }
+  }, [shopOpen]);
 
   function pushToast(text) {
     const id = Date.now() + Math.random();
@@ -930,6 +983,7 @@ export default function App() {
         if (typeof s.writeT === "number") setWriteT(s.writeT);
         if (typeof s.performT === "number") setPerformT(s.performT);
       }
+      if (typeof s.suppressFinale === 'boolean') setSuppressFinale(s.suppressFinale);
       if (s.lastResult && typeof s.lastResult === "object") setLastResult(s.lastResult);
       // Generate schedule if missing in save
       if (!Array.isArray(s.eventsSchedule)) {
@@ -960,9 +1014,139 @@ export default function App() {
     if (seedTs == null) return;
     setTrendsByWeek(prev => {
       if (prev && prev[wk]) return prev;
-      const base = genTrendsForWeek(wk, performerName, seedTs);
+      const base = genTrendsForWeek(wk, performerName, seedTs, audioTracks);
       return { ...(prev||{}), [wk]: base };
     });
+  }
+
+  // Load audio manifest from /audio/manifest.json (optional)
+  useEffect(() => {
+    let cancelled = false;
+    async function loadManifest() {
+      try {
+        const res = await fetch('/audio/manifest.json', { cache: 'no-store' });
+        if (!res.ok) return; // optional
+        const data = await res.json();
+        const tracks = Array.isArray(data?.tracks) ? data.tracks : [];
+        const norm = tracks.map((t) => {
+          // Accept {artist,title,sources:[...]}, or {file: 'Artist - Title.mp3'}
+          let artist = t.artist, title = t.title, sources = [], cover = null;
+          if (Array.isArray(t.sources)) {
+            sources = t.sources.map((s) => (s.startsWith('/') ? s : `/audio/${s}`));
+          } else if (t.file) {
+            const f = String(t.file);
+            sources = [f.startsWith('/') ? f : `/audio/${f}`];
+            const m = f.match(/([^/\\]+)\.(mp3|ogg)$/i);
+            const name = m ? m[1] : f;
+            const mt = name.match(/^(.*?)\s*-\s*(.*)$/);
+            if (!artist && mt) artist = mt[1];
+            if (!title && mt) title = mt[2];
+          }
+          if (t.cover) cover = t.cover.startsWith('/') ? t.cover : `/audio/${t.cover}`;
+          if (!artist || !title) return null;
+          return { artist, title, sources, cover };
+        }).filter(Boolean);
+        if (!cancelled) setAudioTracks(norm);
+      } catch (_) {
+        // No manifest; keep empty to use fallback gen
+      }
+    }
+    loadManifest();
+    return () => { cancelled = true; };
+  }, []);
+
+  // When audio catalog loads, rebuild current week's trends if needed
+  useEffect(() => {
+    if (seedTs != null) {
+      setTrendsByWeek({});
+      ensureTrendsForWeek(week);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioTracks]);
+
+  // Keep previews playing when My Music closes (no-op on close)
+  useEffect(() => {
+    // Intentionally do not pause audio on close
+  }, [myMusicOpen]);
+
+  // (Finale summary is opened explicitly when the Release Results modal Continue button is pressed.)
+
+  // When party performance ends, show final options modal
+  useEffect(() => {
+    if (finaleInProgress && !isPerforming) {
+      setFinaleInProgress(false);
+      setFinaleEndOpen(true);
+    }
+  }, [finaleInProgress, isPerforming]);
+
+  // Dev helper: Alt+D to set week number quickly
+  useEffect(() => {
+    function onKeyDown(e) {
+      try {
+        if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+          e.preventDefault();
+          const val = window.prompt(`Dev: Set week number (1-${MAX_WEEKS})`, String(week));
+          if (val == null) return;
+          const n = parseInt(val, 10);
+          if (!isNaN(n)) {
+            const clamped = Math.max(1, Math.min(MAX_WEEKS, n));
+            setWeek(clamped);
+            setStarted(true);
+            setSuppressFinale(false);
+            pushToast(`Dev: Week set to ${clamped}`);
+          }
+        }
+      } catch (_) {}
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function playTrendItem(item) {
+    if (!item) return;
+    const id = `${item.artist}__${item.title}`;
+    const isSame = playingTrend && playingTrend.id === id;
+    let audio = audioRef.current;
+    if (!audio) { audio = new Audio(); audioRef.current = audio; }
+    if (isSame && !audio.paused) {
+      try { audio.pause(); } catch (_) {}
+      setPlayingTrend(null);
+      return;
+    }
+    // Prefer explicit sources (from manifest); fallback to slug
+    const sources = Array.isArray(item.audioSources) && item.audioSources.length
+      ? item.audioSources
+      : [ `/audio/${slugify(`${item.artist} ${item.title}`)}.mp3`, `/audio/${slugify(`${item.artist} ${item.title}`)}.ogg` ];
+    let i = 0;
+    const tryPlay = () => {
+      if (i >= sources.length) { pushToast('Audio not available'); setPlayingTrend(null); return; }
+      const src = sources[i++];
+      audio.src = src;
+      audio.onended = () => { setPlayingTrend(null); };
+      audio.ontimeupdate = () => {
+        try { setAudioTime({ current: audio.currentTime||0, duration: isFinite(audio.duration)? audio.duration : (audioTime.duration||0) }); } catch (_) {}
+      };
+      audio.onloadedmetadata = () => {
+        try { setAudioTime({ current: audio.currentTime||0, duration: audio.duration||0 }); } catch (_) {}
+      };
+      audio.ondurationchange = () => {
+        try { setAudioTime({ current: audio.currentTime||0, duration: audio.duration||0 }); } catch (_) {}
+      };
+      audio.play().then(() => {
+        setPlayingTrend({ id, artist: item.artist, title: item.title });
+      }).catch(() => {
+        tryPlay();
+      });
+    };
+    tryPlay();
+  }
+
+  function fmtTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2,'0')}`;
   }
 
   // Load fan sprite image to compute tile sizes with padding
@@ -1014,6 +1198,7 @@ export default function App() {
       eventsResolved,
       seedTs,
       trendsByWeek,
+      suppressFinale,
       ts: Date.now(),
     };
     try {
@@ -1050,6 +1235,7 @@ export default function App() {
         eventsResolved,
         seedTs,
         trendsByWeek,
+        suppressFinale,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -1190,6 +1376,7 @@ export default function App() {
       });
     }
 
+    const wasFinalWeek = (week === MAX_WEEKS);
     setWeek((w) => w + 1);
     resetWeekProgress();
     setConceptLocked(false);
@@ -1201,6 +1388,10 @@ export default function App() {
     // Center performer on stage and play full song
     setTarget(null);
     setPos({ x: 50, y: 62 });
+    if (wasFinalWeek && !suppressFinale) {
+      setFinalePending(true);
+      setReleaseWasShown(false); // ensure we wait for THIS week's release modal
+    }
     setActivity('singing');
     setStatus(`Performing at ${venue.name}...`);
     setFinishedReady(false);
@@ -1605,7 +1796,15 @@ export default function App() {
               <div style={{ ...styles.room, width: roomWidth, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackground.png')" }}>
               {/* Room HUD: show money and rolls */}
               <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
-              <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
+              {!playingTrend && (
+                <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
+              )}
+              {playingTrend && (
+                <div style={styles.hudListening} title={`${playingTrend.artist} — ${playingTrend.title}`}>
+                  <span style={{ marginRight: 6, opacity: .9 }}>♪</span>
+                  <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} — {playingTrend.title}</b>
+                </div>
+              )}
               {nudges > 0 && (
                 <img
                   src="/art/nudgebutton.png"
@@ -1800,10 +1999,30 @@ export default function App() {
                 {financeOpen && (
                   <div style={styles.desktopPanel}>
                     <div style={styles.desktopIcons}>
-                    <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>Mb</button>
-                    <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>M</button>
-                    <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>C</button>
-                    <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>Sh</button>
+                    <div style={styles.desktopIconWrap}>
+                      <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
+                        <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                      </button>
+                      <div style={styles.desktopIconLabel}>myBubble</div>
+                    </div>
+                    <div style={styles.desktopIconWrap}>
+                      <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
+                        <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
+                      </button>
+                      <div style={styles.desktopIconLabel}>Shizy-Fi</div>
+                    </div>
+                    <div style={styles.desktopIconWrap}>
+                      <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
+                        <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
+                      </button>
+                      <div style={styles.desktopIconLabel}>Calendar</div>
+                    </div>
+                    <div style={styles.desktopIconWrap}>
+                      <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
+                        <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
+                      </button>
+                      <div style={styles.desktopIconLabel}>Am-Oz-on</div>
+                    </div>
                     <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>X</button>
                   </div>
                 </div>
@@ -1838,7 +2057,7 @@ export default function App() {
 
         {/* Streamlined: hide the persistent last result section */}
 
-        {isOver && (
+        {isOver && suppressFinale && (
           <div style={styles.overlay}>
             <div style={{ ...styles.modal, maxWidth: 460 }}>
               <div style={styles.title}>Year Summary</div>
@@ -2309,73 +2528,76 @@ export default function App() {
 
         {shopOpen && (
           <div style={styles.overlay} onClick={() => setShopOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display:'flex', gap:12 }}>
-                <div style={{ flex:1, minHeight: 180, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)' }}>
-                  <img src="/art/shoplogo.png" alt="Shop" style={{ maxWidth:'100%', maxHeight: 160, objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
-                </div>
-                <div style={{ flex:1.4 }}>
-                  <div style={{ display:'grid', gap:8 }}>
-                    {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
-                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                          <img src="/art/d20badge.png" alt="d20" style={{ width:36, height:36, objectFit:'contain' }} />
-                          Extra d20 roll
-                        </div>
-                        <button
-                          disabled={money < price20}
-                          onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
-                          style={money<price20? styles.primaryBtnDisabled : styles.smallBtn}
-                        >Buy ({'\u00A3'}{price20})</button>
-                      </div>
-                    </div>
-                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                          <img src="/art/d12badge.png" alt="d12" style={{ width:36, height:36, objectFit:'contain' }} />
-                          Extra d12 roll
-                        </div>
-                        <button
-                          disabled={money < price12}
-                          onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
-                          style={money<price12? styles.primaryBtnDisabled : styles.smallBtn}
-                        >Buy ({'\u00A3'}{price12})</button>
-                      </div>
-                    </div>
-                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                          <img src="/art/d6badge.png" alt="d6" style={{ width:36, height:36, objectFit:'contain' }} />
-                          Extra d6 roll
-                        </div>
-                        <button
-                          disabled={money < price6}
-                          onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
-                          style={money<price6? styles.primaryBtnDisabled : styles.smallBtn}
-                        >Buy ({'\u00A3'}{price6})</button>
-                      </div>
-                    </div>
-                    </>); })()}
-                    </div>
-                    <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                          <img src="/art/nudgebadge.png" alt="nudge" style={{ width:36, height:36, objectFit:'contain' }} />
-                          Nudge
-                        </div>
-                        {(() => { const disc = activeEffects?.shopDiscount || 1; const priceN = Math.max(1, Math.ceil(30 * disc)); return (
-                          <button
-                            disabled={money < priceN}
-                            onClick={() => { if (money>=priceN){ setMoney(m=>m-priceN); setNudges(n=>n+1); pushToast('Purchased: Nudge (+1)'); } }}
-                            style={money<priceN? styles.primaryBtnDisabled : styles.smallBtn}
-                          >Buy ({'\u00A3'}{priceN})</button>
-                        ); })()}
-                      </div>
-                    </div>
+            <div style={{ ...styles.shopModalFrame, maxWidth: 680, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.shopModalInner}>
+                <div style={{ display:'flex', gap:6 }}>
+                  <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content' }}>
+                    <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                   </div>
+                  <div style={{ flex:0.95 }}>
+                    <div style={{ display:'grid', gap:8 }}>
+                      {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/d20badge.png" alt="d20" style={{ width:36, height:36, objectFit:'contain' }} />
+                            Extra d20 roll
+                          </div>
+                          <button
+                            disabled={money < price20}
+                            onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
+                            style={money<price20? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                          >Buy ({'\u00A3'}{price20})</button>
+                        </div>
+                      </div>
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/d12badge.png" alt="d12" style={{ width:36, height:36, objectFit:'contain' }} />
+                            Extra d12 roll
+                          </div>
+                          <button
+                            disabled={money < price12}
+                            onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
+                            style={money<price12? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                          >Buy ({'\u00A3'}{price12})</button>
+                        </div>
+                      </div>
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/d6badge.png" alt="d6" style={{ width:36, height:36, objectFit:'contain' }} />
+                            Extra d6 roll
+                          </div>
+                          <button
+                            disabled={money < price6}
+                            onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
+                            style={money<price6? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                          >Buy ({'\u00A3'}{price6})</button>
+                        </div>
+                      </div>
+                      </>); })()}
+                      </div>
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/nudgebadge.png" alt="nudge" style={{ width:36, height:36, objectFit:'contain' }} />
+                            Nudge
+                          </div>
+                          {(() => { const disc = activeEffects?.shopDiscount || 1; const priceN = Math.max(1, Math.ceil(30 * disc)); return (
+                            <button
+                              disabled={money < priceN}
+                              onClick={() => { if (money>=priceN){ setMoney(m=>m-priceN); setNudges(n=>n+1); pushToast('Purchased: Nudge (+1)'); } }}
+                              style={money<priceN? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                            >Buy ({'\u00A3'}{priceN})</button>
+                          ); })()}
+                        </div>
+                      </div>
+                    </div>
+                </div>
               </div>
-              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, marginTop: 10 }}>Close</button>
+              <div style={styles.shopFrameOverlay} />
+              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, ...styles.shopCloseBtn }}>Close</button>
             </div>
           </div>
         )}
@@ -2409,13 +2631,26 @@ export default function App() {
                   {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
                     <div style={{ display:'grid', gap:8 }}>
                       {list.map(item => (
-                        <div key={`${item.rank}-${item.title}`} style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, background: item.isPlayer? 'rgba(100,212,154,.14)' : 'transparent' }}>
+                        <div key={`${item.rank}-${item.title}`} onClick={() => playTrendItem(item)} style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, background: (playingTrend && playingTrend.id === `${item.artist}__${item.title}`) ? 'rgba(255,255,255,.08)' : (item.isPlayer? 'rgba(100,212,154,.14)' : 'transparent'), cursor:'pointer' }}>
                           <div style={{ minWidth:26, height:26, borderRadius:8, background:'rgba(255,255,255,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>#{item.rank}</div>
-                          <div style={{ width:30, height:30, borderRadius:6, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>
-                            {item.artist.slice(0,1)}
+                          <div style={{ width:30, height:30, borderRadius:6, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, overflow:'hidden', position:'relative' }}>
+                            {item.cover && (
+                              <img src={item.cover} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                            )}
+                            {!item.cover && (
+                              <span>{item.artist.slice(0,1)}</span>
+                            )}
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} — {item.title}</div>
+                            {(playingTrend && playingTrend.id === `${item.artist}__${item.title}`) && (
+                              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
+                                <div style={{ fontSize:11, opacity:.85 }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
+                                <div style={{ height:4, borderRadius:999, background:'rgba(255,255,255,.15)', width:120, overflow:'hidden' }}>
+                                  <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
+                                </div>
+                              </div>
+                            )}
                             {item.isPlayer && <div style={{ ...styles.sub, fontWeight:800, color:'#64d49a' }}>You</div>}
                           </div>
                           <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>▶</button>
@@ -2511,7 +2746,16 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <button onClick={() => setReleaseOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
+              <button
+                onClick={() => {
+                  setReleaseOpen(false);
+                  if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
+                    setFinalePending(false);
+                    setFinaleSummaryOpen(true);
+                  }
+                }}
+                style={{ ...styles.primaryBtn, marginTop: 14 }}
+              >
                 Continue
               </button>
             </div>
@@ -2679,6 +2923,129 @@ export default function App() {
                 </div>
               )}
               <button onClick={() => setGigOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
+            </div>
+          </div>
+        )}
+
+        {/* Finale: choose a past song to perform at Katie's Birthday Party */}
+        {finaleOpen && (
+          <div style={styles.overlay} onClick={() => setFinaleOpen(false)}>
+            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Katie's Birthday Celebration</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>Pick a favorite song from your history to perform at Katie's Birthday Party.</div>
+              <div style={{ marginTop: 8, maxHeight: 260, overflowY: 'auto', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: 6 }}>
+                {songHistory.length === 0 ? (
+                  <div style={styles.sub}>No past songs yet.</div>
+                ) : (
+                  songHistory.map((s, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{s.songName}</div>
+                        <div style={{ ...styles.sub }}>Grade {s.grade} | #{s.chartPos}</div>
+                      </div>
+                      <button style={styles.smallBtn} onClick={() => setFinaleSong(s)}>Select</button>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                disabled={!finaleSong}
+                onClick={() => {
+                  if (!finaleSong) return;
+                  setFinaleOpen(false);
+                  setPerformingVenue('katieparty');
+                  setIsPerforming(true);
+                  setFinaleInProgress(true);
+                  setTarget(null);
+                  setPos({ x: 50, y: 62 });
+                  // End performance after a brief ceremony
+                  setTimeout(() => { setIsPerforming(false); }, 6000);
+                }}
+                style={!finaleSong ? styles.primaryBtnDisabled : styles.primaryBtn}
+              >
+                Perform at Katie's Party
+              </button>
+              <button onClick={() => setFinaleOpen(false)} style={{ ...styles.secondaryBtn, marginTop: 8 }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {/* Finale Summary (appears after Week 52 release, before party) */}
+        {finaleSummaryOpen && (
+          <div style={styles.overlay}>
+            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Year Summary</div>
+              <div style={{ marginTop: 8 }}>
+                {(() => {
+                  const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
+                  const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
+                  const bestChart = songHistory.reduce((best, s) => (s.chartPos && s.chartPos>0) ? Math.min(best||Infinity, s.chartPos) : best, null);
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 900, marginBottom: 6 }}>Top 5 Songs</div>
+                      {top.length === 0 ? (
+                        <div style={styles.sub}>No songs released this year.</div>
+                      ) : (
+                        <div style={{ display:'grid', gap:6 }}>
+                          {top.map((s,i)=>(
+                            <div key={i} style={{ display:'flex', justifyContent:'space-between', border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8 }}>
+                              <div><b>#{i+1}</b> {s.songName}</div>
+                              <div>Score <b>{s.score}</b> | Grade <b>{s.grade}</b></div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
+                      <div style={styles.statRow}><span>Total Money Earned</span><b>£{totalMoney}</b></div>
+                      <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div style={{ display:'flex', gap:8, marginTop: 12 }}>
+                <button onClick={() => { setFinaleSummaryOpen(false); setFinaleOpen(true); }} style={styles.primaryBtn}>Celebrate Katie's Birthday</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Finale ending options after party performance */}
+        {finaleEndOpen && (
+          <div style={styles.overlay} onClick={() => setFinaleEndOpen(false)}>
+            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Season Complete</div>
+              <div style={{ ...styles.sub, marginTop: 8 }}>Thanks for celebrating at Katie's Birthday!</div>
+              <div style={{ marginTop: 8 }}>
+                {(() => {
+                  const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
+                  const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
+                  const bestChart = songHistory.reduce((best, s) => (s.chartPos && s.chartPos>0) ? Math.min(best||Infinity, s.chartPos) : best, null);
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 900, marginBottom: 6 }}>Top 5 Songs</div>
+                      {top.length === 0 ? (
+                        <div style={styles.sub}>No songs released this year.</div>
+                      ) : (
+                        <div style={{ display:'grid', gap:6 }}>
+                          {top.map((s,i)=>(
+                            <div key={i} style={{ display:'flex', justifyContent:'space-between', border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8 }}>
+                              <div><b>#{i+1}</b> {s.songName}</div>
+                              <div>Score <b>{s.score}</b> | Grade <b>{s.grade}</b></div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
+                      <div style={styles.statRow}><span>Total Money Earned</span><b>£{totalMoney}</b></div>
+                      <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div style={{ display:'flex', gap:8, marginTop: 12 }}>
+                <button onClick={() => { setFinaleEndOpen(false); restart(); }} style={styles.primaryBtn}>Start New Game</button>
+                <button onClick={() => { setSuppressFinale(true); setFinaleEndOpen(false); }} style={styles.secondaryBtn}>Continue playing (for fun)</button>
+              </div>
             </div>
           </div>
         )}
@@ -3029,6 +3396,18 @@ const styles = {
     zIndex: 1000,
     backdropFilter: 'blur(4px)'
   },
+  overlayClear: {
+    position: 'absolute',
+    inset: 0,
+    background: 'transparent',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    borderRadius: 0,
+    zIndex: 1000,
+    backdropFilter: 'none',
+  },
   modal: {
     width: "100%",
     maxWidth: 360,
@@ -3036,6 +3415,52 @@ const styles = {
     borderRadius: 16,
     padding: 14,
     boxShadow: "0 10px 30px rgba(0,0,0,.4)",
+  },
+  shopModalFrame: {
+    position: 'relative',
+    width: '100%',
+    background: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    // Maintain the frame's intrinsic aspect so it never distorts
+    aspectRatio: '88 / 47',
+    overflow: 'visible'
+  },
+  shopFrameOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage: "url('/art/newmodalframe.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    pointerEvents: 'none',
+    zIndex: 2,
+    filter: 'drop-shadow(0 8px 18px rgba(0,0,0,.35))'
+  },
+  shopModalInner: {
+    position: 'absolute',
+    // Safe area inside frame (nudged down 10%, right 5%)
+    top: '22%',
+    right: '13%',
+    bottom: '4%',
+    left: '15%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+    gap: 6,
+    fontSize: 14,
+    zIndex: 1,
+  },
+  shopCloseBtn: {
+    position: 'absolute',
+    left: '50%',
+    bottom: '3.5%',
+    transform: 'translateX(-50%)',
+    zIndex: 3,
+    maxWidth: 160,
+    padding: '6px 12px',
+    fontSize: 12,
+    borderRadius: 10,
   },
   mirrorModal: {
     width: '100%',
@@ -3066,6 +3491,15 @@ const styles = {
     gap: 10,
     maxWidth: 470,
     margin: '0 auto'
+  },
+  // Compact shop buy button to reduce width
+  shopBuyBtn: {
+    padding: '6px 8px',
+    fontSize: 12,
+    minWidth: 0,
+    whiteSpace: 'nowrap',
+    width: 'auto',
+    flex: '0 0 auto',
   },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
@@ -3148,6 +3582,21 @@ const styles = {
     gap: 8,
     alignItems: 'center',
     zIndex: 3,
+  },
+  hudListening: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '4px 8px',
+    borderRadius: 10,
+    fontSize: 11,
+    zIndex: 5,
+    maxWidth: 260,
+    display: 'flex',
+    alignItems: 'baseline',
+    pointerEvents: 'none'
   },
   diceMiniOverlay: {
     position: 'absolute',
@@ -3256,11 +3705,17 @@ const styles = {
     padding: 12,
     alignItems: 'flex-start',
   },
+  desktopIconWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+  },
   desktopIcon: {
-    width: 64,
-    height: 64,
-    background: 'rgba(255,255,255,.15)',
-    border: '1px solid rgba(255,255,255,.25)',
+    width: 96,
+    height: 96,
+    background: 'rgba(255,255,255,.10)',
+    border: '1px solid rgba(255,255,255,.20)',
     borderRadius: 10,
     color: 'white',
     fontWeight: 800,
@@ -3270,6 +3725,8 @@ const styles = {
     justifyContent: 'center',
     cursor: 'pointer',
   },
+  desktopIconImg: { width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' },
+  desktopIconLabel: { fontSize: 12, opacity: 0.95, color: '#7d6187', marginTop: -10, display: 'none' },
   desktopClose: {
     marginLeft: 'auto',
     width: 48,
