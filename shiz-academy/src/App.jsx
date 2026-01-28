@@ -526,6 +526,9 @@ export default function App() {
   const [finishedReady, setFinishedReady] = useState(false);
   const [gigOpen, setGigOpen] = useState(false);
   const [selectedGigSong, setSelectedGigSong] = useState(null);
+  const [gigResultOpen, setGigResultOpen] = useState(false);
+  const [gigResult, setGigResult] = useState(null); // {venue, money, fans}
+  const [weekMode, setWeekMode] = useState(null); // 'song' | 'gig' | null
   const [progressOpen, setProgressOpen] = useState(false);
   const [roomWidth, setRoomWidth] = useState(520);
   const [walkablePts, setWalkablePts] = useState([]);
@@ -918,6 +921,7 @@ export default function App() {
     setRollHistory([]);
     setBonusRolls(0);
     setRollGlow({ sing:null, write:null, perform:null });
+    setWeekMode(null);
     // Clear any transient event modal
     setEventModal(null);
   }
@@ -1773,7 +1777,7 @@ export default function App() {
                 {/* Compatibility indicator removed */}
 
                 <button
-                  onClick={() => { setConceptLocked(true); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }}
+                  onClick={() => { setConceptLocked(true); setWeekMode('song'); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }}
                   disabled={!songName.trim()}
                   style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}
                 >
@@ -2619,11 +2623,11 @@ export default function App() {
                   </button>
                   <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
                   <button
-                    disabled={remaining<=0 || weeklyGigs >= MAX_GIGS_PER_WEEK}
-                    onClick={() => { setMyMusicOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
+                    disabled={weekMode === 'song'}
+                    onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } setMyMusicOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
                     style={styles.secondaryBtn}
                   >
-                    Book Gig
+                    Book Gig (uses this week)
                   </button>
                 </div>
                 <div style={{ flex: 1.2, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
@@ -2841,7 +2845,7 @@ export default function App() {
               </div>
               {selectedGigSong && (
                 <div style={{ marginTop: 10 }}>
-                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score} | Gigs this week: {weeklyGigs}/{MAX_GIGS_PER_WEEK}</div>
+                  <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {Object.entries(VENUES).map(([key, v]) => {
                       const expected = selectedGigSong.score;
@@ -2867,36 +2871,31 @@ export default function App() {
                             {capReached && <div style={{ color: 'rgba(255,120,120,.9)' }}>Weekly gig cap reached</div>}
                           </div>
                           <button
-                            disabled={locked || capReached}
+                            disabled={locked}
                             onClick={() => {
-                              // Consume a day and apply venue economics using fixed score
-                              if (remaining <= 0 || weeklyGigs >= MAX_GIGS_PER_WEEK) return;
+                              // New gig flow: consumes the whole week immediately
                               const vCfg = VENUES[key] ?? VENUES.busking;
                               const score = selectedGigSong.score;
                               const grade = selectedGigSong.grade;
                               const fansGainByGrade = { S: 60, A: 40, B: 25, C: 12, D: 5 };
                               const fanBonus = Math.floor(fans * 0.05);
-                              // Freshness and repetition modifiers
                               const weeksSinceRelease = Math.max(0, week - (selectedGigSong.releaseWeek || week));
-                              const freshness = Math.max(0.5, 1 - 0.1 * weeksSinceRelease);
-                              const repsThisWeek = (selectedGigSong.gigs || []).filter(g => g.week === week).length;
-                              const repFactor = repsThisWeek === 0 ? 1.0 : repsThisWeek === 1 ? 0.8 : repsThisWeek === 2 ? 0.6 : 0.5;
-                              const weeklyGigs = (actions || []).filter(a => a.t === 'gig').length;
-                              const softCap = weeklyGigs >= 3 ? 0.5 : 1.0;
-                              let fansGainLocal = Math.round((fansGainByGrade[grade] + fanBonus) * (vCfg.fanMult ?? 1) * freshness * repFactor * softCap * (activeEffects?.fanMult || 1));
+                              const freshness = Math.max(0.6, 1 - 0.08 * weeksSinceRelease);
+                              let fansGainLocal = Math.round((fansGainByGrade[grade] + fanBonus) * (vCfg.fanMult ?? 1) * freshness * (activeEffects?.fanMult || 1));
                               const marginLocal = score - (vCfg.breakEven ?? 0);
-                              let gross = Math.max(0, marginLocal) * (vCfg.payoutPerPoint ?? 0) * freshness * repFactor * softCap * (activeEffects?.payoutMult || 1);
+                              let gross = Math.max(0, marginLocal) * (vCfg.payoutPerPoint ?? 0) * freshness * (activeEffects?.payoutMult || 1);
                               let net = Math.floor(gross - (vCfg.cost ?? 0));
                               if (key === 'busking') net = Math.max(vCfg.tipFloor ?? 5, net);
                               if (week <= 3) net = Math.max(net, -20);
+                              setWeekMode('gig');
                               setMoney((m) => m + net);
                               setFans((f) => f + fansGainLocal);
-                              // Training gains from gigs (DR per gig this week)
-                              const nthGig = weeklyGigs + 1;
-                              const dr = Math.max(0.3, Math.pow(0.85, Math.max(0, nthGig - 1)));
-                              const boost = key === 'busking' ? 1.3 : 1.0;
-                              setStage((v) => clamp(v + 0.06 * dr * boost, 0, 10));
-                              setVocals((v) => clamp(v + 0.03 * dr * boost, 0, 10));
+                              // Modest stat training for a gig-focused week
+                              const boost = key === 'busking' ? 1.1 : 1.0;
+                              const stageGain = 0.25 * boost;
+                              const vocalsGain = 0.12 * boost;
+                              setStage((v) => clamp(v + stageGain, 0, 10));
+                              setVocals((v) => clamp(v + vocalsGain, 0, 10));
                               // Record gig into history entry
                               setSongHistory((arr) => {
                                 const copy = arr.slice();
@@ -2908,13 +2907,16 @@ export default function App() {
                                 }
                                 return copy;
                               });
-                              // Consume a day as a gig action
-                              setActions((arr) => [...arr, { t: 'gig', m:0, l:0, p:0 }]);
+                              setGigResult({ venue: vCfg.name, money: net, fans: fansGainLocal, stageGain, vocalsGain });
                               setGigOpen(false);
+                              // Advance to next week immediately
+                              setWeek((w) => w + 1);
+                              resetWeekProgress();
+                              setGigResultOpen(true);
                             }}
                             style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}
                           >
-                            Play here
+                            Book this gig (use week)
                           </button>
                         </div>
                       );
@@ -3005,6 +3007,29 @@ export default function App() {
               <div style={{ display:'flex', gap:8, marginTop: 12 }}>
                 <button onClick={() => { setFinaleSummaryOpen(false); setFinaleOpen(true); }} style={styles.primaryBtn}>Celebrate Katie's Birthday</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {gigResultOpen && gigResult && (
+          <div style={styles.overlay} onClick={() => setGigResultOpen(false)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>Gig Results</div>
+              <div style={{ marginTop: 8 }}>
+                <div style={styles.statRow}><span>Venue</span><b>{gigResult.venue}</b></div>
+                <div style={styles.statRow}><span>Money</span><b>£{gigResult.money}</b></div>
+                <div style={styles.statRow}><span>Fans</span><b>+{gigResult.fans}</b></div>
+                <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                  <div style={{ padding:'6px 10px', border:'1px solid rgba(255,255,255,.25)', borderRadius:999, background:'rgba(255,255,255,.08)' }}>
+                    Stage <b>+{(gigResult.stageGain||0).toFixed(2)}</b>
+                  </div>
+                  <div style={{ padding:'6px 10px', border:'1px solid rgba(255,255,255,.25)', borderRadius:999, background:'rgba(255,255,255,.08)' }}>
+                    Vocals <b>+{(gigResult.vocalsGain||0).toFixed(2)}</b>
+                  </div>
+                </div>
+                <div style={{ ...styles.sub, marginTop: 8 }}>A full week on the road boosted your skills.</div>
+              </div>
+              <button onClick={() => setGigResultOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Continue</button>
             </div>
           </div>
         )}
