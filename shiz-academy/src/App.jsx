@@ -588,9 +588,8 @@ export default function App() {
   const [fanSpriteMeta, setFanSpriteMeta] = useState(null); // { w,h,tileW,tileH }
 
   function facesFor(stat) {
+    // Simplified path: d20 -> d12 -> d6
     if (stat >= 9.9) return 6;
-    if (stat >= 9.5) return 8;
-    if (stat >= 8) return 10;
     if (stat >= 6) return 12;
     return 20;
   }
@@ -661,7 +660,8 @@ export default function App() {
   }
 
   function nextDieInfo(stat) {
-    const tiers = [ { t:6, f:12 }, { t:8, f:10 }, { t:9.5, f:8 }, { t:9.9, f:6 } ];
+    // Two upgrades: at 6 -> d12, at 9.9 -> d6
+    const tiers = [ { t:6, f:12 }, { t:9.9, f:6 } ];
     for (let i=0;i<tiers.length;i++) {
       if (stat < tiers[i].t) return tiers[i];
     }
@@ -676,11 +676,10 @@ export default function App() {
   }
 
   function dieProgress(stat){
+    // Two-step progression: [0..6) is d20->d12, [6..9.9) is d12->d6
     const seq = [
       { floor:0, t:6, curr:20, next:12 },
-      { floor:6, t:8, curr:12, next:10 },
-      { floor:8, t:9.5, curr:10, next:8 },
-      { floor:9.5, t:9.9, curr:8, next:6 },
+      { floor:6, t:9.9, curr:12, next:6 },
     ];
     if (stat >= 9.9) return { curr:6, next:null, pct:1, floor:9.9, goal:10 };
     for (let i=0;i<seq.length;i++){
@@ -2595,6 +2594,63 @@ export default function App() {
                               style={money<priceN? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
                             >Buy ({'\u00A3'}{priceN})</button>
                           ); })()}
+                        </div>
+                      </div>
+                      {/* Permanent boost items styled like other shop items */}
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/honey.png" alt="honey" style={{ width:28, height:28, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
+                            Soothing Honey Drink
+                            {(() => {
+                              const dp = dieProgress(vocals);
+                              if (!dp || !dp.next) return null;
+                              const floor = dp.floor||0, goal = dp.goal||6;
+                              const currPct = Math.max(0, Math.min(1, (vocals - floor) / Math.max(0.0001, goal - floor)));
+                              const newStat = Math.min(10, vocals + 0.2);
+                              const newPct = Math.max(0, Math.min(1, (newStat - floor) / Math.max(0.0001, goal - floor)));
+                              const delta = Math.max(0, newPct - currPct);
+                              return <span style={{ ...styles.sub, marginLeft:6 }}>+{Math.round(delta*100)}% toward d{dp.next}</span>;
+                            })()}
+                          </div>
+                          {(() => {
+                            const disc = activeEffects?.shopDiscount || 1; const price = Math.max(1, Math.ceil(120 * disc)); const disabled = money < price || vocals >= 10;
+                            return (
+                              <button
+                                disabled={disabled}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Soothing Honey Drink (+0.20 Vocals)'); } }}
+                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                              >Buy ({'\u00A3'}{price})</button>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/notebook.png" alt="notebook" style={{ width:28, height:28, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
+                            Lyric Notebook
+                            {(() => {
+                              const dp = dieProgress(writing);
+                              if (!dp || !dp.next) return null;
+                              const floor = dp.floor||0, goal = dp.goal||6;
+                              const currPct = Math.max(0, Math.min(1, (writing - floor) / Math.max(0.0001, goal - floor)));
+                              const newStat = Math.min(10, writing + 0.2);
+                              const newPct = Math.max(0, Math.min(1, (newStat - floor) / Math.max(0.0001, goal - floor)));
+                              const delta = Math.max(0, newPct - currPct);
+                              return <span style={{ ...styles.sub, marginLeft:6 }}>+{Math.round(delta*100)}% toward d{dp.next}</span>;
+                            })()}
+                          </div>
+                          {(() => {
+                            const disc = activeEffects?.shopDiscount || 1; const price = Math.max(1, Math.ceil(120 * disc)); const disabled = money < price || writing >= 10;
+                            return (
+                              <button
+                                disabled={disabled}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Lyric Notebook (+0.20 Writing)'); } }}
+                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                              >Buy ({'\u00A3'}{price})</button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
