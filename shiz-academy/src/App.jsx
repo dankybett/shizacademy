@@ -2840,47 +2840,51 @@ function stationTarget(type) {
 
         {releaseOpen && lastResult && (
           <div style={styles.overlay} onClick={() => setReleaseOpen(false)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Release Results</div>
-              <div style={{ marginTop: 8 }}>
-                <div style={{ ...styles.sub, marginBottom: 6 }}>
-                  Song: <b>{lastResult.songName}</b> — {lastResult.genre} / {lastResult.theme}
-                </div>
-                <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
-                <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
-                <div style={styles.statRow}><span>Top 100 Charts</span><b>#{lastResult.chartPos}</b></div>
-                {lastResult.venue && (
-                  <div style={styles.statRow}><span>Venue</span><b>{lastResult.venue}</b></div>
-                )}
-                <div style={styles.review}>
-                  "{lastResult.review}"
-                </div>
-                <div style={{ ...styles.sub, marginTop: 8 }}>
-                  +{'\u00A3'}{lastResult.moneyGain} +{lastResult.fansGain} fans
-                </div>
-                {lastResult.feedback && lastResult.feedback.length > 0 && (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={styles.h3}>Suggestions</div>
-                    <ul style={styles.ul}>
-                      {lastResult.feedback.map((t, i) => (
-                        <li key={i} style={styles.li}>{t}</li>
-                      ))}
-                    </ul>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>Release Results</div>
+                  <div style={{ marginTop: 8, paddingBottom: 8 }}>
+                    <div style={{ ...styles.sub, marginBottom: 6 }}>
+                      Song: <b>{lastResult.songName}</b> — {lastResult.genre} / {lastResult.theme}
+                    </div>
+                    <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
+                    <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
+                    <div style={styles.statRow}><span>Top 100 Charts</span><b>#{lastResult.chartPos}</b></div>
+                    {lastResult.venue && (
+                      <div style={styles.statRow}><span>Venue</span><b>{lastResult.venue}</b></div>
+                    )}
+                    <div style={styles.review}>
+                      "{lastResult.review}"
+                    </div>
+                    <div style={{ ...styles.sub, marginTop: 8 }}>
+                      +{'\u00A3'}{lastResult.moneyGain} +{lastResult.fansGain} fans
+                    </div>
+                    {lastResult.feedback && lastResult.feedback.length > 0 && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={styles.h3}>Suggestions</div>
+                        <ul style={styles.ul}>
+                          {lastResult.feedback.map((t, i) => (
+                            <li key={i} style={styles.li}>{t}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setReleaseOpen(false);
+                        if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
+                          setFinalePending(false);
+                          setFinaleSummaryOpen(true);
+                        }
+                      }}
+                      style={{ ...styles.primaryBtn, marginTop: 12 }}
+                    >
+                      Continue
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setReleaseOpen(false);
-                  if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
-                    setFinalePending(false);
-                    setFinaleSummaryOpen(true);
-                  }
-                }}
-                style={{ ...styles.primaryBtn, marginTop: 14 }}
-              >
-                Continue
-              </button>
             </div>
           </div>
         )}
