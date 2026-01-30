@@ -2009,7 +2009,7 @@ function stationTarget(type) {
                   <div style={styles.overlay} onClick={() => setFinanceOpen(false)}>
                     <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
                       <div style={styles.mirrorFrame}>
-                        <div style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
+                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
                             <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
                               <div style={styles.desktopColumn}>
@@ -2088,7 +2088,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setProgressOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
                   <div style={{ ...styles.title, textAlign:'center' }}>Current Song</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 {conceptLocked && songName ? (
@@ -2128,7 +2128,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
                   <div style={{ ...styles.title, textAlign:'center' }}>Settings</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 Week {week} | Money {'\u00A3'}{money} | Fans {fans}
@@ -2170,7 +2170,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setShowConcept(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
               <div style={{ ...styles.title, textAlign:'center' }}>Week {week}: Define Your Song</div>
               <div style={{ ...styles.label, marginTop: 10 }}>Genre</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -2210,7 +2210,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setStatsOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner, top: '22%', right: '13%', bottom: '4%', left: '15%', justifyContent: 'flex-start' }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '13%', bottom: '4%', left: '15%', justifyContent: 'flex-start' }}>
                   <div style={{ marginTop: 0, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginLeft: -40 }}>
                       <div style={styles.portraitWrap}>
@@ -2387,7 +2387,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setSocialOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
               <div style={styles.title}>MyBubble</div>
               <div style={{ display:'flex', gap:12, marginTop: 8 }}>
                 <div style={{ flex:1 }}>
@@ -2549,7 +2549,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setShopOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={styles.mirrorInner}>
+                <div className="hide-scrollbar" style={styles.mirrorInner}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content', margin:'0 auto', marginTop: 160 }}>
                       <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
@@ -2682,7 +2682,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setMyMusicOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
               <div style={{ ...styles.title, marginTop: 12 }}>Shizy-FI</div>
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
@@ -2745,7 +2745,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setCalendarOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
               <div style={{ ...styles.title, textAlign:'center' }}>Calendar</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Week</span><b>{Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}</b></div>
@@ -3167,7 +3167,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setHistoryOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
                   <div style={{ ...styles.title, textAlign:'center' }}>My Song History</div>
                   <div style={{ marginTop: 8, maxHeight: 360, overflowY: 'auto' }}>
                     {songHistory.length === 0 ? (
