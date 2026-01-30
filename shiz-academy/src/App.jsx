@@ -1994,13 +1994,15 @@ function stationTarget(type) {
                     </div>
                   </div>
                 )}
-                {/* Small finish button centered in room when ready to release */}
-                {!isPerforming && canRelease && !finishedReady && (
+                {/* Bottom-right CTA: Choose venue & perform (replaces centered tick) */}
+                {!isPerforming && canRelease && (
                   <button
-                    onClick={finishSong}
-                    title="Finish song"
-                    style={styles.finishBtnSmall}
-                  >✓</button>
+                    onClick={() => { if (!finishedReady) finishSong(); setVenueOpen(true); }}
+                    title="Choose venue & perform"
+                    style={styles.performCta}
+                  >
+                    Choose venue & perform
+                  </button>
                 )}
 
                 {financeOpen && (
@@ -2055,18 +2057,7 @@ function stationTarget(type) {
             {/* Book Gig moved into the computer modal */}
             {/* Gigs count removed per request */}
 
-            {/* Finish song button moved into room overlay (small center button) */}
-            {finishedReady && (
-              <>
-                <div style={{ ...styles.sub, marginTop: 8 }}>Song finished \u2014 ready to perform.</div>
-                <button
-                  onClick={() => setVenueOpen(true)}
-                  style={{ ...styles.primaryBtn, marginTop: 8 }}
-                >
-                  Choose venue & perform
-                </button>
-              </>
-            )}
+            {/* Removed old finishedReady CTA block; now handled in-room bottom-right */}
           </section>
         </div>
 
@@ -2860,56 +2851,61 @@ function stationTarget(type) {
 
         {venueOpen && (
           <div style={styles.overlay} onClick={() => setVenueOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Choose Venue</div>
-              <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                {Object.entries(VENUES).map(([key, v]) => {
-                  // Simple textual forecast
-                  let expected = 0;
-                  if (DICE_MODE) {
-                    const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
-                    const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
-                    const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
-                    expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*92 + computePairBonus(genre, theme, false), 0, 100));
-                  } else {
-                    const triadE = actions.reduce((acc,a)=> a.t==='gig'? acc : acc + (a.m||0)+(a.l||0)+(a.p||0), 0);
-                    const baseE = triadE * 5;
-                    const earlyF = Math.min(1, 0.75 + (week - 1) * 0.05);
-                    expected = Math.round(
-                      clamp(baseE * earlyF + computePairBonus(genre, theme, false), 0, 100)
-                    );
-                  }
-                  const margin = expected - (v.breakEven ?? 0);
-                  const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
-                  const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
-                  const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
-                  const locked = (fans < (VENUE_FAN_REQ[key] ?? 0));
-                  const isSwingy = (compat < 0);
-                  const reqText = VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null;
-                  return (
-                    <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontWeight: 700 }}>
-                          {v.name}
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '8%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>Choose Venue & Perform</div>
+                  <div style={{ ...styles.sub, marginTop: 6 }}>Pick a venue for your finished song.</div>
+                  <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                    {Object.entries(VENUES).map(([key, v]) => {
+                      // Simple textual forecast
+                      let expected = 0;
+                      if (DICE_MODE) {
+                        const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
+                        const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
+                        const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
+                        expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*92 + computePairBonus(genre, theme, false), 0, 100));
+                      } else {
+                        const triadE = actions.reduce((acc,a)=> a.t==='gig'? acc : acc + (a.m||0)+(a.l||0)+(a.p||0), 0);
+                        const baseE = triadE * 5;
+                        const earlyF = Math.min(1, 0.75 + (week - 1) * 0.05);
+                        expected = Math.round(
+                          clamp(baseE * earlyF + computePairBonus(genre, theme, false), 0, 100)
+                        );
+                      }
+                      const margin = expected - (v.breakEven ?? 0);
+                      const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
+                      const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
+                      const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
+                      const locked = (fans < (VENUE_FAN_REQ[key] ?? 0));
+                      const isSwingy = (compat < 0);
+                      const reqText = VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null;
+                      return (
+                        <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 700 }}>
+                              {v.name}
+                            </div>
+                            <div style={{ ...styles.sub }}>
+                              Cost: {'\u00A3'}{v.cost}
+                            </div>
+                          </div>
+                          <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
+                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
+                            <div>Turnout: <b>{turnout}</b></div>
+                            <div>Risk: <b>{risk}</b></div>
+                            <div>Fans: <b>{fansPot}</b></div>
+                            {isSwingy && <div style={{ color: 'rgba(255,220,140,.95)' }}>Swingy</div>}
+                            {locked && reqText && <div style={{ color: 'rgba(255,120,120,.9)' }}>{reqText}</div>}
+                          </div>
+                          <button disabled={locked} onClick={() => performRelease(key)} style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}>
+                            Perform here
+                          </button>
                         </div>
-                        <div style={{ ...styles.sub }}>
-                          Cost: {'\u00A3'}{v.cost}
-                        </div>
-                      </div>
-                      <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
-                        <div>Turnout: <b>{turnout}</b></div>
-                        <div>Risk: <b>{risk}</b></div>
-                        <div>Fans: <b>{fansPot}</b></div>
-                        {isSwingy && <div style={{ color: 'rgba(255,220,140,.95)' }}>Swingy</div>}
-                        {locked && reqText && <div style={{ color: 'rgba(255,120,120,.9)' }}>{reqText}</div>}
-                      </div>
-                      <button disabled={locked} onClick={() => performRelease(key)} style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}>
-                        Perform here
-                      </button>
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -3854,6 +3850,20 @@ const styles = {
     background: 'rgba(255,255,255,.15)',
     color: 'white',
     fontWeight: 900,
+    cursor: 'pointer',
+  },
+  performCta: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    border: 'none',
+    borderRadius: 12,
+    padding: '10px 12px',
+    background: 'white',
+    color: 'black',
+    fontWeight: 900,
+    fontSize: 14,
+    zIndex: 3,
     cursor: 'pointer',
   },
   desktopColumn: {
