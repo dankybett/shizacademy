@@ -2004,44 +2004,51 @@ function stationTarget(type) {
                 )}
 
                 {financeOpen && (
-                <div style={styles.desktopPanel}>
-                    <div style={styles.desktopIcons}>
-                      <div style={styles.desktopColumn}>
-                        <div style={styles.desktopIconWrap}>
-                          <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
-                            <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
-                          </button>
-                          <div style={styles.desktopIconLabel}>myBubble</div>
+                  <div style={styles.overlay} onClick={() => setFinanceOpen(false)}>
+                    <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+                      <div style={styles.mirrorFrame}>
+                        <div style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
+                          <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
+                            <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
+                              <div style={styles.desktopColumn}>
+                                <div style={styles.desktopIconWrap}>
+                                  <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
+                                    <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                                  </button>
+                                  <div style={styles.desktopIconLabel}>myBubble</div>
+                                </div>
+                                <div style={styles.desktopIconWrap}>
+                                  <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
+                                    <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
+                                  </button>
+                                  <div style={styles.desktopIconLabel}>Settings</div>
+                                </div>
+                              </div>
+                              <div style={styles.desktopIconWrap}>
+                                <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
+                                  <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
+                                </button>
+                                <div style={styles.desktopIconLabel}>Shizy-Fi</div>
+                              </div>
+                              <div style={styles.desktopIconWrap}>
+                                <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
+                                  <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
+                                </button>
+                                <div style={styles.desktopIconLabel}>Calendar</div>
+                              </div>
+                              <div style={styles.desktopIconWrap}>
+                                <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
+                                  <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
+                                </button>
+                                <div style={styles.desktopIconLabel}>Am-Oz-on</div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div style={styles.desktopIconWrap}>
-                          <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
-                            <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
-                          </button>
-                          <div style={styles.desktopIconLabel}>Settings</div>
-                        </div>
                       </div>
-                      <div style={styles.desktopIconWrap}>
-                        <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
-                          <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
-                        </button>
-                        <div style={styles.desktopIconLabel}>Shizy-Fi</div>
-                      </div>
-                      <div style={styles.desktopIconWrap}>
-                        <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
-                          <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
-                        </button>
-                        <div style={styles.desktopIconLabel}>Calendar</div>
-                      </div>
-                      <div style={styles.desktopIconWrap}>
-                        <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
-                          <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
-                        </button>
-                        <div style={styles.desktopIconLabel}>Am-Oz-on</div>
-                      </div>
-                      <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>X</button>
                     </div>
                   </div>
-              )}
+                )}
               </div>
             </div>
 
@@ -2088,13 +2095,15 @@ function stationTarget(type) {
 
         {progressOpen && (
           <div style={styles.overlay} onClick={() => setProgressOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Current Song</div>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={{ ...styles.title, textAlign:'center' }}>Current Song</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 {conceptLocked && songName ? (
-                  <span>Working on: <b>{songName}</b></span>
+                  <span style={{ fontSize: 18, fontWeight: 900 }}>Working on: <b>{songName}</b></span>
                 ) : (
-                  <span>No active song yet.</span>
+                  <span style={{ fontSize: 18, fontWeight: 900 }}>No active song yet.</span>
                 )}
                 {false && DICE_MODE && (
                   <div style={styles.progressHelp}>
@@ -2117,17 +2126,19 @@ function stationTarget(type) {
                   </div>
                 </div>
               )}
-              <button onClick={() => setProgressOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
-                Close
-              </button>
+              {null}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {menuOpen && !isOver && (
-          <div style={styles.overlay}>
-            <div style={styles.modal}>
-              <div style={styles.title}>Menu</div>
+          <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
+                  <div style={{ ...styles.title, textAlign:'center' }}>Settings</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 Week {week} | Money {'\u00A3'}{money} | Fans {fans}
               </div>
@@ -2144,6 +2155,8 @@ function stationTarget(type) {
                 </label>
               </div>
               <div style={{ ...styles.sub, marginTop: 10 }}>Autosave: On</div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -2163,21 +2176,23 @@ function stationTarget(type) {
         )}
 
         {showConcept && !conceptLocked && (
-          <div style={styles.overlay}>
-            <div style={styles.modal}>
-              <div style={styles.title}>Week {week}: Define Your Song</div>
+          <div style={styles.overlay} onClick={() => setShowConcept(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
+              <div style={{ ...styles.title, textAlign:'center' }}>Week {week}: Define Your Song</div>
               <div style={{ ...styles.label, marginTop: 10 }}>Genre</div>
-              <div style={styles.rowWrap}>
-                {GENRES.map((g) => (
-                  <button key={g} onClick={() => setGenre(g)} style={g === genre ? styles.btnOn : styles.btnOff}>{g}</button>
-                ))}
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <select value={genre} onChange={(e)=>setGenre(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 180, padding:'6px 10px' }}>
+                  {GENRES.map(g => (<option key={g} value={g}>{g}</option>))}
+                </select>
               </div>
 
               <div style={styles.label}>Theme</div>
-              <div style={styles.rowWrap}>
-                {THEMES.map((t) => (
-                  <button key={t} onClick={() => setTheme(t)} style={t === theme ? styles.btnOn : styles.btnOff}>{t}</button>
-                ))}
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <select value={theme} onChange={(e)=>setTheme(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 200, padding:'6px 10px' }}>
+                  {THEMES.map(t => (<option key={t} value={t}>{t}</option>))}
+                </select>
               </div>
 
               <div style={{ ...styles.label, marginTop: 8 }}>Song name</div>
@@ -2192,8 +2207,9 @@ function stationTarget(type) {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={() => setShowConcept(false)} style={styles.secondaryBtn}>Cancel</button>
-                <button onClick={() => { setConceptLocked(true); setShowConcept(false); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }} disabled={!songName.trim()} style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}>Begin week</button>
+                <button onClick={() => { setConceptLocked(true); setShowConcept(false); const c = compat; setPairFeedback(c>0 ? 'great combination' : c<0 ? 'risky combination' : 'okay combination'); }} disabled={!songName.trim()} style={!songName.trim() ? styles.primaryBtnDisabled : styles.primaryBtn}>Start composing</button>
+              </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2203,7 +2219,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setStatsOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div style={styles.mirrorInner}>
+                <div style={{ ...styles.mirrorInner, top: '22%', right: '13%', bottom: '4%', left: '15%', justifyContent: 'flex-start' }}>
                   <div style={{ marginTop: 0, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginLeft: -40 }}>
                       <div style={styles.portraitWrap}>
@@ -2378,7 +2394,9 @@ function stationTarget(type) {
 
         {socialOpen && (
           <div style={styles.overlay} onClick={() => setSocialOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
               <div style={styles.title}>MyBubble</div>
               <div style={{ display:'flex', gap:12, marginTop: 8 }}>
                 <div style={{ flex:1 }}>
@@ -2430,7 +2448,9 @@ function stationTarget(type) {
                   })()}
                 </div>
               </div>
-              <button onClick={() => setSocialOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+              {null}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -2536,13 +2556,14 @@ function stationTarget(type) {
 
         {shopOpen && (
           <div style={styles.overlay} onClick={() => setShopOpen(false)}>
-            <div style={{ ...styles.shopModalFrame, maxWidth: 680, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.shopModalInner}>
-                <div style={{ display:'flex', gap:6 }}>
-                  <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content' }}>
-                    <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
-                  </div>
-                  <div style={{ flex:0.95 }}>
+            <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={styles.mirrorInner}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content', margin:'0 auto', marginTop: 160 }}>
+                      <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                    </div>
+                    <div style={{ flex:0.95 }}>
                     <div style={{ display:'grid', gap:8 }}>
                       {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
                       <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
@@ -2659,20 +2680,21 @@ function stationTarget(type) {
                         </div>
                       </div>
                     </div>
+                  </div>
                 </div>
               </div>
-              <div style={styles.shopFrameOverlay} />
-              <button onClick={() => setShopOpen(false)} style={{ ...styles.primaryBtn, ...styles.shopCloseBtn }}>Close</button>
             </div>
           </div>
         )}
 
         {myMusicOpen && (
           <div style={styles.overlay} onClick={() => setMyMusicOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>My Music</div>
-              <div style={{ display:'flex', gap:12, marginTop: 10 }}>
-                <div style={{ flex: 1, display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
+              <div style={{ ...styles.title, marginTop: 12 }}>Shizy-FI</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
                   <button
                     onClick={() => {
                       setMyMusicOpen(false);
@@ -2683,18 +2705,13 @@ function stationTarget(type) {
                     {conceptLocked ? 'Current Song' : 'Create Song'}
                   </button>
                   <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
-                  <button
-                    disabled={weekMode === 'song'}
-                    onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } setMyMusicOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
-                    style={styles.secondaryBtn}
-                  >
-                    Book Gig (uses this week)
-                  </button>
+                  {null}
                 </div>
-                <div style={{ flex: 1.2, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
+                <div style={{ border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, width:'100%', overflow:'hidden' }}>
                   <div style={{ fontWeight:900, marginBottom:6 }}>Global Trends (Week {Math.min(week, MAX_WEEKS)})</div>
                   {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
-                    <div style={{ display:'grid', gap:8 }}>
+                    <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
+                      <div style={{ display:'grid', gap:8 }}>
                       {list.map(item => (
                         <div key={`${item.rank}-${item.title}`} onClick={() => playTrendItem(item)} style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, background: (playingTrend && playingTrend.id === `${item.artist}__${item.title}`) ? 'rgba(255,255,255,.08)' : (item.isPlayer? 'rgba(100,212,154,.14)' : 'transparent'), cursor:'pointer' }}>
                           <div style={{ minWidth:26, height:26, borderRadius:8, background:'rgba(255,255,255,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>#{item.rank}</div>
@@ -2707,7 +2724,7 @@ function stationTarget(type) {
                             )}
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} — {item.title}</div>
+                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} - {(item.title && item.title.length>22) ? (item.title.slice(0,22) + '…') : item.title}</div>
                             {(playingTrend && playingTrend.id === `${item.artist}__${item.title}`) && (
                               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
                                 <div style={{ fontSize:11, opacity:.85 }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
@@ -2721,19 +2738,24 @@ function stationTarget(type) {
                           <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>▶</button>
                         </div>
                       ))}
+                      </div>
                     </div>
                   ); })()}
                 </div>
               </div>
-              <button onClick={() => setMyMusicOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+              {null}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {calendarOpen && (
           <div style={styles.overlay} onClick={() => setCalendarOpen(false)}>
-              <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Calendar</div>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
+              <div style={{ ...styles.title, textAlign:'center' }}>Calendar</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Week</span><b>{Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}</b></div>
               </div>
@@ -2764,7 +2786,16 @@ function stationTarget(type) {
                   )}
                 </div>
               )}
-              <button onClick={() => setCalendarOpen(false)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Close</button>
+              <button
+                disabled={weekMode === 'song'}
+                onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } setCalendarOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
+                style={{ ...styles.secondaryBtn, marginTop: 10 }}
+              >
+                Book Gig (uses this week)
+              </button>
+              {null}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -3138,44 +3169,45 @@ function stationTarget(type) {
 
         {historyOpen && (
           <div style={styles.overlay} onClick={() => setHistoryOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>My Song History</div>
-              <div style={{ marginTop: 8, maxHeight: 360, overflowY: 'auto' }}>
-                {songHistory.length === 0 ? (
-                  <div style={styles.sub}>No releases yet.</div>
-                ) : (
-                  songHistory.map((s, idx) => (
-                    <div key={idx} style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <span>
-                          <b>{s.songName}</b>
-                          <span style={{ opacity: .7 }}> | #{s.chartPos}</span>
-                        </span>
-                        <span>
-                          <span style={{ opacity: .8, marginRight: 8 }}>{s.grade}</span>
-                          <b>+{s.moneyGain}</b>
-                        </span>
-                      </div>
-                      {(s.gigs && s.gigs.length>0) && (
-                        <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>
-                          Gigs: {s.gigs.length}
-                          <div style={{ marginTop: 4 }}>
-                            {s.gigs.slice(-3).reverse().map((g, i2) => (
-                              <div key={i2} style={{ display:'flex', justifyContent:'space-between' }}>
-                                <span>Week {g.week} | {g.venue}</span>
-                                <span>+{'\u00A3'}{g.moneyGain} +{g.fansGain} fans</span>
-                              </div>
-                            ))}
-                            {s.gigs.length > 3 && <div style={{ opacity: .7 }}>(+{s.gigs.length - 3} more)</div>}
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div style={{ ...styles.mirrorInner }}>
+                  <div style={{ ...styles.title, textAlign:'center' }}>My Song History</div>
+                  <div style={{ marginTop: 8, maxHeight: 360, overflowY: 'auto' }}>
+                    {songHistory.length === 0 ? (
+                      <div style={styles.sub}>No releases yet.</div>
+                    ) : (
+                      songHistory.map((s, idx) => (
+                        <div key={idx} style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,.1)' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                            <span>
+                              <b>{s.songName}</b>
+                              <span style={{ opacity: .7 }}> | #{s.chartPos}</span>
+                            </span>
+                            <span>
+                              <span style={{ opacity: .8, marginRight: 8 }}>{s.grade}</span>
+                              <b>+{s.moneyGain}</b>
+                            </span>
                           </div>
+                          {(s.gigs && s.gigs.length>0) && (
+                            <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>
+                              Gigs: {s.gigs.length}
+                              <div style={{ marginTop: 4 }}>
+                                {s.gigs.slice(-3).reverse().map((g, i2) => (
+                                  <div key={i2} style={{ display:'flex', justifyContent:'space-between' }}>
+                                    <span>Week {g.week} | {g.venue}</span>
+                                    <span>+{'\u00A3'}{g.moneyGain} +{g.fansGain} fans</span>
+                                  </div>
+                                ))}
+                                {s.gigs.length > 3 && <div style={{ opacity: .7 }}>(+{s.gigs.length - 3} more)</div>}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={() => setHistoryOpen(false)} style={styles.primaryBtn}>Close</button>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -3587,9 +3619,9 @@ const styles = {
   mirrorInner: {
     position: 'absolute',
     // Safe area inside the modal frame
-    top: '14%',
+    top: '16%',
     right: '12%',
-    bottom: '10%',
+    bottom: '12%',
     left: '12%',
     display: 'flex',
     flexDirection: 'column',
