@@ -1721,7 +1721,7 @@ export default function App() {
             </div>
           </div>
           <button onClick={restart} style={styles.secondaryBtn}>Restart</button>
-          <button onClick={() => setMenuOpen(true)} style={styles.secondaryBtn}>Menu</button>
+          {/* Menu button moved into computer modal (Settings icon). */}
         </div>
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2000,35 +2000,43 @@ export default function App() {
                 )}
 
                 {financeOpen && (
-                  <div style={styles.desktopPanel}>
+                <div style={styles.desktopPanel}>
                     <div style={styles.desktopIcons}>
-                    <div style={styles.desktopIconWrap}>
-                      <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
-                        <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
-                      </button>
-                      <div style={styles.desktopIconLabel}>myBubble</div>
+                      <div style={styles.desktopColumn}>
+                        <div style={styles.desktopIconWrap}>
+                          <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
+                            <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                          </button>
+                          <div style={styles.desktopIconLabel}>myBubble</div>
+                        </div>
+                        <div style={styles.desktopIconWrap}>
+                          <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
+                            <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
+                          </button>
+                          <div style={styles.desktopIconLabel}>Settings</div>
+                        </div>
+                      </div>
+                      <div style={styles.desktopIconWrap}>
+                        <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
+                          <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
+                        </button>
+                        <div style={styles.desktopIconLabel}>Shizy-Fi</div>
+                      </div>
+                      <div style={styles.desktopIconWrap}>
+                        <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
+                          <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
+                        </button>
+                        <div style={styles.desktopIconLabel}>Calendar</div>
+                      </div>
+                      <div style={styles.desktopIconWrap}>
+                        <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
+                          <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
+                        </button>
+                        <div style={styles.desktopIconLabel}>Am-Oz-on</div>
+                      </div>
+                      <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>X</button>
                     </div>
-                    <div style={styles.desktopIconWrap}>
-                      <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
-                        <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
-                      </button>
-                      <div style={styles.desktopIconLabel}>Shizy-Fi</div>
-                    </div>
-                    <div style={styles.desktopIconWrap}>
-                      <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
-                        <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
-                      </button>
-                      <div style={styles.desktopIconLabel}>Calendar</div>
-                    </div>
-                    <div style={styles.desktopIconWrap}>
-                      <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
-                        <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
-                      </button>
-                      <div style={styles.desktopIconLabel}>Am-Oz-on</div>
-                    </div>
-                    <button style={styles.desktopClose} onClick={() => setFinanceOpen(false)}>X</button>
                   </div>
-                </div>
               )}
               </div>
             </div>
@@ -3785,6 +3793,11 @@ const styles = {
     gap: 10,
     padding: 12,
     alignItems: 'flex-start',
+  },
+  desktopColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
   },
   desktopIconWrap: {
     display: 'flex',
