@@ -536,6 +536,9 @@ export default function App() {
   const [isPerforming, setIsPerforming] = useState(false);
   const [performingVenue, setPerformingVenue] = useState(null);
   const performAudioRef = useRef(null);
+  const rollAudioRef = useRef(null);
+  const typingAudioRef = useRef(null);
+  const danceAudioRef = useRef(null);
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -790,6 +793,30 @@ export default function App() {
     const hold = Math.max(700, rollFxHoldMs || 2500);
     const settleMs = Math.max(300, hold - 300);
     const hideMs = hold + 300;
+    // Start rolling sound and loop while the dice FX is visible
+    try {
+      if (rollAudioRef.current) { try { rollAudioRef.current.pause(); } catch (_) {} }
+      const ra = new Audio('/sounds/dierollingsound.mp3');
+      ra.loop = true;
+      rollAudioRef.current = ra;
+      ra.play().catch(() => {});
+      // If writing roll, layer in typing sound
+      if (rollFx.action === 'write') {
+        if (typingAudioRef.current) { try { typingAudioRef.current.pause(); } catch (_) {} }
+        const ta = new Audio('/sounds/typingsound.mp3');
+        ta.loop = true;
+        typingAudioRef.current = ta;
+        ta.play().catch(() => {});
+      }
+      // If perform/dance roll, layer in dancing sound
+      if (rollFx.action === 'perform') {
+        if (danceAudioRef.current) { try { danceAudioRef.current.pause(); } catch (_) {} }
+        const da = new Audio('/sounds/dancingsound.mp3');
+        da.loop = true;
+        danceAudioRef.current = da;
+        da.play().catch(() => {});
+      }
+    } catch (_) {}
     let tick = setInterval(()=>{
       setRollFx(prev=> ({ ...prev, current: 1 + Math.floor(Math.random() * (prev.faces||20)) }));
     }, 40);
@@ -800,7 +827,12 @@ export default function App() {
     let hide = setTimeout(()=>{
       setRollFx({ show:false, faces:0, current:null, final:null, settled:false, action:null });
     }, hideMs);
-    return ()=> { clearInterval(tick); clearTimeout(settle); clearTimeout(hide); };
+    return ()=> {
+      clearInterval(tick); clearTimeout(settle); clearTimeout(hide);
+      try { if (rollAudioRef.current) { rollAudioRef.current.pause(); rollAudioRef.current = null; } } catch (_) {}
+      try { if (typingAudioRef.current) { typingAudioRef.current.pause(); typingAudioRef.current = null; } } catch (_) {}
+      try { if (danceAudioRef.current) { danceAudioRef.current.pause(); danceAudioRef.current = null; } } catch (_) {}
+    };
   }, [rollFx.show, rollFxHoldMs]);
 
   // On settle, briefly show cues: button glow and dice glow; also persist per-button glow
