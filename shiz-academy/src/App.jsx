@@ -1803,8 +1803,12 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
-                {/* Microphone (visual only for now) */}
-                <div style={anchorStyle(ANCHORS.mic)}>
+                {/* Microphone → opens Create/Current Song modal */}
+                <div
+                  style={anchorStyle(ANCHORS.mic)}
+                  onClick={() => { if (!conceptLocked) setShowConcept(true); else setProgressOpen(true); }}
+                  title={conceptLocked ? 'Current Song' : 'Create Song'}
+                >
                   <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Chair (visual only) */}
@@ -2913,10 +2917,12 @@ function stationTarget(type) {
 
         {gigOpen && (
           <div style={styles.overlay} onClick={() => setGigOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Book Gig</div>
-              <div style={{ ...styles.sub, marginTop: 6 }}>Play an older song to earn money/fans. Uses 1 day (max 3 gigs per week).</div>
-              <div style={{ marginTop: 8, maxHeight: 240, overflowY: 'auto', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: 6 }}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>Book Gig</div>
+                  <div style={{ ...styles.sub, marginTop: 6 }}>Play an older song to earn money/fans. Uses 1 day (max 3 gigs per week).</div>
+                  <div className="hide-scrollbar" style={{ marginTop: 8, maxHeight: 240, overflowY: 'auto', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: 6 }}>
                 {songHistory.length === 0 ? (
                   <div style={styles.sub}>No past songs yet.</div>
                 ) : (
@@ -2930,7 +2936,7 @@ function stationTarget(type) {
                     </div>
                   ))
                 )}
-              </div>
+                  </div>
               {selectedGigSong && (
                 <div style={{ marginTop: 10 }}>
                   <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score}</div>
@@ -3012,7 +3018,9 @@ function stationTarget(type) {
                   </div>
                 </div>
               )}
-              <button onClick={() => setGigOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
+                  <button onClick={() => setGigOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
