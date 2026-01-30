@@ -844,22 +844,12 @@ export default function App() {
     return () => { clearTimeout(t); };
   }, [rollFx.settled]);
 
-  function stationTarget(type) {
-    // Base positions match station 'left'/'top' percentages; apply pixel offsets to stay aligned
-    if (type === 'write') {
-      const x = percentWithOffset(15, 215, roomWidth);
-      const y = percentWithOffset(65, 10, ROOM_HEIGHT);
-      return { x, y };
-    }
-    if (type === 'practice') {
-      const x = percentWithOffset(45, -70, roomWidth);
-      const y = percentWithOffset(60, 30, ROOM_HEIGHT);
-      return { x, y };
-    }
-    // perform ? mirror
-    const x = percentWithOffset(80, 10, roomWidth);
-    const y = percentWithOffset(65, 50, ROOM_HEIGHT);
-    return { x, y };
+function stationTarget(type) {
+    // Snap to anchored object centers; nearestWalkable() will adjust to the mask
+    if (type === 'write') return { x: ANCHORS.chair.xPct, y: ANCHORS.chair.yPct };
+    if (type === 'practice') return { x: Math.max(0, ANCHORS.mic.xPct - ((20/3168)*100)), y: ANCHORS.mic.yPct };
+    // perform at mirror
+    return { x: Math.max(0, ANCHORS.mirror.xPct - ((20/3168)*100)), y: ANCHORS.mirror.yPct };
   }
 
   function instruct(type) {
@@ -1150,6 +1140,24 @@ export default function App() {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  // --- Room anchor overlay (anchors props to the background artboard)
+  const APT = { w: 3168, h: 1344 }; // apartmentbackgroundwide.png
+  const ANCHORS = {
+    computer: { xPct: 68.85, yPct: 50.67, wPct: 12.03 },
+    mic:      { xPct: 49.97, yPct: 54.82, wPct: 19.35 },
+    chair:    { xPct: 62.50, yPct: 72.54, wPct: 10.61 },
+    mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
+  };
+  function anchorStyle(a){
+    return {
+      position:'absolute',
+      left: `${a.xPct}%`,
+      top:  `${a.yPct}%`,
+      transform: 'translate(-50%, -50%)',
+      width: `${a.wPct}%`,
+    };
   }
 
   // Load fan sprite image to compute tile sizes with padding
@@ -1582,7 +1590,8 @@ export default function App() {
         ctx.drawImage(img, 0, 0);
         const data = ctx.getImageData(0, 0, cw, ch).data;
         const pts = [];
-        const stride = Math.max(4, Math.floor(Math.min(cw, ch) / 80));
+        // Denser sampling for more accurate nearest-walkable snapping on mobile
+        const stride = 6; // pixels
         for (let y = 0; y < ch; y += stride) {
           for (let x = 0; x < cw; x += stride) {
             const i = (y * cw + x) * 4;
@@ -1598,7 +1607,7 @@ export default function App() {
         setWalkablePts([]);
       }
     };
-    img.src = '/art/apartmentfloor-mask.png';
+    img.src = '/art/apartmentfloor-mask-wide.png';
   }, []);
 
   const isOver = week > MAX_WEEKS;
@@ -1713,16 +1722,7 @@ export default function App() {
         </div>
       )}
       <div style={styles.card}>
-        <div style={styles.headerRow}>
-          <div>
-            <div style={styles.title}>Performer Jam</div>
-            <div style={styles.sub}>
-              Week {Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}
-            </div>
-          </div>
-          <button onClick={restart} style={styles.secondaryBtn}>Restart</button>
-          {/* Menu button moved into computer modal (Settings icon). */}
-        </div>
+        {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
 
@@ -1796,7 +1796,26 @@ export default function App() {
           <section style={styles.section}>
             {/* Streamlined main view: room dominates, buttons underneath */}
             <div style={styles.roomOuter}>
-              <div style={{ ...styles.room, width: roomWidth, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackground.png')" }}>
+              <div style={{ ...styles.room, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackgroundwide.png')" }}>
+              {/* Anchor overlay sized to the artboard aspect and centered */}
+              <div style={styles.roomAnchors}>
+                {/* Computer (click opens Settings/desktop) */}
+                <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
+                  <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                </div>
+                {/* Microphone (visual only for now) */}
+                <div style={anchorStyle(ANCHORS.mic)}>
+                  <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                </div>
+                {/* Chair (visual only) */}
+                <div style={anchorStyle(ANCHORS.chair)}>
+                  <img src="/art/chair.png" alt="Chair" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                </div>
+                {/* Mirror (click opens stats) */}
+                <div style={anchorStyle(ANCHORS.mirror)} onClick={() => setStatsOpen(true)}>
+                  <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                </div>
+              </div>
               {/* Room HUD: show money and rolls */}
               <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
               {!playingTrend && (
@@ -1842,30 +1861,7 @@ export default function App() {
               {isPerforming && (
                 <button onClick={skipPerformance} style={{ position:'absolute', right:10, top:10, zIndex:2, ...styles.secondaryBtn }} title="Skip performance">Skip performance</button>
               )}
-              <div
-                style={{ ...styles.station, left: "10%", top: "28%", cursor: 'pointer', transform: 'translate(-50%, -50%) translate(280px, 55px)' }}
-                onClick={() => setFinanceOpen(true)}
-                title="Computer"
-              >
-                <img src="/art/computer.png" alt="Computer" style={styles.computerImg} />
-              </div>
-                {!isPerforming && (
-                  <>
-                    <div style={{ ...styles.station, left: "15%", top: "65%", transform: 'translate(-50%, -50%) translate(215px, 10px)' }} title="Writing desk">
-                      <img src="/art/chair.png" alt="Writing desk" style={styles.chairImg} />
-                    </div>
-                    <div style={{ ...styles.station, left: "45%", top: "60%", transform: 'translate(-50%, -50%) translate(-30px, 0px)' }} title="Mic">
-                      <img src="/art/microphone.png" alt="Microphone" style={styles.stationImg} />
-                    </div>
-                    <div
-                      style={{ ...styles.station, left: "80%", top: "65%", transform: 'translate(-50%, -50%) translate(40px, 20px)', cursor: 'pointer' }}
-                      title="Mirror"
-                      onClick={() => setStatsOpen(true)}
-                    >
-                      <img src="/art/mirror.png" alt="Mirror" style={styles.stationImg} />
-                    </div>
-                  </>
-                )}
+              {/* Legacy station sprites removed; replaced by anchor overlay above */}
 
                 {/* Nudge badge is rendered inside the room overlay below */}
 
@@ -1998,6 +1994,14 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                {/* Small finish button centered in room when ready to release */}
+                {!isPerforming && canRelease && !finishedReady && (
+                  <button
+                    onClick={finishSong}
+                    title="Finish song"
+                    style={styles.finishBtnSmall}
+                  >✓</button>
+                )}
 
                 {financeOpen && (
                 <div style={styles.desktopPanel}>
@@ -2044,14 +2048,7 @@ export default function App() {
             {/* Book Gig moved into the computer modal */}
             {/* Gigs count removed per request */}
 
-            {canRelease && !finishedReady && (
-              <button
-                onClick={finishSong}
-                style={{ ...styles.primaryBtn, marginTop: 10 }}
-              >
-                Finish song
-              </button>
-            )}
+            {/* Finish song button moved into room overlay (small center button) */}
             {finishedReady && (
               <>
                 <div style={{ ...styles.sub, marginTop: 8 }}>Song finished \u2014 ready to perform.</div>
@@ -3192,20 +3189,24 @@ export default function App() {
 
 const styles = {
   page: {
-    minHeight: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    padding: 16,
-    background: "#0b0f19",
-    color: "white",
+    width: '100vw',
+    height: '100vh',
+    overflow: 'hidden',
+    display: 'block',
+    margin: 0,
+    padding: 0,
+    background: '#0b0f19',
+    color: 'white',
     fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
   },
   card: {
-    width: "100%",
-    maxWidth: 840,
+    width: "100vw",
+    maxWidth: "100vw",
+    height: "100dvh",
+    minHeight: "100svh",
     background: "#121a2b",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 0,
+    padding: 0,
     position: "relative",
     boxShadow: "0 10px 30px rgba(0,0,0,.35)",
   },
@@ -3223,13 +3224,14 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: 12,
-    marginTop: 12,
+    marginTop: 0,
+    height: '100%',
   },
-  roomOuter: { display: "flex", justifyContent: "center", marginTop: 8, marginBottom: 6 },
+  roomOuter: { display: "flex", justifyContent: "center", marginTop: 0, marginBottom: 0, height: '100%' },
   section: {
-    background: "#0f1524",
-    borderRadius: 14,
-    padding: 12,
+    background: "transparent",
+    borderRadius: 0,
+    padding: 0,
   },
   h3: { margin: 0, marginBottom: 8, fontSize: 16 },
   statRow: { display: "flex", justifyContent: "space-between", padding: "4px 0" },
@@ -3257,16 +3259,26 @@ const styles = {
   },
   room: {
     position: "relative",
-    height: ROOM_HEIGHT,
-    borderRadius: 12,
+    height: '100%',
+    width: '100%',
+    borderRadius: 0,
     backgroundImage: "url('/art/apartmentbackground.png')",
-    backgroundSize: "contain",
-    backgroundPosition: "center",
+    backgroundSize: "auto 100%",
+    backgroundPosition: "center center",
     backgroundRepeat: "no-repeat",
-    border: "1px solid rgba(255,255,255,.15)",
+    border: "none",
     boxShadow: "inset 0 -20px 30px rgba(0,0,0,.3)",
     overflow: "hidden",
-    marginBottom: 8,
+    marginBottom: 0,
+  },
+  roomAnchors: {
+    position: 'absolute',
+    top: 0,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    height: '100%',
+    aspectRatio: '3168 / 1344',
+    pointerEvents: 'auto',
   },
   station: {
     position: "absolute",
@@ -3793,6 +3805,20 @@ const styles = {
     gap: 10,
     padding: 12,
     alignItems: 'flex-start',
+  },
+  finishBtnSmall: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    border: '1px solid rgba(255,255,255,.35)',
+    background: 'rgba(255,255,255,.15)',
+    color: 'white',
+    fontWeight: 900,
+    cursor: 'pointer',
   },
   desktopColumn: {
     display: 'flex',
