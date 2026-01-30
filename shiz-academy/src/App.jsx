@@ -2204,34 +2204,36 @@ function stationTarget(type) {
             <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div style={styles.mirrorInner}>
-                  <div style={{
-                    ...styles.title,
-                    textAlign: 'center',
-                    marginTop: 5,
-                    fontFamily: "'Lobster', cursive",
-                    fontWeight: 400,
-                    color: '#fff',
-                    WebkitTextStroke: '1px #6b4a2b',
-                    textShadow: '1px 0 #6b4a2b, -1px 0 #6b4a2b, 0 1px #6b4a2b, 0 -1px #6b4a2b'
-                  }}>
-                  {editingName ? (
-                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                      <input
-                        autoFocus
-                        value={tempName}
-                      onChange={(e)=>setTempName(e.target.value)}
-                      onKeyDown={(e)=>{ if(e.key==='Enter'){ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false);} if(e.key==='Escape'){ setEditingName(false);} }}
-                      style={{ ...styles.input, height:32, fontWeight:800 }}
-                    />
-                    <button className="btn" onClick={()=>{ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false); }} style={styles.smallBtn}>Save</button>
-                  </div>
-                ) : (
-                  <span onClick={()=>{ setTempName(performerName); setEditingName(true); }} title="Click to rename" style={{ cursor:'text' }}>{performerName}</span>
-                )}
-                  </div>
-                  <div style={{ marginTop: 14, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
-                    <div style={styles.portraitWrap}>
-                      <img src="/art/mirrorportrait.png" alt="Performer portrait" style={styles.portraitImg} />
+                  <div style={{ marginTop: 0, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginLeft: -40 }}>
+                      <div style={styles.portraitWrap}>
+                        <img src="/art/mirrorportrait.png" alt="Performer portrait" style={styles.portraitImg} />
+                      </div>
+                      <div style={{
+                        ...styles.title,
+                        textAlign: 'center',
+                        marginTop: 4,
+                        fontFamily: "'Lobster', cursive",
+                        fontWeight: 400,
+                        color: '#fff',
+                        WebkitTextStroke: '1px #6b4a2b',
+                        textShadow: '1px 0 #6b4a2b, -1px 0 #6b4a2b, 0 1px #6b4a2b, 0 -1px #6b4a2b'
+                      }}>
+                        {editingName ? (
+                          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                            <input
+                              autoFocus
+                              value={tempName}
+                              onChange={(e)=>setTempName(e.target.value)}
+                              onKeyDown={(e)=>{ if(e.key==='Enter'){ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false);} if(e.key==='Escape'){ setEditingName(false);} }}
+                              style={{ ...styles.input, height:32, fontWeight:800 }}
+                            />
+                            <button className="btn" onClick={()=>{ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false); }} style={styles.smallBtn}>Save</button>
+                          </div>
+                        ) : (
+                          <span onClick={()=>{ setTempName(performerName); setEditingName(true); }} title="Click to rename" style={{ cursor:'text' }}>{performerName}</span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ flex:1 }}>
                   <div style={styles.progressLabel}><span>Vocals</span></div>
@@ -2239,7 +2241,7 @@ function stationTarget(type) {
                   const pr = dieProgress(vocals); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#B084F5', col2 = '#7A4CC4';
                   return (
-                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(176,132,245,.15)', border:'1px solid rgba(176,132,245,.35)', borderRadius:10, width:'72%' }}>
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:10, padding:'5px 10px', background:'rgba(176,132,245,.15)', border:'1px solid rgba(176,132,245,.35)', borderRadius:12, width:'72%' }}>
                     {dieBadgePath(pr.curr) ? (
                       <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
                         <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
@@ -2248,13 +2250,13 @@ function stationTarget(type) {
                     ) : (
                       <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#c39af7,#8d60d8)', border:'1px solid rgba(176,132,245,.8)' }}>d{pr.curr}</div>
                     )}
-                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                    <div style={{ position:'relative', flex:1, height:9, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
                       <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
                         <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
                         <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
                       </div>
                       {pr.next && (
-                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(176,132,245,.9)', border:'1px solid #6d49b7' }} />
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 5px)`, top:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:999, background:'#fff', boxShadow:'0 0 7px rgba(176,132,245,.9)', border:'1px solid #6d49b7' }} />
                       )}
                     </div>
                     {dieBadgePath(pr.next) ? (
@@ -2284,7 +2286,7 @@ function stationTarget(type) {
                   const pr = dieProgress(writing); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#5FE7D9', col2 = '#2AA296';
                   return (
-                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(95,231,217,.12)', border:'1px solid rgba(95,231,217,.35)', borderRadius:10, width:'72%' }}>
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:10, padding:'5px 10px', background:'rgba(95,231,217,.12)', border:'1px solid rgba(95,231,217,.35)', borderRadius:12, width:'72%' }}>
                     {dieBadgePath(pr.curr) ? (
                       <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
                         <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
@@ -2293,13 +2295,13 @@ function stationTarget(type) {
                     ) : (
                       <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#8ff1e8,#3dbbb0)', border:'1px solid rgba(95,231,217,.7)' }}>d{pr.curr}</div>
                     )}
-                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                    <div style={{ position:'relative', flex:1, height:9, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
                       <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
                         <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
                         <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
                       </div>
                       {pr.next && (
-                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(95,231,217,.9)', border:'1px solid #1f7f76' }} />
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 5px)`, top:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:999, background:'#fff', boxShadow:'0 0 7px rgba(95,231,217,.9)', border:'1px solid #1f7f76' }} />
                       )}
                     </div>
                     {dieBadgePath(pr.next) ? (
@@ -2329,7 +2331,7 @@ function stationTarget(type) {
                   const pr = dieProgress(stage); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#F7D774', col2 = '#C79C2A';
                   return (
-                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:8, padding:'4px 8px', background:'rgba(247,215,116,.12)', border:'1px solid rgba(247,215,116,.35)', borderRadius:10, width:'72%' }}>
+                  <div style={{ ...styles.progressTrack, display:'flex', alignItems:'center', gap:10, padding:'5px 10px', background:'rgba(247,215,116,.12)', border:'1px solid rgba(247,215,116,.35)', borderRadius:12, width:'72%' }}>
                     {dieBadgePath(pr.curr) ? (
                       <div style={{...styles.dieBadgeWrap, marginLeft:-6}}>
                         <img src={dieBadgePath(pr.curr)} alt={`d${pr.curr}`} style={styles.dieBadge} />
@@ -2338,13 +2340,13 @@ function stationTarget(type) {
                     ) : (
                       <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#ffe39c,#e1b951)', border:'1px solid rgba(247,215,116,.7)' }}>d{pr.curr}</div>
                     )}
-                    <div style={{ position:'relative', flex:1, height:7, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
+                    <div style={{ position:'relative', flex:1, height:9, borderRadius:999, background:'rgba(255,255,255,.08)', boxShadow:'inset 0 2px 4px rgba(0,0,0,.25), 0 1px 2px rgba(255,255,255,.15)' }}>
                       <div style={{ position:'absolute', inset:0, borderRadius:999, overflow:'hidden' }}>
                         <div style={{ width:`${pct}%`, height:'100%', background:`linear-gradient(180deg, ${col1}, ${col2})` }} />
                         <div style={{ position:'absolute', inset:0, borderRadius:999, background:'linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,0))' }} />
                       </div>
                       {pr.next && (
-                        <div style={{ position:'absolute', left:`calc(${pct}% - 4px)`, top:'50%', transform:'translate(-50%,-50%)', width:8, height:8, borderRadius:999, background:'#fff', boxShadow:'0 0 6px rgba(247,215,116,.9)', border:'1px solid #c29a2a' }} />
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 5px)`, top:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:999, background:'#fff', boxShadow:'0 0 7px rgba(247,215,116,.9)', border:'1px solid #c29a2a' }} />
                       )}
                     </div>
                     {dieBadgePath(pr.next) ? (
@@ -2365,9 +2367,7 @@ function stationTarget(type) {
                 )}
                     </div>
                   </div>
-                  <button onClick={() => setStatsOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12, alignSelf:'center', maxWidth: 160, padding:'6px 12px', fontSize: 12, borderRadius: 10 }}>
-                    Close
-                  </button>
+                  {null}
                 </div>
               </div>
             </div>
@@ -3565,7 +3565,7 @@ const styles = {
   },
   mirrorModal: {
     width: '100%',
-    maxWidth: 500,
+    maxWidth: 560,
     background: 'transparent',
     borderRadius: 16,
     padding: 0,
@@ -3576,22 +3576,26 @@ const styles = {
     width: '100%',
     minHeight: 0,
     borderRadius: 16,
-    backgroundImage: "url('/art/animatedmodalframe.gif')",
+    backgroundImage: "url('/art/modalframe.png')",
     backgroundSize: 'cover',
-    backgroundPosition: 'center',
+    backgroundPosition: 'center bottom',
     backgroundRepeat: 'no-repeat',
     overflow: 'hidden',
-    aspectRatio: '16 / 9',
+    aspectRatio: '2112 / 1500',
     filter: 'drop-shadow(0 0 16px rgba(160,255,200,.15))'
   },
   mirrorInner: {
-    position: 'relative',
-    padding: '25px 32px 26px 32px',
+    position: 'absolute',
+    // Safe area inside the modal frame
+    top: '14%',
+    right: '12%',
+    bottom: '10%',
+    left: '12%',
     display: 'flex',
     flexDirection: 'column',
+    justifyContent: 'center',
     gap: 10,
-    maxWidth: 470,
-    margin: '0 auto'
+    overflowY: 'auto'
   },
   // Compact shop buy button to reduce width
   shopBuyBtn: {
@@ -3604,15 +3608,15 @@ const styles = {
   },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
-  progressLabel: { display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 900, letterSpacing: .2, textTransform: 'uppercase', opacity: 0.95, marginTop: 8 },
-  progressTrack: { height: 10, borderRadius: 6, background: 'rgba(255,255,255,.12)', overflow: 'visible', marginTop: 4 },
+  progressLabel: { display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 900, letterSpacing: .2, textTransform: 'uppercase', opacity: 0.95, marginTop: 8 },
+  progressTrack: { height: 12, borderRadius: 7, background: 'rgba(255,255,255,.12)', overflow: 'visible', marginTop: 4 },
   progressFill: { height: '100%', background: 'white' },
-  dieToken: { minWidth: 19, height: 12, borderRadius: 8, background:'rgba(255,255,255,.15)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:8, border:'1px solid rgba(255,255,255,.3)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.25), 0 2px 6px rgba(0,0,0,.25)' },
-  dieBadge: { width: 21, height: 21, objectFit: 'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,.35))' },
-  dieBadgeWrap: { position:'relative', width: 24, height: 24, display:'flex', alignItems:'center', justifyContent:'center', zIndex: 2 },
-  dieBadgeText: { position:'absolute', color:'#fff', fontWeight:900, fontSize: 9, textShadow: '0 1px 2px rgba(0,0,0,.6)',  },
-  portraitWrap: { width: 132, height: 132, borderRadius: 999, background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none', border:'none', marginTop: 10 },
-  portraitImg: { width: 116, height: 116, borderRadius: 999, objectFit: 'cover', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' },
+  dieToken: { minWidth: 23, height: 14, borderRadius: 9, background:'rgba(255,255,255,.15)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:10, border:'1px solid rgba(255,255,255,.3)', boxShadow:'inset 0 1px 0 rgba(255,255,255,.25), 0 2px 6px rgba(0,0,0,.25)' },
+  dieBadge: { width: 25, height: 25, objectFit: 'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,.35))' },
+  dieBadgeWrap: { position:'relative', width: 29, height: 29, display:'flex', alignItems:'center', justifyContent:'center', zIndex: 2 },
+  dieBadgeText: { position:'absolute', color:'#fff', fontWeight:900, fontSize: 11, textShadow: '0 1px 2px rgba(0,0,0,.6)',  },
+  portraitWrap: { width: 160, height: 160, borderRadius: 999, background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none', border:'none', marginTop: 10 },
+  portraitImg: { width: 140, height: 140, borderRadius: 999, objectFit: 'cover', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' },
   progressHelp: { fontSize: 11, opacity: 0.8, marginTop: 4 },
   barRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 },
   barLabel: { width: 90, fontSize: 12 },
