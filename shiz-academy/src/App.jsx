@@ -571,6 +571,8 @@ export default function App() {
   const [prevFaces, setPrevFaces] = useState({ sing: facesFor(0), write: facesFor(0), perform: facesFor(0) });
   const [toasts, setToasts] = useState([]); // {id, text}
   const [rollFx, setRollFx] = useState({ show:false, faces:0, current:null, final:null, settled:false, action:null });
+  const [rollFxFadeOut, setRollFxFadeOut] = useState(false);
+  const [rollFxPulse, setRollFxPulse] = useState(false);
   const [rollRing, setRollRing] = useState({ show:false, action:null, color:null });
   const [rollGlow, setRollGlow] = useState({ sing: null, write: null, perform: null });
   const [bubbleGlow, setBubbleGlow] = useState({ show:false, color:null });
@@ -798,7 +800,9 @@ export default function App() {
   useEffect(()=>{
     if (!rollFx.show) return;
     const hold = Math.max(700, rollFxHoldMs || 2500);
-    const settleMs = Math.max(300, hold - 300);
+    const isGif = (rollFx.faces === 12 || rollFx.faces === 6);
+    // For d12/d6: settle ~1.3s before hide (1.0s pulse + 0.3s fade)
+    const settleMs = isGif ? Math.max(300, hold - 1300) : Math.max(300, hold - 300);
     const hideMs = hold + 300;
     // Start rolling sound and loop while the dice FX is visible
     try {
@@ -824,18 +828,27 @@ export default function App() {
         da.play().catch(() => {});
       }
     } catch (_) {}
+    setRollFxFadeOut(false);
+    setRollFxPulse(false);
     let tick = setInterval(()=>{
       setRollFx(prev=> ({ ...prev, current: 1 + Math.floor(Math.random() * (prev.faces||20)) }));
     }, 40);
+    let fadeTimer;
     let settle = setTimeout(()=>{
       clearInterval(tick);
       setRollFx(prev=> ({ ...prev, current: prev.final, settled: true }));
+      if (isGif) {
+        // Start 1s pulse, then mark fade
+        setRollFxPulse(true);
+        setTimeout(()=> setRollFxPulse(false), 1000);
+        fadeTimer = setTimeout(()=> setRollFxFadeOut(true), 1000);
+      }
     }, settleMs);
     let hide = setTimeout(()=>{
       setRollFx({ show:false, faces:0, current:null, final:null, settled:false, action:null });
     }, hideMs);
     return ()=> {
-      clearInterval(tick); clearTimeout(settle); clearTimeout(hide);
+      clearInterval(tick); clearTimeout(settle); clearTimeout(hide); if (fadeTimer) clearTimeout(fadeTimer);
       try { if (rollAudioRef.current) { rollAudioRef.current.pause(); rollAudioRef.current = null; } } catch (_) {}
       try { if (typingAudioRef.current) { typingAudioRef.current.pause(); typingAudioRef.current = null; } } catch (_) {}
       try { if (danceAudioRef.current) { danceAudioRef.current.pause(); danceAudioRef.current = null; } } catch (_) {}
@@ -847,10 +860,7 @@ export default function App() {
     if (!rollFx.settled || !rollFx.action || !rollFx.final || !rollFx.faces) return;
     const faces = rollFx.faces; const value = rollFx.final;
     // For d12/d6: show result via toast instead of settling on a specific gif frame
-    if (faces === 12 || faces === 6) {
-      const label = rollFx.action === 'write' ? 'Write' : rollFx.action === 'sing' ? 'Sing' : 'Perform';
-      pushToast(`${label} roll: ${value} (d${faces})`);
-    }
+    // For d12/d6 we now show number above head and fade; toast not needed
     const frac = (faces + 1 - value) / faces; // low is better
     let color = 'rgba(200,90,90,.95)'; // bad
     if (frac >= 0.66) { color = 'rgba(80,180,120,.95)'; }
@@ -1957,7 +1967,9 @@ function stationTarget(type) {
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
                     background: (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? 'transparent' : bubbleBg(rollFx.current, rollFx.faces),
-                    transform: `translate(-50%, -115%) translateY(-45px) translate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}px, ${!rollFx.settled ? ((((rollFx.current||1)%3)-1)*2) : 0}px) rotate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}deg) scale(${rollFx.settled?1.12:1})`,
+                    transform: `translate(-50%, -115%) translateY(-45px) translate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}px, ${!rollFx.settled ? ((((rollFx.current||1)%3)-1)*2) : 0}px) rotate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}deg) scale(${(rollFx.faces===12||rollFx.faces===6) ? (rollFx.settled ? (rollFxPulse ? 1.15 : 1.0) : 1.0) : (rollFx.settled?1.12:1)})`,
+                    opacity: rollFxFadeOut ? 0 : 1,
+                    transition: 'opacity 300ms ease, transform 300ms ease',
                     ...((rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? { border: 'none', padding: 0, borderRadius: 0, gap: 0, alignItems: 'center' } : {}),
                     ...(bubbleGlow.show ? { boxShadow: (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? undefined : `0 0 0 2px ${bubbleGlow.color}, 0 0 12px ${bubbleGlow.color}` } : {})
                   }}>
@@ -1967,18 +1979,16 @@ function stationTarget(type) {
                         alt={`d20 ${rollFx.current || ''}`}
                         style={{ width: 45, height: 45, filter: bubbleGlow.show ? `drop-shadow(0 0 8px ${bubbleGlow.color})` : undefined }}
                       />
-                    ) : rollFx.faces === 12 ? (
-                      <img
-                        src={'/art/d12.gif'}
-                        alt={'d12 roll'}
-                        style={{ width: 48, height: 48 }}
-                      />
-                    ) : rollFx.faces === 6 ? (
-                      <img
-                        src={'/art/d6.gif'}
-                        alt={'d6 roll'}
-                        style={{ width: 48, height: 48 }}
-                      />
+                    ) : (rollFx.faces === 12 || rollFx.faces === 6) ? (
+                      !rollFx.settled ? (
+                        <img
+                          src={rollFx.faces === 12 ? '/art/d12.gif' : '/art/d6.gif'}
+                          alt={rollFx.faces === 12 ? 'd12 roll' : 'd6 roll'}
+                          style={{ width: 48, height: 48 }}
+                        />
+                      ) : (
+                        <div style={{ fontWeight:900, fontSize: 18 }}>{rollFx.current ?? ''}</div>
+                      )
                     ) : (
                       <>
                         <div style={{ fontWeight:800 }}>{rollFx.current ?? ''}</div>
@@ -2039,7 +2049,7 @@ function stationTarget(type) {
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='sing') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.sing ? { filter: solidOutlineFilter(rollGlow.sing) } : {})),
                         }} />
-                        {DICE_MODE && (rollBest?.sing?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='sing') && (
+                        {DICE_MODE && (rollBest?.sing?.value!=null) && !(rollFx.show && rollFx.action==='sing') && (
                           <div style={styles.actionBtnRoll}>{rollBest.sing.value}</div>
                         )}
                       </button>
@@ -2050,7 +2060,7 @@ function stationTarget(type) {
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='write') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.write ? { filter: solidOutlineFilter(rollGlow.write) } : {})),
                         }} />
-                        {DICE_MODE && (rollBest?.write?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='write') && (
+                        {DICE_MODE && (rollBest?.write?.value!=null) && !(rollFx.show && rollFx.action==='write') && (
                           <div style={styles.actionBtnRoll}>{rollBest.write.value}</div>
                         )}
                       </button>
@@ -2061,7 +2071,7 @@ function stationTarget(type) {
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='perform') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.perform ? { filter: solidOutlineFilter(rollGlow.perform) } : {})),
                         }} />
-                        {DICE_MODE && (rollBest?.perform?.value!=null) && !(rollFx.show && !rollFx.settled && rollFx.action==='perform') && (
+                        {DICE_MODE && (rollBest?.perform?.value!=null) && !(rollFx.show && rollFx.action==='perform') && (
                           <div style={styles.actionBtnRoll}>{rollBest.perform.value}</div>
                         )}
                       </button>
