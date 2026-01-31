@@ -24,6 +24,9 @@ const THEMES = [
 ];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Posters available in public assets
+const POSTERS = Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`);
+
 // --- Events (schedule + effects) ---
 // Event schema:
 // { id, week, key, title, short, details, type: 'bonus'|'penalty'|'choice'|'info',
@@ -579,6 +582,10 @@ export default function App() {
   const [eventsResolved, setEventsResolved] = useState({}); // id -> { status:'resolved'|'choice', choiceIndex? }
   const [eventModal, setEventModal] = useState(null); // { event, pendingChoice: true|false }
   const [eventInfoModal, setEventInfoModal] = useState(null); // { events: [event,...] }
+  // Posters: unlocked indices into POSTERS and current selection
+  const [unlockedPosters, setUnlockedPosters] = useState([]); // number[]
+  const [currentPosterIdx, setCurrentPosterIdx] = useState(null); // number | null
+  const [posterOpen, setPosterOpen] = useState(false);
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
 
   // Trends state
@@ -1181,6 +1188,7 @@ function stationTarget(type) {
     mic:      { xPct: 49.97, yPct: 54.82, wPct: 19.35 },
     chair:    { xPct: 62.50, yPct: 72.54, wPct: 10.61 },
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
+    poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
   };
   function anchorStyle(a){
     return {
@@ -1835,6 +1843,18 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                {currentPosterIdx != null && (
+                  <div style={anchorStyle(ANCHORS.poster)} onClick={() => setPosterOpen(true)} title="My Poster Collection">
+                    <img src={POSTERS[currentPosterIdx]} alt="Poster" style={{ width:'100%', height:'auto', borderRadius: 6 }} />
+                  </div>
+                )}
+                {currentPosterIdx == null && (
+                  <div
+                    style={{ ...anchorStyle(ANCHORS.poster), aspectRatio: '3 / 4', background: 'transparent', cursor: 'pointer' }}
+                    onClick={() => setPosterOpen(true)}
+                    title="My Poster Collection"
+                  />
+                )}
                 {/* Microphone → opens Create/Current Song modal */}
                 <div
                   style={anchorStyle(ANCHORS.mic)}
@@ -1851,6 +1871,7 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.mirror)} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                
               </div>
               {/* Room HUD: show money and rolls */}
               <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
@@ -2634,6 +2655,35 @@ function stationTarget(type) {
                       </div>
                       </>); })()}
                       </div>
+                      {/* Mystery Poster */}
+                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/posters/poster1.png" alt="poster" style={{ width:36, height:36, objectFit:'cover', borderRadius:6 }} />
+                            Mystery Poster
+                          </div>
+                          {(() => { const disc = activeEffects?.shopDiscount || 1; const priceP = 1; const disabled = money < priceP; return (
+                            <button
+                              disabled={disabled}
+                              onClick={() => {
+                                if (!disabled) {
+                                  setMoney(m=>m-priceP);
+                                  setUnlockedPosters(prev => {
+                                    const all = POSTERS.map((_,i)=>i);
+                                    const remaining = all.filter(i => !prev.includes(i));
+                                    const pool = remaining.length>0 ? remaining : all;
+                                    const pick = pool[Math.floor(Math.random()*pool.length)];
+                                    setCurrentPosterIdx(pick);
+                                    pushToast(remaining.length>0 ? 'Unlocked a new poster!' : 'Swapped to another poster!');
+                                    return prev.includes(pick) ? prev : [...prev, pick];
+                                  });
+                                }
+                              }}
+                              style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                            >Buy ({'\u00A3'}{priceP})</button>
+                          ); })()}
+                        </div>
+                      </div>
                       <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
@@ -2883,6 +2933,36 @@ function stationTarget(type) {
                       Continue
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Poster collection modal */}
+        {posterOpen && (
+          <div style={styles.overlay} onClick={() => setPosterOpen(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '10%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>My Poster Collection</div>
+                  {(!unlockedPosters || unlockedPosters.length === 0) ? (
+                    <div style={{ ...styles.sub, marginTop: 8 }}>No posters unlocked yet. Buy a Mystery Poster from the shop!</div>
+                  ) : (
+                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 8 }}>
+                      <button key="none" onClick={() => setCurrentPosterIdx(null)} style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.04)', border:'1px dashed rgba(255,255,255,.25)', borderRadius: 10, padding: 6, cursor: 'pointer' }}>
+                        <div style={{ width: 80, height: 80, borderRadius: 8, background:'rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,.7)', fontWeight:800, fontSize:12 }}>No Poster</div>
+                        <div style={{ fontSize: 12, opacity: .9, fontWeight: 700 }}>None</div>
+                      </button>
+                      {unlockedPosters.map((idx) => (
+                        <button key={idx} onClick={() => setCurrentPosterIdx(idx)} style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.2)', borderRadius: 10, padding: 6, cursor: 'pointer' }}>
+                          <img src={POSTERS[idx]} alt={`Poster ${idx+1}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.3))' }} />
+                          <div style={{ fontSize: 12, opacity: .9, fontWeight: 700 }}>{idx+1}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={() => setPosterOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
                 </div>
               </div>
             </div>
