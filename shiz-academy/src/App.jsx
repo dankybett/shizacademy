@@ -2615,7 +2615,7 @@ function stationTarget(type) {
         {eventInfoModal && (
           <div style={styles.overlay} onClick={() => setEventInfoModal(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>This Week</div>
+              <div style={styles.title}>This Week: {Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}</div>
               <div style={{ marginTop: 6, display:'grid', gap:6 }}>
                 {(!eventInfoModal.events || eventInfoModal.events.length === 0) ? (
                   <div style={styles.sub}>Nothing scheduled.</div>
