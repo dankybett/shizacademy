@@ -800,7 +800,7 @@ export default function App() {
   useEffect(()=>{
     if (!rollFx.show) return;
     const hold = Math.max(700, rollFxHoldMs || 2500);
-    const isGif = (rollFx.faces === 12 || rollFx.faces === 6);
+    const isGif = (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6);
     // For d12/d6: settle ~1.3s before hide (1.0s pulse + 0.3s fade)
     const settleMs = isGif ? Math.max(300, hold - 1300) : Math.max(300, hold - 300);
     const hideMs = hold + 300;
@@ -1540,7 +1540,7 @@ function stationTarget(type) {
                 setRollBest((r) => ({ ...r, write: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
-                setRollFxHoldMs((faces === 12 || faces === 6) ? 5000 : 1200);
+                setRollFxHoldMs((faces === 20 || faces === 12 || faces === 6) ? 5000 : 1200);
                 if (nextRollOverride) setNextRollOverride(null);
               }
             } else if (act === "practice") {
@@ -1973,17 +1973,11 @@ function stationTarget(type) {
                     ...((rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? { border: 'none', padding: 0, borderRadius: 0, gap: 0, alignItems: 'center' } : {}),
                     ...(bubbleGlow.show ? { boxShadow: (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? undefined : `0 0 0 2px ${bubbleGlow.color}, 0 0 12px ${bubbleGlow.color}` } : {})
                   }}>
-                    {rollFx.faces === 20 ? (
-                      <img
-                        src={`/art/d20/${Math.max(1, Math.min(20, rollFx.current || 1))}.png`}
-                        alt={`d20 ${rollFx.current || ''}`}
-                        style={{ width: 45, height: 45, filter: bubbleGlow.show ? `drop-shadow(0 0 8px ${bubbleGlow.color})` : undefined }}
-                      />
-                    ) : (rollFx.faces === 12 || rollFx.faces === 6) ? (
+                    {(rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? (
                       !rollFx.settled ? (
                         <img
-                          src={rollFx.faces === 12 ? '/art/d12.gif' : '/art/d6.gif'}
-                          alt={rollFx.faces === 12 ? 'd12 roll' : 'd6 roll'}
+                          src={rollFx.faces === 20 ? '/art/d20.gif' : rollFx.faces === 12 ? '/art/d12.gif' : '/art/d6.gif'}
+                          alt={rollFx.faces === 20 ? 'd20 roll' : rollFx.faces === 12 ? 'd12 roll' : 'd6 roll'}
                           style={{ width: 48, height: 48 }}
                         />
                       ) : (
