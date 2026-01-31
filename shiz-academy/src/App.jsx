@@ -846,6 +846,11 @@ export default function App() {
   useEffect(() => {
     if (!rollFx.settled || !rollFx.action || !rollFx.final || !rollFx.faces) return;
     const faces = rollFx.faces; const value = rollFx.final;
+    // For d12/d6: show result via toast instead of settling on a specific gif frame
+    if (faces === 12 || faces === 6) {
+      const label = rollFx.action === 'write' ? 'Write' : rollFx.action === 'sing' ? 'Sing' : 'Perform';
+      pushToast(`${label} roll: ${value} (d${faces})`);
+    }
     const frac = (faces + 1 - value) / faces; // low is better
     let color = 'rgba(200,90,90,.95)'; // bad
     if (frac >= 0.66) { color = 'rgba(80,180,120,.95)'; }
@@ -1525,7 +1530,7 @@ function stationTarget(type) {
                 setRollBest((r) => ({ ...r, write: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
-                setRollFxHoldMs(1200);
+                setRollFxHoldMs((faces === 12 || faces === 6) ? 5000 : 1200);
                 if (nextRollOverride) setNextRollOverride(null);
               }
             } else if (act === "practice") {
@@ -1951,16 +1956,28 @@ function stationTarget(type) {
                     ...styles.rollBubble,
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    background: rollFx.faces === 20 ? 'transparent' : bubbleBg(rollFx.current, rollFx.faces),
+                    background: (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? 'transparent' : bubbleBg(rollFx.current, rollFx.faces),
                     transform: `translate(-50%, -115%) translateY(-45px) translate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}px, ${!rollFx.settled ? ((((rollFx.current||1)%3)-1)*2) : 0}px) rotate(${!rollFx.settled ? (((rollFx.current||1)%2===0?-2:2)) : 0}deg) scale(${rollFx.settled?1.12:1})`,
-                    ...(rollFx.faces === 20 ? { border: 'none', padding: 0, borderRadius: 0, gap: 0, alignItems: 'center' } : {}),
-                    ...(bubbleGlow.show ? { boxShadow: rollFx.faces === 20 ? undefined : `0 0 0 2px ${bubbleGlow.color}, 0 0 12px ${bubbleGlow.color}` } : {})
+                    ...((rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? { border: 'none', padding: 0, borderRadius: 0, gap: 0, alignItems: 'center' } : {}),
+                    ...(bubbleGlow.show ? { boxShadow: (rollFx.faces === 20 || rollFx.faces === 12 || rollFx.faces === 6) ? undefined : `0 0 0 2px ${bubbleGlow.color}, 0 0 12px ${bubbleGlow.color}` } : {})
                   }}>
                     {rollFx.faces === 20 ? (
                       <img
                         src={`/art/d20/${Math.max(1, Math.min(20, rollFx.current || 1))}.png`}
                         alt={`d20 ${rollFx.current || ''}`}
                         style={{ width: 45, height: 45, filter: bubbleGlow.show ? `drop-shadow(0 0 8px ${bubbleGlow.color})` : undefined }}
+                      />
+                    ) : rollFx.faces === 12 ? (
+                      <img
+                        src={'/art/d12.gif'}
+                        alt={'d12 roll'}
+                        style={{ width: 48, height: 48 }}
+                      />
+                    ) : rollFx.faces === 6 ? (
+                      <img
+                        src={'/art/d6.gif'}
+                        alt={'d6 roll'}
+                        style={{ width: 48, height: 48 }}
                       />
                     ) : (
                       <>
