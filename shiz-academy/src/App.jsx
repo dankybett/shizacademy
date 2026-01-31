@@ -77,6 +77,8 @@ function genEventSchedule(performerName, startTs) {
   // Finale marker on the last week for calendar visibility
   try {
     const MAX_WEEKS_LOCAL = 52; // keep in sync with MAX_WEEKS
+    // Week 51 reminder: final chance before the celebration
+    push(MAX_WEEKS_LOCAL - 1, 'finalchance', 'Final Chance', "This is your final chance to make a song before Katie's Birthday Celebration.", "This is your final chance to make a song before Katie's Birthday Celebration.", 'info');
     evs.push({ id:`katie-${MAX_WEEKS_LOCAL}`, week: MAX_WEEKS_LOCAL, key:'katie', title:"Katie's Birthday Celebration", short:'Finale', details:"Choose a favorite song to perform at Katie's Birthday Party!", type:'info' });
     evs.sort((a,b)=>a.week-b.week);
   } catch(_) {}
@@ -554,6 +556,7 @@ export default function App() {
   const [suppressFinale, setSuppressFinale] = useState(false); // allow continuing play without further finales
   const [releaseWasShown, setReleaseWasShown] = useState(false);
   const [finaleInProgress, setFinaleInProgress] = useState(false);
+  const [endYearReady, setEndYearReady] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [shopAnim, setShopAnim] = useState(false);
   const [earlyFinishEnabled, setEarlyFinishEnabled] = useState(true);
@@ -1117,6 +1120,22 @@ function stationTarget(type) {
   }, [myMusicOpen]);
 
   // (Finale summary is opened explicitly when the Release Results modal Continue button is pressed.)
+  // Additionally, if we reach the final week and no release flow handles it,
+  // mark finale pending and surface the summary once overlays are clear.
+  useEffect(() => {
+    if (!suppressFinale && week === MAX_WEEKS && !finalePending && !finaleSummaryOpen && !finaleOpen && !finaleEndOpen) {
+      setFinalePending(true);
+    }
+  }, [week, suppressFinale, finalePending, finaleSummaryOpen, finaleOpen, finaleEndOpen]);
+
+  useEffect(() => {
+    if (!finalePending) return;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+    if (!overlaysOpen) {
+      setFinalePending(false);
+      setEndYearReady(true);
+    }
+  }, [finalePending, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal]);
 
   // When party performance ends, show final options modal
   useEffect(() => {
@@ -1819,13 +1838,17 @@ function stationTarget(type) {
                   <input
                     value={songName}
                     onChange={(e) => setSongName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
                     placeholder="Type a song name..."
                     style={styles.input}
+                    enterKeyHint="done"
                   />
                   <button
                     style={styles.smallBtn}
-                    onClick={() => setSongName(randomSongName(genre, theme))}
-                  >Random</button>
+                    onClick={() => {
+                      try { if (document.activeElement) document.activeElement.blur(); } catch(_) {}
+                    }}
+                  >OK</button>
                 </div>
 
                 {/* Compatibility indicator removed */}
@@ -1852,7 +1875,8 @@ function stationTarget(type) {
             {/* Streamlined main view: room dominates, buttons underneath */}
             <div style={styles.roomOuter}>
               <div style={{ ...styles.room, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackgroundwide.png')" }}>
-              {/* Anchor overlay sized to the artboard aspect and centered */}
+              {/* Anchor overlay (apartment objects) — hidden during venue performances */}
+              {!(isPerforming && performingVenue) && (
               <div style={styles.roomAnchors}>
                 {/* Computer (click opens Settings/desktop) */}
                 <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
@@ -1873,7 +1897,10 @@ function stationTarget(type) {
                 {/* Microphone → opens Create/Current Song modal */}
                 <div
                   style={anchorStyle(ANCHORS.mic)}
-                  onClick={() => { if (!conceptLocked) setShowConcept(true); else setProgressOpen(true); }}
+                  onClick={() => {
+                    if (endYearReady || isOver) { pushToast('Year complete — press End year'); return; }
+                    if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
+                  }}
                   title={conceptLocked ? 'Current Song' : 'Create Song'}
                 >
                   <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
@@ -1888,9 +1915,12 @@ function stationTarget(type) {
                 </div>
                 
               </div>
+              )}
               {/* Room HUD: show money and rolls */}
-              <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
-              {!playingTrend && (
+              {!isPerforming && (
+                <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
+              )}
+              {!playingTrend && !isPerforming && (
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
               {playingTrend && (
@@ -2035,7 +2065,7 @@ function stationTarget(type) {
                   </div>
                 )}
                 {/* Overlayed action buttons on room */}
-                {!isPerforming && !financeOpen && (
+                {!isPerforming && !financeOpen && !endYearReady && !isOver && (
                   <div style={styles.buttonsOverlay}>
                     <div style={styles.actionBtnWrap}>
                       <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("practice")} style={styles.actionBtn}>
@@ -2073,13 +2103,22 @@ function stationTarget(type) {
                   </div>
                 )}
                 {/* Bottom-right CTA: Choose venue & perform (replaces centered tick) */}
-                {!isPerforming && canRelease && (
+                {!isPerforming && canRelease && !endYearReady && !isOver && (
                   <button
                     onClick={() => { if (!finishedReady) finishSong(); setVenueOpen(true); }}
                     title="Choose venue & perform"
                     style={styles.performCta}
                   >
                     Choose venue & perform
+                  </button>
+                )}
+                {!isPerforming && (endYearReady || isOver) && (
+                  <button
+                    onClick={() => { setFinaleSummaryOpen(true); setEndYearReady(false); }}
+                    title="End year"
+                    style={styles.performCta}
+                  >
+                    End year
                   </button>
                 )}
 
@@ -2167,7 +2206,7 @@ function stationTarget(type) {
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
-                  <div style={{ ...styles.title, textAlign:'center' }}>Current Song</div>
+                  <div style={{ ...styles.title, textAlign:'center' }}>{conceptLocked ? 'Current Song' : 'Create a new song'}</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 {conceptLocked && songName ? (
                   <span style={{ fontSize: 18, fontWeight: 900 }}>Working on: <b>{songName}</b></span>
@@ -2206,7 +2245,7 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
                   <div style={{ ...styles.title, textAlign:'center' }}>Settings</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 Week {week} | Money {'\u00A3'}{money} | Fans {fans}
@@ -2245,29 +2284,50 @@ function stationTarget(type) {
         )}
 
         {showConcept && !conceptLocked && (
-          <div style={styles.overlay} onClick={() => setShowConcept(false)}>
+          <div
+            style={styles.overlay}
+            onClick={(e) => {
+              const ae = document.activeElement;
+              if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.getAttribute('contenteditable') === 'true')) {
+                try { ae.blur(); } catch(_) {}
+                e.stopPropagation();
+                return;
+              }
+              setShowConcept(false);
+            }}
+          >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
-              <div style={{ ...styles.title, textAlign:'center' }}>Week {week}: Define Your Song</div>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={{ ...styles.title, textAlign:'center' }}>Create a new song</div>
               <div style={{ ...styles.label, marginTop: 10 }}>Genre</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <select value={genre} onChange={(e)=>setGenre(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 180, padding:'6px 10px' }}>
+                <select value={genre} onChange={(e)=>setGenre(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 180, padding:'6px 10px', background:'white', color:'black' }}>
                   {GENRES.map(g => (<option key={g} value={g}>{g}</option>))}
                 </select>
               </div>
 
               <div style={styles.label}>Theme</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <select value={theme} onChange={(e)=>setTheme(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 200, padding:'6px 10px' }}>
+                <select value={theme} onChange={(e)=>setTheme(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 200, padding:'6px 10px', background:'white', color:'black' }}>
                   {THEMES.map(t => (<option key={t} value={t}>{t}</option>))}
                 </select>
               </div>
 
               <div style={{ ...styles.label, marginTop: 8 }}>Song name</div>
               <div style={styles.inlineRow}>
-                <input value={songName} onChange={(e) => setSongName(e.target.value)} placeholder="Type a song name..." style={styles.input} />
-                <button style={styles.smallBtn} onClick={() => setSongName(randomSongName(genre, theme))}>Random</button>
+                <input
+                  value={songName}
+                  onChange={(e) => setSongName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+                  placeholder="Type a song name..."
+                  style={styles.input}
+                  enterKeyHint="done"
+                />
+                <button
+                  style={styles.smallBtn}
+                  onClick={() => { try { if (document.activeElement) document.activeElement.blur(); } catch(_) {} }}
+                >OK</button>
               </div>
               {compat < 0 && (
                 <div style={{ ...styles.sub, marginTop: 8, color: 'rgba(255,120,120,.95)' }}>
@@ -2793,15 +2853,24 @@ function stationTarget(type) {
               <div style={{ ...styles.title, marginTop: 12 }}>Shizy-FI</div>
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
-                  <button
-                    onClick={() => {
-                      setMyMusicOpen(false);
-                      if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
-                    }}
-                    style={styles.primaryBtn}
-                  >
-                    {conceptLocked ? 'Current Song' : 'Create Song'}
-                  </button>
+                  {(!endYearReady && !isOver) ? (
+                    <button
+                      onClick={() => {
+                        setMyMusicOpen(false);
+                        if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
+                      }}
+                      style={styles.primaryBtn}
+                    >
+                      {conceptLocked ? 'Current Song' : 'Create Song'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => { setMyMusicOpen(false); setFinaleSummaryOpen(true); setEndYearReady(false); }}
+                      style={styles.primaryBtn}
+                    >
+                      End year
+                    </button>
+                  )}
                   <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
                   {null}
                 </div>
@@ -2942,17 +3011,17 @@ function stationTarget(type) {
                       </div>
                     )}
                     <button
-                      onClick={() => {
-                        setReleaseOpen(false);
-                        if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
-                          setFinalePending(false);
-                          setFinaleSummaryOpen(true);
-                        }
-                      }}
-                      style={{ ...styles.primaryBtn, marginTop: 12 }}
-                    >
-                      Continue
-                    </button>
+                onClick={() => {
+                  setReleaseOpen(false);
+                  if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
+                    setFinalePending(false);
+                    setEndYearReady(true);
+                  }
+                }}
+                style={{ ...styles.primaryBtn, marginTop: 12 }}
+              >
+                Continue
+              </button>
                   </div>
                 </div>
               </div>
