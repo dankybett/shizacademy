@@ -593,6 +593,7 @@ export default function App() {
   const [posterOpen, setPosterOpen] = useState(false);
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
   const [weeklyInfoShownWeek, setWeeklyInfoShownWeek] = useState(0);
+  const [welcomeShown, setWelcomeShown] = useState(false);
 
   // Trends state
   const [seedTs, setSeedTs] = useState(null);
@@ -1145,6 +1146,14 @@ function stationTarget(type) {
       setFinaleEndOpen(true);
     }
   }, [finaleInProgress, isPerforming]);
+
+  // Show welcome on first week once
+  useEffect(() => {
+    if (started && week === 1 && !welcomeShown) {
+      setShowWelcome(true);
+      setWelcomeShown(true);
+    }
+  }, [started, week, welcomeShown]);
 
   // Dev helper: Alt+D to set week number quickly
   useEffect(() => {
@@ -1732,11 +1741,11 @@ function stationTarget(type) {
     if (pendingChoice) {
       setEventModal({ event: pendingChoice });
     } else {
-      // Weekly "This Week" modal: always show once per week after overlays clear
+      // Weekly "This Week" modal: always show once per week after overlays clear (skip week 1, show welcome instead)
       const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
       const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
-      if (weeklyInfoShownWeek !== week) {
+      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || showConcept;
+      if (weeklyInfoShownWeek !== week && week > 1) {
         if (!overlaysOpen) {
           setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
           setWeeklyInfoShownWeek(week);
@@ -1750,7 +1759,7 @@ function stationTarget(type) {
   // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
     if (!queuedEventInfo) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || showConcept;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
     const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
@@ -2275,14 +2284,18 @@ function stationTarget(type) {
 
         {showWelcome && (
           <div style={styles.overlay}>
-            <div style={styles.modal}>
-              <div style={styles.title}>Welcome</div>
-              <div style={{ ...styles.sub, marginTop: 8 }}>
-                Each week you have {TOTAL_TIME} days. Instruct your performer to Practice, Write, or Perform. Actions train stats with diminishing returns. When your days are used, release your song.
+            <div style={{ ...styles.mirrorModal }}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={{ ...styles.title, textAlign: 'center' }}>Welcome to Shiz Academy</div>
+                  <div style={{ ...styles.sub, marginTop: 8 }}>
+                    This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform your masterpiece?
+                  </div>
+                  <button onClick={() => { setShowWelcome(false); }} style={{ ...styles.primaryBtn, marginTop: 14 }}>
+                    Continue
+                  </button>
+                </div>
               </div>
-              <button onClick={() => { setShowWelcome(false); setShowConcept(true); }} style={{ ...styles.primaryBtn, marginTop: 14 }}>
-                Continue
-              </button>
             </div>
           </div>
         )}
