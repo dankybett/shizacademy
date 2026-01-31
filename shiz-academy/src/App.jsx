@@ -592,6 +592,7 @@ export default function App() {
   const [currentPosterIdx, setCurrentPosterIdx] = useState(null); // number | null
   const [posterOpen, setPosterOpen] = useState(false);
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
+  const [weeklyInfoShownWeek, setWeeklyInfoShownWeek] = useState(0);
 
   // Trends state
   const [seedTs, setSeedTs] = useState(null);
@@ -1717,7 +1718,7 @@ function stationTarget(type) {
 
   // On week start: if event grants money immediately or requires choice, handle modal/auto-grant once
   useEffect(() => {
-    if (!eventsSchedule || !activeEvents || activeEvents.length === 0) return;
+    if (!eventsSchedule) return;
     // Auto-grant one-time money if not resolved
     activeEvents.forEach(ev => {
       const res = eventsResolved[ev.id];
@@ -1731,28 +1732,31 @@ function stationTarget(type) {
     if (pendingChoice) {
       setEventModal({ event: pendingChoice });
     } else {
-      // Show a small info modal once per week for non-choice events (notified only once)
+      // Weekly "This Week" modal: always show once per week after overlays clear
       const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
-      if (toNotify.length) {
-        const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+      const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
+      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+      if (weeklyInfoShownWeek !== week) {
         if (!overlaysOpen) {
-          setEventInfoModal({ events: toNotify });
+          setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
+          setWeeklyInfoShownWeek(week);
         } else {
-          setQueuedEventInfo({ events: toNotify });
+          setQueuedEventInfo({ events: toNotify, upcoming: upcomingNext, weekly: true, week });
         }
       }
     }
   }, [week, eventsSchedule]);
 
-  // When overlays clear, show any queued event info modal
+  // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
-    if (!queuedEventInfo || !queuedEventInfo.events || queuedEventInfo.events.length === 0) return;
+    if (!queuedEventInfo) return;
     const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
-    const remaining = queuedEventInfo.events.filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
-    if (remaining.length) {
-      setEventInfoModal({ events: remaining });
+    const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
+    if ((remaining && remaining.length) || queuedEventInfo.weekly) {
+      setEventInfoModal({ events: remaining||[], upcoming: queuedEventInfo.upcoming||null, weekly: queuedEventInfo.weekly||false });
+      if (typeof queuedEventInfo.week === 'number') setWeeklyInfoShownWeek(queuedEventInfo.week);
     }
     setQueuedEventInfo(null);
   }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
@@ -2608,20 +2612,35 @@ function stationTarget(type) {
           </div>
         )}
 
-        {eventInfoModal && eventInfoModal.events && (
+        {eventInfoModal && (
           <div style={styles.overlay} onClick={() => setEventInfoModal(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>This Week</div>
               <div style={{ marginTop: 6, display:'grid', gap:6 }}>
-                {eventInfoModal.events.map(ev => (
-                  <div key={ev.id}>
-                    <div style={{ fontWeight: 700 }}>{ev.title}</div>
-                    <div style={{ ...styles.sub }}>{ev.short}</div>
-                    {ev.effect && (
-                      <div style={{ ...styles.sub, opacity: .9 }}>{effectSummary(ev.effect)}</div>
-                    )}
+                {(!eventInfoModal.events || eventInfoModal.events.length === 0) ? (
+                  <div style={styles.sub}>Nothing scheduled.</div>
+                ) : (
+                  eventInfoModal.events.map(ev => (
+                    <div key={ev.id}>
+                      <div style={{ fontWeight: 700 }}>{ev.title}</div>
+                      <div style={{ ...styles.sub }}>{ev.short}</div>
+                      {ev.effect && (
+                        <div style={{ ...styles.sub, opacity: .9 }}>{effectSummary(ev.effect)}</div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>Upcoming</div>
+                {eventInfoModal.upcoming ? (
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{eventInfoModal.upcoming.title}</div>
+                    <div style={{ ...styles.sub }}>{eventInfoModal.upcoming.short}</div>
                   </div>
-                ))}
+                ) : (
+                  <div style={styles.sub}>No upcoming events.</div>
+                )}
               </div>
               <button onClick={() => {
                 setEventsResolved(r => {
