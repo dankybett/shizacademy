@@ -2908,8 +2908,8 @@ function stationTarget(type) {
           <div style={styles.overlay} onClick={() => setMyMusicOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
-              <div style={{ ...styles.title, marginTop: 12 }}>Shizy-FI</div>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+              <div style={{ ...styles.title, textAlign: 'center' }}>Shizy-Fi</div>
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
                   {(!endYearReady && !isOver) ? (
