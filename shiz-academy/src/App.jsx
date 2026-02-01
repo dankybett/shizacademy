@@ -1802,6 +1802,21 @@ function stationTarget(type) {
           >
             <img src="/art/newgamebutton.png" alt="Start New Game" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </button>
+          <button
+            onClick={() => {
+              try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) { pushToast('No save found'); return; }
+                const s = JSON.parse(raw);
+                if (!s || typeof s !== 'object') { pushToast('No save found'); return; }
+                setStarted(true);
+              } catch (_) { pushToast('Unable to continue'); }
+            }}
+            style={styles.continueImgButton}
+            title="Continue game"
+          >
+            <img src="/art/continuegamebutton.png" alt="Continue Game" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </button>
         </div>
       </div>
     );
@@ -4199,6 +4214,18 @@ const styles = {
     bottom: 24,
     left: '50%',
     transform: 'translateX(calc(-50% - 100px)) translateY(30px)',
+    width: 286,
+    height: 83,
+    padding: 0,
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+  },
+  continueImgButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(calc(-50% + 100px)) translateY(30px)',
     width: 286,
     height: 83,
     padding: 0,
