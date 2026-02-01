@@ -544,6 +544,7 @@ export default function App() {
   const rollAudioRef = useRef(null);
   const typingAudioRef = useRef(null);
   const danceAudioRef = useRef(null);
+  const dancePreviewAudioRef = useRef(null); // plays top-trend 5s snippet during perform roll
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -631,6 +632,78 @@ export default function App() {
       singAudioRef.current = audio;
       audio.play().catch(() => {});
     } catch (_) {}
+  }
+
+  // Try to play a 5s faded preview of the #1 Global Trend track for the current week
+  function playDancePreviewFromTopTrend() {
+    try {
+      const list = trendsByWeek && trendsByWeek[week];
+      if (!list || list.length === 0) return false;
+      const top = (list.find(it => it.rank === 1) || list[0]);
+      if (!top) return false;
+      const slug = slugify(`${top.artist} ${top.title}`);
+      const sources = Array.isArray(top.audioSources) && top.audioSources.length
+        ? top.audioSources
+        : [ `/audio/${slug}.mp3`, `/audio/${slug}.ogg` ];
+      let i = 0;
+
+      const tryNext = () => {
+        if (i >= sources.length) return false;
+        const src = sources[i++];
+        try { if (dancePreviewAudioRef.current) { dancePreviewAudioRef.current.pause(); dancePreviewAudioRef.current = null; } } catch (_) {}
+        const a = new Audio(src);
+        a.loop = false;
+        a.volume = 0;
+        let stopped = false;
+        let fadeInTimer = null, fadeOutTimer = null, fadeInInt = null, fadeOutInt = null, stopTimer = null;
+        a.onloadedmetadata = () => {
+          try {
+            const totalMs = 5000;
+            const fadeInMs = 600;
+            const fadeOutMs = 700;
+            const holdMs = Math.max(0, totalMs - fadeInMs - fadeOutMs);
+            const dur = (isFinite(a.duration) && a.duration > 0) ? a.duration : 0;
+            const windowSec = 5;
+            const start = (dur > windowSec + 0.5) ? Math.max(0, Math.random() * (dur - windowSec)) : 0;
+            try { a.currentTime = start; } catch (_) {}
+            a.play().catch(() => {});
+            // Fade in
+            const target = 0.8; const tick = 50;
+            let v = 0; a.volume = 0;
+            fadeInInt = setInterval(() => {
+              if (stopped) return clearInterval(fadeInInt);
+              v += target * (tick / fadeInMs);
+              a.volume = Math.min(target, v);
+              if (a.volume >= target - 0.01) { a.volume = target; clearInterval(fadeInInt); }
+            }, tick);
+            // Fade out start after fade-in + hold
+            fadeOutTimer = setTimeout(() => {
+              let vv = a.volume;
+              fadeOutInt = setInterval(() => {
+                if (stopped) return clearInterval(fadeOutInt);
+                vv -= target * (tick / fadeOutMs);
+                a.volume = Math.max(0, vv);
+                if (a.volume <= 0.01) { a.volume = 0; clearInterval(fadeOutInt); }
+              }, tick);
+            }, fadeInMs + holdMs);
+            // Stop at total window
+            stopTimer = setTimeout(() => {
+              stopped = true; try { a.pause(); } catch (_) {}
+              try { if (dancePreviewAudioRef.current === a) dancePreviewAudioRef.current = null; } catch (_) {}
+              if (fadeInInt) clearInterval(fadeInInt);
+              if (fadeOutInt) clearInterval(fadeOutInt);
+              if (fadeInTimer) clearTimeout(fadeInTimer);
+              if (fadeOutTimer) clearTimeout(fadeOutTimer);
+              if (stopTimer) clearTimeout(stopTimer);
+            }, totalMs);
+          } catch (_) {}
+        };
+        a.onerror = () => { tryNext(); };
+        dancePreviewAudioRef.current = a;
+        return true;
+      };
+      return tryNext();
+    } catch (_) { return false; }
   }
   const [started, setStarted] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -824,13 +897,16 @@ export default function App() {
         typingAudioRef.current = ta;
         ta.play().catch(() => {});
       }
-      // If perform/dance roll, layer in dancing sound
+      // If perform/dance roll, try top-trend 5s preview; fallback to dance SFX
       if (rollFx.action === 'perform') {
-        if (danceAudioRef.current) { try { danceAudioRef.current.pause(); } catch (_) {} }
-        const da = new Audio('/sounds/dancingsound.mp3');
-        da.loop = true;
-        danceAudioRef.current = da;
-        da.play().catch(() => {});
+        const ok = playDancePreviewFromTopTrend();
+        if (!ok) {
+          if (danceAudioRef.current) { try { danceAudioRef.current.pause(); } catch (_) {} }
+          const da = new Audio('/sounds/dancingsound.mp3');
+          da.loop = true;
+          danceAudioRef.current = da;
+          da.play().catch(() => {});
+        }
       }
     } catch (_) {}
     setRollFxFadeOut(false);
@@ -857,6 +933,7 @@ export default function App() {
       try { if (rollAudioRef.current) { rollAudioRef.current.pause(); rollAudioRef.current = null; } } catch (_) {}
       try { if (typingAudioRef.current) { typingAudioRef.current.pause(); typingAudioRef.current = null; } } catch (_) {}
       try { if (danceAudioRef.current) { danceAudioRef.current.pause(); danceAudioRef.current = null; } } catch (_) {}
+      try { if (dancePreviewAudioRef.current) { dancePreviewAudioRef.current.pause(); dancePreviewAudioRef.current = null; } } catch (_) {}
     };
   }, [rollFx.show, rollFxHoldMs]);
 
@@ -1560,6 +1637,7 @@ function stationTarget(type) {
           if (pendingAct) {
             const act = pendingAct;
             setPendingAct(null);
+            let writeHold = null; // for syncing write duration to dice FX
             if (act === "write") {
               setActivity("write");
               setStatus("Writing a catchy hook...");
@@ -1569,7 +1647,9 @@ function stationTarget(type) {
                 setRollBest((r) => ({ ...r, write: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'write' });
-                setRollFxHoldMs((faces === 20 || faces === 12 || faces === 6) ? 5000 : 1200);
+                const hold = (faces === 20 || faces === 12 || faces === 6) ? 5000 : 1200;
+                setRollFxHoldMs(hold);
+                writeHold = hold;
                 if (nextRollOverride) setNextRollOverride(null);
               }
             } else if (act === "practice") {
@@ -1598,7 +1678,8 @@ function stationTarget(type) {
                 if (nextRollOverride) setNextRollOverride(null);
               }
             }
-            const dur = act === 'practice' ? 5000 : act === 'perform' ? 5000 : 1200;
+            // For write, keep activity until dice FX fully hides (hold + 300ms)
+            const dur = act === 'practice' ? 5000 : act === 'perform' ? 5000 : ((writeHold != null ? writeHold + 300 : 1200));
             setTimeout(() => setActivity("idle"), dur);
           } else {
             setActivity("idle");
