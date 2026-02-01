@@ -1623,12 +1623,35 @@ function stationTarget(type) {
       if (performAudioRef.current) {
         try { performAudioRef.current.pause(); } catch (_) {}
       }
-      const audio = new Audio('/sounds/fullsinging.ogg');
+      const genreKey = (() => {
+        switch (genre) {
+          case 'Rock': return 'rock';
+          case 'EDM': return 'edm';
+          case 'Hip-Hop': return 'hiphop';
+          case 'Jazz': return 'jazz';
+          case 'Country': return 'country';
+          case 'R&B': return 'randb';
+          case 'Metal': return 'metal';
+          case 'Folk': return 'folk';
+          case 'Synthwave': return 'synthwave';
+          case 'Pop': default: return null; // Pop uses default
+        }
+      })();
+      const primarySrc = genreKey ? `/sounds/fullsinging_${genreKey}.ogg` : '/sounds/fullsinging.ogg';
+      const fallbackSrc = '/sounds/fullsinging.ogg';
+      const audio = new Audio(primarySrc);
+      let didFallback = false;
       audio.onended = () => {
         setIsPerforming(false);
         setReleaseOpen(true);
         setActivity('idle');
         performAudioRef.current = null;
+      };
+      audio.onerror = () => {
+        if (!didFallback) {
+          didFallback = true;
+          try { audio.src = fallbackSrc; audio.play().catch(() => {}); } catch (_) {}
+        }
       };
       performAudioRef.current = audio;
       audio.play().catch(() => {});
