@@ -545,6 +545,8 @@ export default function App() {
   const typingAudioRef = useRef(null);
   const danceAudioRef = useRef(null);
   const dancePreviewAudioRef = useRef(null); // plays top-trend 5s snippet during perform roll
+  const dancePreviewPlayingKeyRef = useRef(null); // track id set by preview to clear HUD later
+  const dancePreviewActiveRef = useRef(false); // HUD was set by dance preview
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -641,6 +643,7 @@ export default function App() {
       if (!list || list.length === 0) return false;
       const top = (list.find(it => it.rank === 1) || list[0]);
       if (!top) return false;
+      const id = `${top.artist}__${top.title}`;
       const slug = slugify(`${top.artist} ${top.title}`);
       const sources = Array.isArray(top.audioSources) && top.audioSources.length
         ? top.audioSources
@@ -655,7 +658,17 @@ export default function App() {
         a.loop = false;
         a.volume = 0;
         let stopped = false;
-        let fadeInTimer = null, fadeOutTimer = null, fadeInInt = null, fadeOutInt = null, stopTimer = null;
+        let fadeInTimer = null, fadeOutTimer = null, fadeInInt = null, fadeOutInt = null, stopTimer = null, safetyStopTimer = null;
+        const idLocal = id;
+        a.onended = () => {
+          try {
+            if (dancePreviewActiveRef.current) {
+              setPlayingTrend(() => null);
+            }
+            dancePreviewPlayingKeyRef.current = null;
+            dancePreviewActiveRef.current = false;
+          } catch (_) {}
+        };
         a.onloadedmetadata = () => {
           try {
             const totalMs = 5000;
@@ -666,7 +679,13 @@ export default function App() {
             const windowSec = 5;
             const start = (dur > windowSec + 0.5) ? Math.max(0, Math.random() * (dur - windowSec)) : 0;
             try { a.currentTime = start; } catch (_) {}
-            a.play().catch(() => {});
+            a.play().then(()=>{
+              // Indicate Now Playing in HUD while preview rolls
+              dancePreviewPlayingKeyRef.current = id;
+              dancePreviewActiveRef.current = true;
+              setPlayingTrend({ id, artist: top.artist, title: top.title });
+            }).catch(() => {});
+            if (safetyStopTimer) { clearTimeout(safetyStopTimer); safetyStopTimer = null; }
             // Fade in
             const target = 0.8; const tick = 50;
             let v = 0; a.volume = 0;
@@ -690,6 +709,13 @@ export default function App() {
             stopTimer = setTimeout(() => {
               stopped = true; try { a.pause(); } catch (_) {}
               try { if (dancePreviewAudioRef.current === a) dancePreviewAudioRef.current = null; } catch (_) {}
+              try {
+                if (dancePreviewActiveRef.current) {
+                  setPlayingTrend(() => null);
+                }
+                dancePreviewPlayingKeyRef.current = null;
+                dancePreviewActiveRef.current = false;
+              } catch (_) {}
               if (fadeInInt) clearInterval(fadeInInt);
               if (fadeOutInt) clearInterval(fadeOutInt);
               if (fadeInTimer) clearTimeout(fadeInTimer);
@@ -700,6 +726,25 @@ export default function App() {
         };
         a.onerror = () => { tryNext(); };
         dancePreviewAudioRef.current = a;
+        // Safety fallback: if metadata never fires, still show HUD and stop after ~5.3s
+        a.play().then(() => {
+          if (!dancePreviewPlayingKeyRef.current) {
+            dancePreviewPlayingKeyRef.current = idLocal;
+            dancePreviewActiveRef.current = true;
+            setPlayingTrend({ id: idLocal, artist: top.artist, title: top.title });
+          }
+          safetyStopTimer = setTimeout(() => {
+            try { a.pause(); } catch (_) {}
+            try { if (dancePreviewAudioRef.current === a) dancePreviewAudioRef.current = null; } catch (_) {}
+            try {
+              if (dancePreviewActiveRef.current) {
+                setPlayingTrend(() => null);
+              }
+              dancePreviewPlayingKeyRef.current = null;
+              dancePreviewActiveRef.current = false;
+            } catch (_) {}
+          }, 5300);
+        }).catch(() => {});
         return true;
       };
       return tryNext();
@@ -934,6 +979,13 @@ export default function App() {
       try { if (typingAudioRef.current) { typingAudioRef.current.pause(); typingAudioRef.current = null; } } catch (_) {}
       try { if (danceAudioRef.current) { danceAudioRef.current.pause(); danceAudioRef.current = null; } } catch (_) {}
       try { if (dancePreviewAudioRef.current) { dancePreviewAudioRef.current.pause(); dancePreviewAudioRef.current = null; } } catch (_) {}
+      try {
+        if (dancePreviewActiveRef.current) {
+          setPlayingTrend(() => null);
+        }
+        dancePreviewPlayingKeyRef.current = null;
+        dancePreviewActiveRef.current = false;
+      } catch (_) {}
     };
   }, [rollFx.show, rollFxHoldMs]);
 
