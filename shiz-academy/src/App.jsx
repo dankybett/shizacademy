@@ -1794,7 +1794,15 @@ function stationTarget(type) {
   if (!started) {
     return (
       <div style={styles.page}>
-        <div style={styles.titleScreen} onClick={() => setStarted(true)} title="Tap to start" />
+        <div style={styles.titleScreen}>
+          <button
+            onClick={() => setStarted(true)}
+            style={styles.startImgButton}
+            title="Start new game"
+          >
+            <img src="/art/newgamebutton.png" alt="Start New Game" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </button>
+        </div>
       </div>
     );
   }
@@ -4161,15 +4169,15 @@ const styles = {
   titleScreen: {
     position: 'relative',
     width: '100%',
-    maxWidth: 720,
-    height: 400,
-    borderRadius: 16,
-    border: '1px solid rgba(255,255,255,.15)',
-    backgroundImage: "url('/art/titlescreen.png')",
-    backgroundSize: 'contain',
+    maxWidth: '100%',
+    height: '100%',
+    borderRadius: 0,
+    border: 'none',
+    backgroundImage: "url('/art/newtitlescreen.png')",
+    backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
-    boxShadow: '0 10px 30px rgba(0,0,0,.35)',
+    boxShadow: 'none',
     cursor: 'pointer',
   },
   startButton: {
@@ -4184,6 +4192,18 @@ const styles = {
     fontSize: 16,
     background: 'white',
     color: 'black',
+    cursor: 'pointer',
+  },
+  startImgButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(calc(-50% - 100px)) translateY(30px)',
+    width: 286,
+    height: 83,
+    padding: 0,
+    border: 'none',
+    background: 'transparent',
     cursor: 'pointer',
   },
 };
