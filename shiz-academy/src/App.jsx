@@ -540,6 +540,7 @@ export default function App() {
   const [facingLeft, setFacingLeft] = useState(false);
   const [isPerforming, setIsPerforming] = useState(false);
   const [performingVenue, setPerformingVenue] = useState(null);
+  const [performingSong, setPerformingSong] = useState(null); // snapshot { name, genre, theme } for venue performance HUD
   const performAudioRef = useRef(null);
   const rollAudioRef = useRef(null);
   const typingAudioRef = useRef(null);
@@ -1601,6 +1602,8 @@ function stationTarget(type) {
     }
 
     const wasFinalWeek = (week === MAX_WEEKS);
+    // Snapshot the song details for the venue performance HUD before clearing for next week
+    setPerformingSong({ name: songName, genre, theme });
     setWeek((w) => w + 1);
     resetWeekProgress();
     setConceptLocked(false);
@@ -1646,6 +1649,7 @@ function stationTarget(type) {
         setReleaseOpen(true);
         setActivity('idle');
         performAudioRef.current = null;
+        setPerformingSong(null);
       };
       audio.onerror = () => {
         if (!didFallback) {
@@ -1668,6 +1672,7 @@ function stationTarget(type) {
     setIsPerforming(false);
     setReleaseOpen(true);
     setActivity('idle');
+    setPerformingSong(null);
   }
 
   function finishSong() {
@@ -2121,6 +2126,12 @@ function stationTarget(type) {
                   <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} — {playingTrend.title}</b>
                 </div>
               )}
+              {isPerforming && (
+                <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} — ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
+                  <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
+                  <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
+                </div>
+              )}
               {nudges > 0 && (
                 <img
                   src="/art/nudgebutton.png"
@@ -2164,7 +2175,7 @@ function stationTarget(type) {
                     ...styles.performer,
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1})${activity === 'dancing' ? ' rotate(2deg)' : ''}`,
+                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}`,
                   }}
                   title="Your performer"
                 >
@@ -4135,6 +4146,18 @@ const styles = {
     borderRadius: 12,
     fontSize: 13,
     zIndex: 3,
+  },
+  hudPerforming: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '6px 10px',
+    borderRadius: 12,
+    fontSize: 13,
+    zIndex: 3,
+    maxWidth: 260,
   },
   diceOverlay: {
     position: 'absolute',
