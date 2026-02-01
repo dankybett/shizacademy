@@ -2283,17 +2283,21 @@ function stationTarget(type) {
         )}
 
         {showWelcome && (
-          <div style={styles.overlay}>
-            <div style={{ ...styles.mirrorModal }}>
+          <div style={styles.overlay} onClick={() => setShowWelcome(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
                   <div style={{ ...styles.title, textAlign: 'center' }}>Welcome to Shiz Academy</div>
-                  <div style={{ ...styles.sub, marginTop: 8 }}>
-                    This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform your masterpiece?
+                  <div style={{ display:'flex', gap:12, alignItems:'center', marginTop: 10 }}>
+                    <div style={{ flex:'0 0 204px', display:'flex', justifyContent:'center' }}>
+                      <img src="/art/academylogo.png" alt="Shiz Academy Crest" style={{ height: 184, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ ...styles.sub, marginTop: 0, lineHeight: 1.4 }}>
+                        This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform your masterpiece?
+                      </div>
+                    </div>
                   </div>
-                  <button onClick={() => { setShowWelcome(false); }} style={{ ...styles.primaryBtn, marginTop: 14 }}>
-                    Continue
-                  </button>
                 </div>
               </div>
             </div>
@@ -3606,8 +3610,8 @@ const styles = {
   },
   performer: {
     position: "absolute",
-    width: 96,
-    height: 96,
+    width: 125,
+    height: 125,
     borderRadius: 0,
     display: "flex",
     alignItems: "center",
