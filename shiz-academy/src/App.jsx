@@ -3930,7 +3930,7 @@ const styles = {
     position: 'absolute',
     bottom: 8,
     left: '50%',
-    transform: 'translateX(-50%) translateY(40px)',
+    transform: 'translateX(-50%) translateY(30px)',
     display: 'flex',
     gap: 8,
     padding: 0,
