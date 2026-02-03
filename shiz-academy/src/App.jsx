@@ -1251,6 +1251,7 @@ function stationTarget(type) {
     // Intentionally do not pause audio on close
   }, [myMusicOpen]);
 
+
   // (Finale summary is opened explicitly when the Release Results modal Continue button is pressed.)
   // Additionally, if we reach the final week and no release flow handles it,
   // mark finale pending and surface the summary once overlays are clear.
@@ -1585,20 +1586,39 @@ function stationTarget(type) {
     setLastResult(entry);
     setSongHistory((arr) => [entry, ...arr]);
 
-    // Update Global Trends for this release week (inject player A/S songs)
+    // Update Global Trends for this release week and next week (inject player A/S songs)
     if (grade === 'A' || grade === 'S' || grade === 'Masterpiece') {
       const wk = entry.releaseWeek;
-      setTrendsByWeek((prev) => {
-        const base = (prev && prev[wk]) ? prev[wk].slice() : genTrendsForWeek(wk, performerName, seedTs || Date.now());
-        const boost = Math.min(6, Math.floor(Math.log10((fans||0)+10) * 2));
-        const gradeBoost = grade === 'S' || grade === 'Masterpiece' ? 3 : 1;
-        const playerScore = score + boost + gradeBoost;
-        const existing = base.filter(it => !it.isPlayer);
-        existing.push({ rank:0, artist: performerName || 'You', title: songName || 'Your Song', score: playerScore, isPlayer:true });
-        existing.sort((a,b)=>b.score-a.score);
-        existing.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
-        return { ...(prev||{}), [wk]: existing.slice(0,5) };
-      });
+      const genreKey = (() => {
+        switch (genre) {
+          case 'Rock': return 'rock';
+          case 'EDM': return 'edm';
+          case 'Hip-Hop': return 'hiphop';
+          case 'Jazz': return 'jazz';
+          case 'Country': return 'country';
+          case 'R&B': return 'randb';
+          case 'Metal': return 'metal';
+          case 'Folk': return 'folk';
+          case 'Synthwave': return 'synthwave';
+          case 'Pop': default: return null;
+        }
+      })();
+      const playerAudioSources = genreKey ? [ `/sounds/fullsinging_${genreKey}.ogg` ] : [ '/sounds/fullsinging.ogg' ];
+      const injectForWeek = (wkKey) => {
+        setTrendsByWeek((prev) => {
+          const base = (prev && prev[wkKey]) ? prev[wkKey].slice() : genTrendsForWeek(wkKey, performerName, seedTs || Date.now(), audioTracks);
+          const boost = Math.min(6, Math.floor(Math.log10((fans||0)+10) * 2));
+          const gradeBoost = grade === 'S' || grade === 'Masterpiece' ? 3 : 1;
+          const playerScore = score + boost + gradeBoost;
+          const existing = base.filter(it => !it.isPlayer);
+          existing.push({ rank:0, artist: performerName || 'You', title: songName || 'Your Song', score: playerScore, isPlayer:true, audioSources: playerAudioSources });
+          existing.sort((a,b)=>b.score-a.score);
+          existing.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
+          return { ...(prev||{}), [wkKey]: existing.slice(0,5) };
+        });
+      };
+      injectForWeek(wk);
+      injectForWeek(wk + 1);
     }
 
     const wasFinalWeek = (week === MAX_WEEKS);
@@ -2849,6 +2869,21 @@ function stationTarget(type) {
                   <div style={styles.sub}>No upcoming events.</div>
                 )}
               </div>
+              {(() => {
+                const list = trendsByWeek && trendsByWeek[week];
+                if (!list || list.length === 0) return null;
+                const playerItem = list.find(it => it && it.isPlayer);
+                if (!playerItem) return null;
+                const msg = playerItem.rank === 1
+                  ? 'Your song is number 1 in the charts!'
+                  : `Your song made the Top 5 at #${playerItem.rank}.`;
+                return (
+                  <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
+                    <div style={{ fontWeight: 800, marginBottom: 4 }}>Charts</div>
+                    <div style={styles.sub}>{msg}</div>
+                  </div>
+                );
+              })()}
               <button onClick={() => {
                 setEventsResolved(r => {
                   const copy = { ...r };
