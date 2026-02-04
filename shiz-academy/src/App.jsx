@@ -406,18 +406,7 @@ function computeChartPosition(score, fans) {
 
 function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, compat, genre, theme, songHistory, score }) {
   const tips = [];
-  // (Compatibility advice removed to encourage discovery)
-  // Triad contribution breakdown
-  const mel = practiceT * (1 + vocals / 12) * 8;
-  const lyr = writeT * (1 + writing / 12) * 8;
-  const per = performT * (1 + stage / 12) * 8;
-  const min = Math.min(mel, lyr, per);
-  if (min === mel) tips.push("Improve singing & spend more days composing (melody).");
-  if (min === lyr) tips.push("Improve writing & spend more days on lyrics.");
-  if (min === per) tips.push("Improve stage presence & spend more days rehearsing.");
-  // Time allocation nudges
-  if (writeT < 3) tips.push("Dedicate more time to writing this week.");
-  if (performT < 3) tips.push("Dedicate more time to performance this week.");
+  // (Triad/time suggestions removed; keep only similarity + occasional friend hints)
 
   // Similarity to previous song
   if (songHistory && songHistory.length > 0) {
@@ -426,6 +415,25 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
       tips.push("Too similar to last release \u2014 try varying genre or theme.");
     }
   }
+  // Friend-aware nudge (~40% chance)
+  try {
+    let h = hashSeed(`${seedTs||0}|fb|${week||0}`);
+    const rng = () => { h = (h ^ (h << 13)) >>> 0; h = (h ^ (h >>> 17)) >>> 0; h = (h ^ (h << 5)) >>> 0; return (h>>>0)/0xFFFFFFFF; };
+    if (rng() < 0.4) {
+      const lum = (friends && friends.luminaO) || { level:0 };
+      const synthSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'synthwave');
+      const latestSynthWeek = synthSongs.reduce((m,s)=> Math.max(m, s.releaseWeek||0), 0);
+      const hit20 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit20Week : null;
+      const hit50 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit50Week : null;
+      const cands = [];
+      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track — someone might notice.");
+      if ((lum.level||0) < 2 && fans >= 20 && hit20 != null && latestSynthWeek <= hit20) cands.push("After 20 fans, a Synthwave performance could spark a new connection.");
+      if ((lum.level||0) < 3 && fans >= 50 && hit50 != null && latestSynthWeek <= hit50) cands.push("With 50+ fans, another Synthwave performance might open a door.");
+      if ((lum.level||0) < 4) cands.push("Pushing a Synthwave into the Global Top 5 can attract attention.");
+      if ((lum.level||0) < 5) cands.push("A #1 Synthwave hit could lead to something special.");
+      if (cands.length) tips.push(cands[Math.floor(rng() * cands.length)]);
+    }
+  } catch(_) {}
   return tips;
 }
 
@@ -647,8 +655,30 @@ export default function App() {
     const synthSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'synthwave');
     const hasSynth = synthSongs.length > 0;
     const latestSynthWeek = synthSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
-    const hasTop5Synth = synthSongs.some(s => (s.chartPos||999) <= 5);
-    const hasTop1Synth = synthSongs.some(s => (s.chartPos||999) === 1);
+    const hasTop5Synth = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank<=5);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='synthwave';
+        });
+      } catch(_) { return false; }
+    })();
+    const hasTop1Synth = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank===1);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='synthwave';
+        });
+      } catch(_) { return false; }
+    })();
     if (lumLevel < 1 && hasSynth) enqueueFriendEvent('luminaO', 1);
     const hit20 = friendMilestones?.luminaO?.hit20Week || null;
     const hit50 = friendMilestones?.luminaO?.hit50Week || null;
@@ -1634,6 +1664,11 @@ function stationTarget(type) {
       theme,
       songHistory,
       score,
+      friends,
+      fans,
+      week,
+      friendMilestones,
+      seedTs,
     });
     const entry = {
       week,
@@ -3532,7 +3567,7 @@ function stationTarget(type) {
                     </div>
                     <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
                     <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
-                    <div style={styles.statRow}><span>Top 100 Charts</span><b>#{lastResult.chartPos}</b></div>
+                    {/* Charts moved to Trends; hide legacy chartPos */}
                     {lastResult.venue && (
                       <div style={styles.statRow}><span>Venue</span><b>{lastResult.venue}</b></div>
                     )}
@@ -3678,7 +3713,7 @@ function stationTarget(type) {
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
                       <div>
                         <div style={{ fontWeight: 700 }}>{s.songName}</div>
-                        <div style={{ ...styles.sub }}>Grade {s.grade} | #{s.chartPos}</div>
+                        <div style={{ ...styles.sub }}>Grade {s.grade}</div>
                       </div>
                       <button style={styles.smallBtn} onClick={() => setSelectedGigSong(s)}>Select</button>
                     </div>
@@ -3787,7 +3822,7 @@ function stationTarget(type) {
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
                       <div>
                         <div style={{ fontWeight: 700 }}>{s.songName}</div>
-                        <div style={{ ...styles.sub }}>Grade {s.grade} | #{s.chartPos}</div>
+                        <div style={{ ...styles.sub }}>Grade {s.grade}</div>
                       </div>
                       <button style={styles.smallBtn} onClick={() => setFinaleSong(s)}>Select</button>
                     </div>
@@ -3825,7 +3860,6 @@ function stationTarget(type) {
                 {(() => {
                   const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
                   const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
-                  const bestChart = songHistory.reduce((best, s) => (s.chartPos && s.chartPos>0) ? Math.min(best||Infinity, s.chartPos) : best, null);
                   return (
                     <div>
                       <div style={{ fontWeight: 900, marginBottom: 6 }}>Top 5 Songs</div>
@@ -3843,7 +3877,7 @@ function stationTarget(type) {
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
                       <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
-                      <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
+                      {/* Best Chart Position removed; Trends is canonical */}
                     </div>
                   );
                 })()}
@@ -3888,7 +3922,6 @@ function stationTarget(type) {
                 {(() => {
                   const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
                   const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
-                  const bestChart = songHistory.reduce((best, s) => (s.chartPos && s.chartPos>0) ? Math.min(best||Infinity, s.chartPos) : best, null);
                   return (
                     <div>
                       <div style={{ fontWeight: 900, marginBottom: 6 }}>Top 5 Songs</div>
@@ -3906,7 +3939,7 @@ function stationTarget(type) {
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
                       <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
-                      <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
+                      {/* Best Chart Position removed; Trends is canonical */}
                     </div>
                   );
                 })()}
@@ -3934,7 +3967,7 @@ function stationTarget(type) {
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                             <span>
                               <b>{s.songName}</b>
-                              <span style={{ opacity: .7 }}> | #{s.chartPos}</span>
+                              {/* Trends are canonical; hide legacy chartPos */}
                             </span>
                             <span>
                               <span style={{ opacity: .8, marginRight: 8 }}>{s.grade}</span>
