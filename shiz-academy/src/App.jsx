@@ -64,7 +64,7 @@ function genEventSchedule(performerName, startTs) {
   push(12, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   push(24, 'openmic', 'Open Mic Marathon', 'Pick your focus', 'Choose between quick cash or fan hype.', 'choice', undefined, [
-    { label: 'Take tips (+£60 now)', effect: { grantMoney: 60 } },
+    { label: 'Take tips (+\u00A3 60 now)', effect: { grantMoney: 60 } },
     { label: 'Hype it (fans x1.2 this week)', effect: { fanMult: 1.2 } },
   ]);
   push(28, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.85 });
@@ -103,8 +103,8 @@ function effectSummary(eff) {
   if ((eff.fanMult||1) !== 1) parts.push(`Fans x${(eff.fanMult||1).toFixed(2)}`);
   if ((eff.payoutMult||1) !== 1) parts.push(`Payout x${(eff.payoutMult||1).toFixed(2)}`);
   if ((eff.shopDiscount||1) !== 1) parts.push(`Shop x${(eff.shopDiscount||1).toFixed(2)}`);
-  if (eff.grantMoney) parts.push(`+£${eff.grantMoney} now`);
-  return parts.join(' · ');
+  if (eff.grantMoney) parts.push(`+\u00A3${eff.grantMoney} now`);
+  return parts.join(' - ');
 }
 
 // Build 5 lightweight fan comments for a release entry
@@ -121,22 +121,22 @@ function generateFanComments(entry, performerName) {
       `On repeat! ${title} is unreal.`,
       `Chills. ${name} absolutely delivered.`,
       `That hook is living rent-free in my head.`,
-      `Peak ${genre}! Chef’s kiss.`,
-      `Instant fave — can’t stop humming it.`,
+      `Peak ${genre}! Chef's kiss.`,
+      `Instant fave - can't stop humming it.`,
     ];
     const poolB = [
-      `Big step up — love the vibe.`,
+      `Big step up - love the vibe.`,
       `This chorus hits just right.`,
       `Such a cool ${theme?.toLowerCase?.()||'mood'} energy.`,
-      `Solid track — more please!`,
+      `Solid track - more please!`,
       `Clever lyrics and a catchy groove.`,
     ];
     const poolC = [
       `I like this direction!`,
-      `Can’t wait to hear it live.`,
+      `Can't wait to hear it live.`,
       `Nice blend of styles.`,
       `This will grow on people.`,
-      `Proud of the grind — keep going!`,
+      `Proud of the grind - keep going!`,
     ];
     const topNote = chart && chart <= 10 ? [`Top ${chart}! Legends in the making.`] : [];
     const pickN = (arr, n) => {
@@ -157,7 +157,7 @@ function generateFanComments(entry, performerName) {
     while (merged.length < 5) merged.push('Loving the growth each week!');
     return merged.slice(0,5);
   } catch (_) {
-    return ['Great track!', 'Love the vibe', 'On repeat', 'Can’t wait for next', 'Keep going!'];
+    return ['Great track!', 'Love the vibe', 'On repeat', "Can't wait for next", 'Keep going!'];
   }
 }
 
@@ -551,6 +551,16 @@ export default function App() {
   const [socialOpen, setSocialOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // Friends / Visual Novel system
+  const [friends, setFriends] = useState({ luminaO: { level: 0, rewardsClaimed: {}, posterUnlocked: false, bio: { title: 'Lumina-O', summary: 'Synthwave artist with neon-smooth vibes.', bullets: ['Loves late-night mixes', 'Champions consistency', 'Gives practical tips'] } } });
+  const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number }]
+  const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
+  const [vnTyping, setVnTyping] = useState(false);
+  const [vnTypingTick, setVnTypingTick] = useState(0);
+  const [showFriendsList, setShowFriendsList] = useState(false);
+  const [selectedFriendId, setSelectedFriendId] = useState(null);
+  const [lastFriendProgressWeek, setLastFriendProgressWeek] = useState(0);
+  const [friendMilestones, setFriendMilestones] = useState({ luminaO: { hit20Week: null, hit50Week: null } });
   // Finale flow state
   const [finalePending, setFinalePending] = useState(false);
   const [finaleOpen, setFinaleOpen] = useState(false);
@@ -618,6 +628,56 @@ export default function App() {
     return Math.max(1, Math.floor(Math.random() * faces) + 1);
   }
   const singAudioRef = useRef(null);
+
+  // --- Friends/VN helpers ---
+  function enqueueFriendEvent(friendId, targetLevel){
+    setPendingFriendEvents(prev => {
+      const curr = friends?.[friendId]?.level || 0;
+      if (targetLevel <= curr) return prev;
+      if (prev.some(ev => ev.friendId===friendId && ev.targetLevel===targetLevel)) return prev;
+      const next = [...prev, { friendId, targetLevel, week }];
+      next.sort((a,b)=> (a.week - b.week) || (a.targetLevel - b.targetLevel));
+      return next;
+    });
+  }
+
+  function checkFriendCriteria(){
+    // Lumina-O template
+    const lumLevel = friends?.luminaO?.level || 0;
+    const synthSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'synthwave');
+    const hasSynth = synthSongs.length > 0;
+    const latestSynthWeek = synthSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
+    const hasTop5Synth = synthSongs.some(s => (s.chartPos||999) <= 5);
+    const hasTop1Synth = synthSongs.some(s => (s.chartPos||999) === 1);
+    if (lumLevel < 1 && hasSynth) enqueueFriendEvent('luminaO', 1);
+    const hit20 = friendMilestones?.luminaO?.hit20Week || null;
+    const hit50 = friendMilestones?.luminaO?.hit50Week || null;
+    if (lumLevel < 2 && hit20 != null && latestSynthWeek > hit20) enqueueFriendEvent('luminaO', 2);
+    if (lumLevel < 3 && hit50 != null && latestSynthWeek > hit50) enqueueFriendEvent('luminaO', 3);
+    if (lumLevel < 4 && hasTop5Synth) enqueueFriendEvent('luminaO', 4);
+    if (lumLevel < 5 && hasTop1Synth) enqueueFriendEvent('luminaO', 5);
+  }
+
+  useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek]);
+  // Track milestone weeks when fans cross thresholds
+  useEffect(() => {
+    setFriendMilestones(prev => {
+      const next = { ...prev, luminaO: { ...(prev.luminaO||{ hit20Week:null, hit50Week:null }) } };
+      if (fans >= 20 && (next.luminaO.hit20Week == null)) next.luminaO.hit20Week = week;
+      if (fans >= 50 && (next.luminaO.hit50Week == null)) next.luminaO.hit50Week = week;
+      return next;
+    });
+  }, [fans, week]);
+
+  // VN typing effect: brief animated ellipsis before each line
+  useEffect(() => {
+    if (!friendModal.open) return;
+    setVnTyping(true);
+    setVnTypingTick(0);
+    const int = setInterval(() => setVnTypingTick(t => (t + 1) % 3), 250);
+    const to = setTimeout(() => { setVnTyping(false); clearInterval(int); }, 900);
+    return () => { clearInterval(int); clearTimeout(to); };
+  }, [friendModal.open, friendModal.idx, friendModal.targetLevel]);
   const lastSingSfxAtRef = useRef(0);
   function playSingSfx() {
     try {
@@ -1137,6 +1197,10 @@ function stationTarget(type) {
       if (typeof s.nextRollOverride === "number") setNextRollOverride(s.nextRollOverride);
       if (s.rollBest) setRollBest(s.rollBest);
       if (Array.isArray(s.rollHistory)) setRollHistory(s.rollHistory);
+      if (s.friends && typeof s.friends === 'object') setFriends(s.friends);
+      if (Array.isArray(s.pendingFriendEvents)) setPendingFriendEvents(s.pendingFriendEvents);
+      if (typeof s.lastFriendProgressWeek === 'number') setLastFriendProgressWeek(s.lastFriendProgressWeek);
+      if (s.friendMilestones && typeof s.friendMilestones === 'object') setFriendMilestones(s.friendMilestones);
       if (Array.isArray(s.actions)) {
         // Normalize to {t,d}
         const norm = s.actions.map((a) => {
@@ -1263,7 +1327,7 @@ function stationTarget(type) {
 
   useEffect(() => {
     if (!finalePending) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || friendModal.open;
     if (!overlaysOpen) {
       setFinalePending(false);
       setEndYearReady(true);
@@ -1425,6 +1489,10 @@ function stationTarget(type) {
       seedTs,
       trendsByWeek,
       suppressFinale,
+      friends,
+      pendingFriendEvents,
+      lastFriendProgressWeek,
+      friendMilestones,
       ts: Date.now(),
     };
     try {
@@ -1462,6 +1530,8 @@ function stationTarget(type) {
         seedTs,
         trendsByWeek,
         suppressFinale,
+        friends,
+        pendingFriendEvents,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -1925,7 +1995,7 @@ function stationTarget(type) {
       // Weekly "This Week" modal: always show once per week after overlays clear (skip week 1, show welcome instead)
       const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
       const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || showConcept;
+      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
       if (weeklyInfoShownWeek !== week && week > 1) {
         if (!overlaysOpen) {
           setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
@@ -1940,7 +2010,7 @@ function stationTarget(type) {
   // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
     if (!queuedEventInfo) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || showConcept;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
     const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
@@ -2092,7 +2162,7 @@ function stationTarget(type) {
             {/* Streamlined main view: room dominates, buttons underneath */}
             <div style={styles.roomOuter}>
               <div style={{ ...styles.room, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackgroundwide.png')" }}>
-              {/* Anchor overlay (apartment objects) — hidden during venue performances */}
+              {/* Anchor overlay (apartment objects) - hidden during venue performances */}
               {!(isPerforming && performingVenue) && (
               <div style={styles.roomAnchors}>
                 {/* Computer (click opens Settings/desktop) */}
@@ -2111,11 +2181,11 @@ function stationTarget(type) {
                     title="My Poster Collection"
                   />
                 )}
-                {/* Microphone → opens Create/Current Song modal */}
+                {/* Microphone -> opens Create/Current Song modal */}
                 <div
                   style={anchorStyle(ANCHORS.mic)}
                   onClick={() => {
-                    if (endYearReady || isOver) { pushToast('Year complete — press End year'); return; }
+                    if (endYearReady || isOver) { pushToast('Year complete - press End year'); return; }
                     if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
                   }}
                   title={conceptLocked ? 'Current Song' : 'Create Song'}
@@ -2141,13 +2211,13 @@ function stationTarget(type) {
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
               {playingTrend && (
-                <div style={styles.hudListening} title={`${playingTrend.artist} — ${playingTrend.title}`}>
-                  <span style={{ marginRight: 6, opacity: .9 }}>♪</span>
-                  <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} — {playingTrend.title}</b>
+                <div style={styles.hudListening} title={`${playingTrend.artist} - ${playingTrend.title}`}>
+                  <span style={{ marginRight: 6, opacity: .9 }}></span>
+                  <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} - {playingTrend.title}</b>
                 </div>
               )}
               {isPerforming && (
-                <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} — ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
+                <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
                   <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
                   <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
                 </div>
@@ -2354,8 +2424,13 @@ function stationTarget(type) {
                             <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
                               <div style={styles.desktopColumn}>
                                 <div style={styles.desktopIconWrap}>
-                                  <button style={styles.desktopIcon} title="MyBubble" onClick={() => setSocialOpen(true)}>
-                                    <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                                  <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
+                                    <div style={{ position:'relative' }}>
+                                      <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                                      {(pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) && (
+                                        <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                                      )}
+                                    </div>
                                   </button>
                                   <div style={styles.desktopIconLabel}>myBubble</div>
                                 </div>
@@ -2420,6 +2495,108 @@ function stationTarget(type) {
               <button onClick={restart} style={{ ...styles.primaryBtn, marginTop: 14 }}>
                 Start New Year
               </button>
+            </div>
+          </div>
+        )}
+
+        {friendModal.open && (
+          <div style={styles.overlay}>
+            <div style={{ position:'relative', width:'100%', maxWidth: 720, height: 360, background: 'rgba(0,0,0,.3)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 16, padding: 10, overflow:'hidden' }} onClick={(e)=>e.stopPropagation()}>
+              <img src={'/art/mybubblelogo.png'} alt="myBubble" onError={(e)=>{ e.currentTarget.style.display='none'; }} style={styles.vnLogo} />
+              {(() => {
+                const scripts = {
+                  luminaO: {
+                    1: [
+                      { speaker:'lumina', text:"Hey! I caught your Synthwave set by the mirror. Neon-smooth vibes!" },
+                      { speaker:'player', text:"Thanks! I'm just getting started." },
+                      { speaker:'lumina', text:"I'm Lumina-O. The city needs more glow." },
+                      { speaker:'lumina', text:"Let's keep in touch." }
+                    ],
+                    2: [
+                      { speaker:'lumina', text:"Fans notice consistency. Your sound's blooming." },
+                      { speaker:'lumina', text:"Here - use this when you need it." }
+                    ],
+                    3: [ { speaker:'lumina', text:"You've got the hook now. Try a late-night mix - let the bass breathe." } ],
+                    4: [ { speaker:'lumina', text:"Top 5! That rush is real. Bask a little. Then write more." } ],
+                    5: [
+                      { speaker:'lumina', text:"Number one! The circuit lights up for you." },
+                      { speaker:'lumina', text:"You earned this. Keep shining." }
+                    ]
+                  }
+                };
+                const friendId = friendModal.friendId || 'luminaO';
+                const lines = (scripts[friendId] && scripts[friendId][friendModal.targetLevel]) || [ { speaker:'lumina', text:'...' } ];
+                const idx = Math.max(0, Math.min(friendModal.idx || 0, lines.length-1));
+                const line = lines[idx];
+                const isLeft = line.speaker === 'player';
+                const leftActive = isLeft;
+                const rightActive = !isLeft;
+                return (
+                  <div>
+                    {/* Busts with active speaker emphasis */}
+                    <img
+                      src={'/art/friends/player_bust.png'}
+                      alt="Player"
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      style={{
+                        ...styles.vnBustLeft,
+                        opacity: leftActive ? 1 : 0.6,
+                        transform: `scale(${leftActive ? 1.03 : 0.97})`,
+                        transition: 'opacity 200ms ease, transform 200ms ease'
+                      }}
+                    />
+                    <img
+                      src={'/art/friends/luminao_bust.png'}
+                      alt="Lumina-O"
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      style={{
+                        ...styles.vnBustRight,
+                        opacity: rightActive ? 1 : 0.6,
+                        transform: `translateY(-65px) scale(${rightActive ? 1.03 : 0.97})`,
+                        transition: 'opacity 200ms ease, transform 200ms ease'
+                      }}
+                    />
+                    <div style={{ position:'absolute', left: isLeft? 16 : 'auto', right: !isLeft? 16 : 'auto', bottom: 16, maxWidth: 420 }}>
+                      <div style={{ ...styles.vnBubble, ...(isLeft? styles.vnBubbleLeft : styles.vnBubbleRight) }}>
+                        <div style={{ fontWeight: 800, marginBottom: 4 }}>{isLeft ? (performerName || 'You') : 'Lumina-O'}</div>
+                        <div>{vnTyping ? '.'.repeat((vnTypingTick||0)+1) : line.text}</div>
+                      </div>
+                    </div>
+                    <div style={{ position:'absolute', right: 12, top: 12, display:'flex', gap:6 }}>
+                      <button
+                        style={styles.primaryBtn}
+                        onClick={() => {
+                          const next = (friendModal.idx||0)+1;
+                          if (next < lines.length) {
+                            setFriendModal(prev => ({ ...prev, idx: next }));
+                          } else {
+                            // Complete: apply rewards and level up
+                            setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                            if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
+                              setNudges(n=>n+1);
+                              setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
+                              pushToast('Lumina-O shared a tip: +1 Nudge');
+                            }
+                            if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
+                              setBonusRolls(r=>r+1);
+                              try {
+                                const all = POSTERS.map((_,i)=>i);
+                                const remaining = all.filter(i=> !(unlockedPosters||[]).includes(i));
+                                const idxNew = remaining.length>0 ? remaining[0] : (currentPosterIdx ?? 0);
+                                if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
+                                if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
+                              } catch(_) {}
+                              setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
+                              pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
+                            }
+                            setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0 });
+                          }
+                        }}
+                      >{(friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish'}</button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -2753,11 +2930,19 @@ function stationTarget(type) {
         {false && financeOpen}
 
         {socialOpen && (
-          <div style={styles.overlay} onClick={() => setSocialOpen(false)}>
+          <div
+            style={styles.overlay}
+            onClick={() => {
+              if (selectedFriendId != null) { setSelectedFriendId(null); return; }
+              if (showFriendsList) { setShowFriendsList(false); return; }
+              setSocialOpen(false);
+            }}
+          >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
               <div style={styles.title}>MyBubble</div>
+              {!showFriendsList && (
               <div style={{ display:'flex', gap:12, marginTop: 8 }}>
                 <div style={{ flex:1 }}>
                   <div style={styles.statRow}><span>Fans</span><b>{fans}</b></div>
@@ -2767,6 +2952,43 @@ function stationTarget(type) {
                     const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
                     return (<div style={styles.statRow}><span>Fans this week</span><b>+{gain}</b></div>);
                   })()}
+                  <div style={{ marginTop: 10, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
+                    <div style={{ fontWeight:900, marginBottom:6 }}>Friend Requests</div>
+                    {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                      (()=>{ const ev = pendingFriendEvents[0]; const name = 'Lumina-O'; const title = ev.targetLevel===1? 'Friend request' : `Friend event (Lv ${ev.targetLevel})`; return (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{title}</div>
+                            <div style={{ ...styles.sub }}>from {name}</div>
+                          </div>
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button style={styles.smallBtn} onClick={()=>{
+                              setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0 });
+                              setPendingFriendEvents(prev=> prev.slice(1));
+                              setLastFriendProgressWeek(week);
+                              setSocialOpen(false);
+                            }}>Accept</button>
+                            <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                          </div>
+                        </div>
+                      ); })()
+                    ) : (
+                      <div style={styles.sub}>No new requests.</div>
+                    )}
+                  </div>
+                  {(friends?.luminaO?.level||0) >= 1 && (
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        style={styles.smallBtn}
+                        onClick={() => {
+                          setSelectedFriendId(null);
+                          setShowFriendsList(v => !v);
+                        }}
+                      >
+                        {showFriendsList ? 'Back to MyBubble' : 'My Friends'}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div style={{ flex:1.4, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
                   <div style={{ fontWeight:900, marginBottom:6 }}>This Week's Buzz</div>
@@ -2783,7 +3005,7 @@ function stationTarget(type) {
                       </div>
                     );
                     let comments = entry.fanComments && entry.fanComments.length ? entry.fanComments : generateFanComments(entry, performerName);
-                    // Sanitize legacy metadata-style last line (e.g., 'Grade X · Genre · Theme')
+                    // Sanitize legacy metadata-style last line (e.g., 'Grade X - Genre - Theme')
                     const cleaned = comments.filter(c => !/^Grade\s/i.test((c||'').trim()));
                     if (cleaned.length < 3) {
                       while (cleaned.length < 3) cleaned.push('Loving the growth each week!');
@@ -2808,6 +3030,59 @@ function stationTarget(type) {
                   })()}
                 </div>
               </div>
+              )}
+              {showFriendsList && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                    <div style={{ fontWeight:900 }}>{selectedFriendId ? 'Friend' : 'Friends'}</div>
+                    <button style={styles.smallBtn} onClick={()=> { setSelectedFriendId(null); setShowFriendsList(false); }}>Back to MyBubble</button>
+                  </div>
+                  {selectedFriendId == null && (
+                    <>
+                      <div style={{ display:'grid', gap:8 }}>
+                        {(() => {
+                          const list = [];
+                          const lv = friends?.luminaO?.level || 0;
+                          if (lv>0) list.push({ id:'luminaO', name:'Lumina-O', level: lv, max: 5 });
+                          if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
+                          return list.map(f => (
+                            <button key={f.id} onClick={() => setSelectedFriendId(f.id)} style={{ textAlign:'left', background:'transparent', color:'inherit', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, cursor:'pointer' }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                <div style={{ fontWeight:800 }}>{f.name}</div>
+                                <div style={{ ...styles.sub, fontWeight:800 }}>Lv {f.level}/{f.max}</div>
+                              </div>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    </>
+                  )}
+                  {selectedFriendId != null && (
+                    (()=>{
+                      const fid = selectedFriendId;
+                      const meta = fid==='luminaO' ? { name:'Lumina-O', bio: (friends?.luminaO?.bio || { title:'Lumina-O', summary:'Synthwave artist', bullets:[] }) } : { name: fid, bio:{ title: fid, summary:'', bullets:[] } };
+                      return (
+                        <div style={{}}>
+                          <div style={{ fontWeight:900, margin:'8px 0 6px' }}>{meta.bio.title}</div>
+                          <div style={{ ...styles.sub, marginBottom:6 }}>{meta.bio.summary}</div>
+                          {meta.bio.bullets && meta.bio.bullets.length>0 && (
+                            <ul style={styles.ul}>
+                              {meta.bio.bullets.map((b,i)=>(<li key={i} style={styles.li}>{b}</li>))}
+                            </ul>
+                          )}
+                          <div style={{ marginTop: 8, display:'flex', gap:8, alignItems:'center' }}>
+                            <img src={'/art/friends/luminao_bust.png'} alt={meta.name} style={{ width: 120, height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                            <div style={{ ...styles.sub }}>Level: <b>{friends?.luminaO?.level||0}</b>/5</div>
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            <button style={styles.smallBtn} onClick={()=> setSelectedFriendId(null)}>Back to Friends</button>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )}
               {null}
                 </div>
               </div>
@@ -2858,6 +3133,12 @@ function stationTarget(type) {
                   ))
                 )}
               </div>
+              {pendingFriendEvents.length>0 && lastFriendProgressWeek !== week && (
+                <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
+                  <div style={styles.sub}>New friend request available in MyBubble.</div>
+                </div>
+              )}
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>Upcoming</div>
                 {eventInfoModal.upcoming ? (
@@ -3152,7 +3433,7 @@ function stationTarget(type) {
                             )}
                           </div>
                           <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} - {(item.title && item.title.length>22) ? (item.title.slice(0,22) + '…') : item.title}</div>
+                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} - {(item.title && item.title.length>22) ? (item.title.slice(0,22) + '...') : item.title}</div>
                             {(playingTrend && playingTrend.id === `${item.artist}__${item.title}`) && (
                               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
                                 <div style={{ fontSize:11, opacity:.85 }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
@@ -3163,7 +3444,7 @@ function stationTarget(type) {
                             )}
                             {item.isPlayer && <div style={{ ...styles.sub, fontWeight:800, color:'#64d49a' }}>You</div>}
                           </div>
-                          <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>▶</button>
+                          <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>Play</button>
                         </div>
                       ))}
                       </div>
@@ -3247,7 +3528,7 @@ function stationTarget(type) {
                   <div style={styles.title}>Release Results</div>
                   <div style={{ marginTop: 8, paddingBottom: 8 }}>
                     <div style={{ ...styles.sub, marginBottom: 6 }}>
-                      Song: <b>{lastResult.songName}</b> — {lastResult.genre} / {lastResult.theme}
+                      Song: <b>{lastResult.songName}</b> - {lastResult.genre} / {lastResult.theme}
                     </div>
                     <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
                     <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
@@ -3561,7 +3842,7 @@ function stationTarget(type) {
                         </div>
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
-                      <div style={styles.statRow}><span>Total Money Earned</span><b>£{totalMoney}</b></div>
+                      <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
                       <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
                     </div>
                   );
@@ -3580,7 +3861,7 @@ function stationTarget(type) {
               <div style={styles.title}>Gig Results</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Venue</span><b>{gigResult.venue}</b></div>
-                <div style={styles.statRow}><span>Money</span><b>£{gigResult.money}</b></div>
+                <div style={styles.statRow}><span>Money</span><b>{'\u00A3'}{gigResult.money}</b></div>
                 <div style={styles.statRow}><span>Fans</span><b>+{gigResult.fans}</b></div>
                 <div style={{ display:'flex', gap:8, marginTop:10 }}>
                   <div style={{ padding:'6px 10px', border:'1px solid rgba(255,255,255,.25)', borderRadius:999, background:'rgba(255,255,255,.08)' }}>
@@ -3624,7 +3905,7 @@ function stationTarget(type) {
                         </div>
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
-                      <div style={styles.statRow}><span>Total Money Earned</span><b>£{totalMoney}</b></div>
+                      <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
                       <div style={styles.statRow}><span>Best Chart Position</span><b>{bestChart ? `#${bestChart}` : '-'}</b></div>
                     </div>
                   );
@@ -4218,6 +4499,13 @@ const styles = {
     alignItems: 'baseline',
     pointerEvents: 'none'
   },
+  // Visual Novel overlay styles
+  vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
+  vnBustLeft: { position:'absolute', left: 37, bottom: 0, width: 220, height: 'auto', objectFit: 'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))', opacity: .95, transform:'translate(25px, 25px)' },
+  vnBustRight: { position:'absolute', right: 12, bottom: 10, width: 330, height: 'auto', objectFit: 'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))', opacity: .95 },
+  vnBubble: { background:'rgba(114, 69, 187, .45)', border:'1px solid rgba(255,255,255,.35)', borderRadius: 12, padding:'10px 12px', color:'#fff', backdropFilter:'blur(2px)', boxShadow:'0 4px 12px rgba(0,0,0,.2)' },
+  vnBubbleLeft: { textAlign:'left' },
+  vnBubbleRight: { textAlign:'left' },
   diceMiniOverlay: {
     position: 'absolute',
     top: 8,
