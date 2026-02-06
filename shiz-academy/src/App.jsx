@@ -426,7 +426,7 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
       const hit20 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit20Week : null;
       const hit50 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit50Week : null;
       const cands = [];
-      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track — someone might notice.");
+      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track Ã¢â‚¬â€ someone might notice.");
       if ((lum.level||0) < 2 && fans >= 20 && hit20 != null && latestSynthWeek <= hit20) cands.push("After 20 fans, a Synthwave performance could spark a new connection.");
       if ((lum.level||0) < 3 && fans >= 50 && hit50 != null && latestSynthWeek <= hit50) cands.push("With 50+ fans, another Synthwave performance might open a door.");
       if ((lum.level||0) < 4) cands.push("Pushing a Synthwave into the Global Top 5 can attract attention.");
@@ -625,6 +625,10 @@ export default function App() {
   const audioRef = useRef(null);
   const [audioTime, setAudioTime] = useState({ current: 0, duration: 0 });
   const [fanSpriteMeta, setFanSpriteMeta] = useState(null); // { w,h,tileW,tileH }
+  // Neon dorm lamp cosmetic state
+  const [lampUnlocked, setLampUnlocked] = useState(false);
+  const [lampOn, setLampOn] = useState(false);
+  const [lampGiftOpen, setLampGiftOpen] = useState(false);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -709,6 +713,21 @@ export default function App() {
     const to = setTimeout(() => { setVnTyping(false); clearInterval(int); }, 900);
     return () => { clearInterval(int); clearTimeout(to); };
   }, [friendModal.open, friendModal.idx, friendModal.targetLevel]);
+  // Trigger Lumina Lv2 gift popup when specific line appears
+  useEffect(() => {
+    try {
+      if (!friendModal.open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'luminaO') return;
+      if ((friendModal.targetLevel||0) !== 2) return;
+      const idx = friendModal.idx || 0;
+      // At Lv2 index 5: "Small things glow brighter in the dark."
+      if (idx === 5 && !lampUnlocked && !lampGiftOpen) {
+        setLampUnlocked(true);
+        setLampGiftOpen(true);
+      }
+    } catch (_) {}
+  }, [friendModal.open, friendModal.friendId, friendModal.targetLevel, friendModal.idx]);
   const lastSingSfxAtRef = useRef(0);
   function playSingSfx() {
     try {
@@ -1232,6 +1251,8 @@ function stationTarget(type) {
       if (Array.isArray(s.pendingFriendEvents)) setPendingFriendEvents(s.pendingFriendEvents);
       if (typeof s.lastFriendProgressWeek === 'number') setLastFriendProgressWeek(s.lastFriendProgressWeek);
       if (s.friendMilestones && typeof s.friendMilestones === 'object') setFriendMilestones(s.friendMilestones);
+      if (typeof s.lampUnlocked === 'boolean') setLampUnlocked(s.lampUnlocked);
+      if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (Array.isArray(s.actions)) {
         // Normalize to {t,d}
         const norm = s.actions.map((a) => {
@@ -1459,6 +1480,7 @@ function stationTarget(type) {
     chair:    { xPct: 62.50, yPct: 72.54, wPct: 10.61 },
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
     poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
+    lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
   };
   function anchorStyle(a){
     return {
@@ -1524,6 +1546,8 @@ function stationTarget(type) {
       pendingFriendEvents,
       lastFriendProgressWeek,
       friendMilestones,
+      lampUnlocked,
+      lampOn,
       ts: Date.now(),
     };
     try {
@@ -1531,7 +1555,7 @@ function stationTarget(type) {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
@@ -1559,12 +1583,14 @@ function stationTarget(type) {
         eventsSchedule,
         eventsResolved,
         seedTs,
-        trendsByWeek,
-        suppressFinale,
-        friends,
-        pendingFriendEvents,
-        ts: Date.now(),
-      };
+      trendsByWeek,
+      suppressFinale,
+      friends,
+      pendingFriendEvents,
+      lampUnlocked,
+      lampOn,
+      ts: Date.now(),
+    };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
     } catch (_) {}
   }
@@ -2205,6 +2231,18 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                {/* Neon Dorm Lamp (unlocked at Lumina Lv2) */}
+                {lampUnlocked && (
+                  <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 2, position:'absolute', pointerEvents:'none' }}>
+                    <img src="/art/lavalamp.png" alt="Neon Dorm Lamp"
+                      style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 14px rgba(179,92,255,.85)) drop-shadow(0 0 26px rgba(179,92,255,.45))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                    <div
+                      title={lampOn ? 'Turn lamp off' : 'Turn lamp on'}
+                      onClick={() => setLampOn(v=>!v)}
+                      style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'60%', height:'80%', pointerEvents:'auto', cursor:'pointer' }}
+                    />
+                  </div>
+                )}
                 {currentPosterIdx != null && (
                   <div style={anchorStyle(ANCHORS.poster)} onClick={() => setPosterOpen(true)} title="My Poster Collection">
                     <img src={POSTERS[currentPosterIdx]} alt="Poster" style={{ width:'100%', height:'auto', borderRadius: 6 }} />
@@ -2238,6 +2276,10 @@ function stationTarget(type) {
                 </div>
                 
               </div>
+              )}
+              {/* Neon overlay when lamp is on */}
+              {lampOn && !isPerforming && (
+                <div style={styles.neonOverlay} />
               )}
               {/* Room HUD: show money and rolls */}
               {!isPerforming && (
@@ -2696,6 +2738,14 @@ function stationTarget(type) {
                         )}
                       </div>
                     )}
+                    {/* Gift modal for Neon Dorm Lamp (Lv2) */}
+                    {(lampGiftOpen && friendModal.targetLevel===2) && (
+                      <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
+                        <img src={'/art/lavalamp.png'} alt={'Neon Dorm Lamp'} style={{ width: 240, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
+                        <div style={{ ...styles.sub, marginTop: 8 }}>Lumina gifted you a neon dorm lamp</div>
+                        <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setLampGiftOpen(false)}>OK</button>
+                      </div>
+                    )}
                     <div style={{ position:'absolute', right: 12, top: 12, display:'flex', gap:6 }}>
                       {!(isChoiceStep && choiceIndex == null) && (
                       <button
@@ -2804,12 +2854,12 @@ function stationTarget(type) {
           </div>
         )}
 
-        {menuOpen && !isOver && (
-          <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
-            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
-                  <div style={{ ...styles.title, textAlign:'center' }}>Settings</div>
+              {menuOpen && !isOver && (
+                <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
+                  <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+                    <div style={styles.mirrorFrame}>
+                      <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                        <div style={{ ...styles.title, textAlign:'center' }}>Settings</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>
                 Week {week} | Money {'\u00A3'}{money} | Fans {fans}
               </div>
@@ -2818,6 +2868,7 @@ function stationTarget(type) {
                 <button onClick={saveNow} style={styles.secondaryBtn}>Save now</button>
                 <button onClick={() => { clearSave(); setMenuOpen(false); }} style={styles.secondaryBtn}>Clear save</button>
                 <button onClick={() => { restart(); setMenuOpen(false); }} style={styles.secondaryBtn}>Restart run</button>
+                <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
               </div>
               <div style={{ marginTop: 10 }}>
                 <label style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -2826,11 +2877,11 @@ function stationTarget(type) {
                 </label>
               </div>
               <div style={{ ...styles.sub, marginTop: 10 }}>Autosave: On</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
         {showWelcome && (
           <div style={styles.overlay} onClick={() => setShowWelcome(false)}>
@@ -4662,6 +4713,9 @@ const styles = {
     alignItems: 'baseline',
     pointerEvents: 'none'
   },
+  // Neon lamp overlay
+  neonOverlay: { position:'absolute', inset:0, background: 'radial-gradient(120% 120% at 50% 40%, rgba(180,80,255,0.22) 0%, rgba(120,40,220,0.18) 45%, rgba(60,10,120,0.10) 70%, rgba(0,0,0,0) 100%)', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 2 },
+
   // Visual Novel overlay styles
   vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
   vnBustLeft: { position:'absolute', left: 37, bottom: 0, width: 220, height: 'auto', objectFit: 'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))', opacity: .95, transform:'translate(25px, 25px)' },
