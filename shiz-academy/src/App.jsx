@@ -2706,7 +2706,7 @@ function stationTarget(type) {
                 {financeOpen && (
                   <div style={styles.overlayClear} onClick={() => setFinanceOpen(false)}>
                     <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-                      <div style={styles.mirrorFrame}>
+                      <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_desktop.png')" }}>
                         <div className="hide-scrollbar" style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
                             <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
@@ -2733,7 +2733,7 @@ function stationTarget(type) {
                                 <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
                                   <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
                                 </button>
-                                <div style={styles.desktopIconLabel}>Shizy-Fi</div>
+                                <div style={styles.desktopIconLabel}>Shizy-FI</div>
                               </div>
                               <div style={styles.desktopIconWrap}>
                                 <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
@@ -4906,9 +4906,9 @@ const styles = {
   desktopIcon: {
     width: 96,
     height: 96,
-    background: 'rgba(255,255,255,.10)',
-    border: '1px solid rgba(255,255,255,.20)',
-    borderRadius: 10,
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 0,
     color: 'white',
     fontWeight: 800,
     fontSize: 24,
@@ -4918,7 +4918,7 @@ const styles = {
     cursor: 'pointer',
   },
   desktopIconImg: { width: 80, height: 80, objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' },
-  desktopIconLabel: { fontSize: 12, opacity: 0.95, color: '#7d6187', marginTop: -10, display: 'none' },
+  desktopIconLabel: { fontSize: 12, opacity: 0.98, color: '#eee', marginTop: -14, display: 'block', textShadow: '0 1px 2px rgba(0,0,0,.35)' },
   desktopClose: {
     marginLeft: 'auto',
     width: 48,
