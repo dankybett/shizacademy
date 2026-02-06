@@ -582,6 +582,16 @@ export default function App() {
         bullets: ['Prefers honest hooks', 'Values rough edges', 'Hates overthinking bar two'],
       },
     },
+    mcmunch: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'MC Munch',
+        summary: '',
+        bullets: [],
+      },
+    },
   });
   const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
@@ -590,7 +600,7 @@ export default function App() {
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [selectedFriendId, setSelectedFriendId] = useState(null);
   const [lastFriendProgressWeek, setLastFriendProgressWeek] = useState(0);
-  const [friendMilestones, setFriendMilestones] = useState({ luminaO: { hit20Week: null, hit50Week: null } });
+  const [friendMilestones, setFriendMilestones] = useState({ luminaO: { hit20Week: null, hit50Week: null }, griswald: { hit20Week: null, hit50Week: null }, mcmunch: { hit20Week: null, hit50Week: null } });
   // Finale flow state
   const [finalePending, setFinalePending] = useState(false);
   const [finaleOpen, setFinaleOpen] = useState(false);
@@ -759,6 +769,43 @@ export default function App() {
     if (grisLevel < 3 && hit50g != null && latestRockWeek >= hit50g) enqueueFriendEvent('griswald', 3);
     if (grisLevel < 4 && hasTop5Rock) enqueueFriendEvent('griswald', 4);
     if (grisLevel < 5 && hasTop1Rock) enqueueFriendEvent('griswald', 5);
+
+    // MC Munch: triggers on Hip-Hop genre
+    const munchLevel = friends?.mcmunch?.level || 0;
+    const hhSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'hip-hop');
+    const hasHipHop = hhSongs.length > 0;
+    const latestHipHopWeek = hhSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
+    const hasTop5HipHop = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank<=5);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='hip-hop';
+        });
+      } catch(_) { return false; }
+    })();
+    const hasTop1HipHop = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank===1);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='hip-hop';
+        });
+      } catch(_) { return false; }
+    })();
+    if (munchLevel < 1 && hasHipHop) enqueueFriendEvent('mcmunch', 1);
+    const hit20m = friendMilestones?.mcmunch?.hit20Week || null;
+    const hit50m = friendMilestones?.mcmunch?.hit50Week || null;
+    if (munchLevel < 2 && hit20m != null && latestHipHopWeek >= hit20m) enqueueFriendEvent('mcmunch', 2);
+    if (munchLevel < 3 && hit50m != null && latestHipHopWeek >= hit50m) enqueueFriendEvent('mcmunch', 3);
+    if (munchLevel < 4 && hasTop5HipHop) enqueueFriendEvent('mcmunch', 4);
+    if (munchLevel < 5 && hasTop1HipHop) enqueueFriendEvent('mcmunch', 5);
   }
 
   useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek]);
@@ -769,11 +816,14 @@ export default function App() {
         ...prev,
         luminaO: { ...(prev.luminaO||{ hit20Week:null, hit50Week:null }) },
         griswald: { ...(prev.griswald||{ hit20Week:null, hit50Week:null }) },
+        mcmunch: { ...(prev.mcmunch||{ hit20Week:null, hit50Week:null }) },
       };
       if (fans >= 20 && (next.luminaO.hit20Week == null)) next.luminaO.hit20Week = week;
       if (fans >= 50 && (next.luminaO.hit50Week == null)) next.luminaO.hit50Week = week;
       if (fans >= 20 && (next.griswald.hit20Week == null)) next.griswald.hit20Week = week;
       if (fans >= 50 && (next.griswald.hit50Week == null)) next.griswald.hit50Week = week;
+      if (fans >= 20 && (next.mcmunch.hit20Week == null)) next.mcmunch.hit20Week = week;
+      if (fans >= 50 && (next.mcmunch.hit50Week == null)) next.mcmunch.hit50Week = week;
       return next;
     });
   }, [fans, week]);
@@ -3196,7 +3246,7 @@ function stationTarget(type) {
                       const fid = selectedFriendId;
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
-                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : '/art/friends/luminao_bust.png');
+                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : '/art/friends/luminao_bust.png'));
                       return (
                         <div style={{}}>
                           <div style={{ fontWeight:900, margin:'8px 0 6px' }}>{meta.bio.title}</div>

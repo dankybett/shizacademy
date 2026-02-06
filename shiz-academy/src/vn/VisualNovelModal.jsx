@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import luminaO from './scripts/luminaO.js'
 import griswald from './scripts/griswald.js'
+import mcmunch from './scripts/mcmunch.js'
 
 export default function VisualNovelModal({
   open,
@@ -35,11 +36,12 @@ export default function VisualNovelModal({
 
   const friendId = friendModal.friendId || 'luminaO';
 
-  const scripts = { luminaO, griswald };
+  const scripts = { luminaO, griswald, mcmunch };
 
   const FRIEND_META = {
     luminaO: { name: 'Lumina-O', bust: '/art/friends/luminao_bust.png' },
     griswald: { name: 'Griswald', bust: '/art/friends/griswald_bust.png' },
+    mcmunch: { name: 'MC Munch', bust: '/art/friends/mcmunch_bust.png' },
   };
 
   const lines = (scripts[friendId] && scripts[friendId][friendModal.targetLevel]) || [ { speaker:'lumina', text:'...' } ];
