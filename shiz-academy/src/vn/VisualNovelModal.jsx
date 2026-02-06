@@ -14,6 +14,10 @@ export default function VisualNovelModal({
   setBonusRolls,
   pushToast,
   setWriting,
+  rainfallUnlocked,
+  setRainfallUnlocked,
+  polaroidUnlocked,
+  setPolaroidUnlocked,
   unlockedPosters,
   setUnlockedPosters,
   currentPosterIdx,
@@ -53,6 +57,8 @@ export default function VisualNovelModal({
   const [vnTyping, setVnTyping] = useState(false);
   const [vnTypingTick, setVnTypingTick] = useState(0);
   const [grisGiftOpen, setGrisGiftOpen] = useState(false);
+  const [rainGiftOpen, setRainGiftOpen] = useState(false);
+  const [polaroidGiftOpen, setPolaroidGiftOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
     setVnTyping(true);
@@ -111,6 +117,40 @@ export default function VisualNovelModal({
       }
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, grisGiftOpen, friends, setFriends, setWriting, pushToast]);
+
+  // Griswald LV4: unlock Rainfall Stage Lighting on gift line
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'griswald') return;
+      if ((friendModal.targetLevel||0) !== 4) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('rainfall stage lighting') && !rainfallUnlocked) {
+        setRainfallUnlocked(true);
+        setRainGiftOpen(true);
+        pushToast('Griswald gift: Rainfall Stage Lighting unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, rainfallUnlocked, setRainfallUnlocked, pushToast]);
+
+  // Griswald LV5: unlock Polaroid Photograph (desk keepsake)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'griswald') return;
+      if ((friendModal.targetLevel||0) !== 5) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('polaroid') && !polaroidUnlocked) {
+        setPolaroidUnlocked(true);
+        setPolaroidGiftOpen(true);
+        pushToast('Griswald gift: Polaroid Photograph');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, polaroidUnlocked, setPolaroidUnlocked, pushToast]);
 
   if (!open) return null;
   return (
@@ -186,6 +226,28 @@ export default function VisualNovelModal({
               </div>
               <div style={{ ...styles.sub }}>Midnight Haze Lighting</div>
               <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setMidnightHazeGiftOpen(false)}>OK</button>
+            </div>
+          )}
+
+          {(polaroidGiftOpen && friendModal.targetLevel===5 && friendId==='griswald') && (
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 380 }}>
+              <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
+                <div style={{ position:'absolute', width:160, height:160, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(210,240,210,0.28), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <img src={'/art/forestpolaroid.png'} alt={'Polaroid Photograph'} style={{ width: 200, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
+              </div>
+              <div style={{ ...styles.sub, marginTop: 4 }}>Polaroid Photograph</div>
+              <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setPolaroidGiftOpen(false)}>OK</button>
+            </div>
+          )}
+
+          {(rainGiftOpen && friendModal.targetLevel===4 && friendId==='griswald') && (
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
+              <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
+                <div style={{ position:'absolute', width:150, height:150, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(150,190,255,0.30), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <div style={{ fontWeight: 800 }}>Gift Received</div>
+              </div>
+              <div style={{ ...styles.sub }}>Rainfall Stage Lighting</div>
+              <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setRainGiftOpen(false)}>OK</button>
             </div>
           )}
 

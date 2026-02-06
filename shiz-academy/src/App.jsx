@@ -651,9 +651,15 @@ export default function App() {
   const [lampUnlocked, setLampUnlocked] = useState(false);
   const [lampOn, setLampOn] = useState(false);
   const [lampGiftOpen, setLampGiftOpen] = useState(false);
-  // Performance cosmetics (e.g., Midnight Haze Lighting)
+  // Performance cosmetics (e.g., Midnight Haze Lighting, Rainfall Lighting)
   const [midnightHazeUnlocked, setMidnightHazeUnlocked] = useState(false);
   const [midnightHazeGiftOpen, setMidnightHazeGiftOpen] = useState(false);
+  const [rainfallUnlocked, setRainfallUnlocked] = useState(false);
+  const [rainfallGiftOpen, setRainfallGiftOpen] = useState(false);
+  const [lightningOn, setLightningOn] = useState(false);
+  const lightningTimerRef = useRef(null);
+  const [polaroidUnlocked, setPolaroidUnlocked] = useState(false);
+  const [polaroidOpen, setPolaroidOpen] = useState(false);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -1298,6 +1304,8 @@ function stationTarget(type) {
       if (typeof s.lampUnlocked === 'boolean') setLampUnlocked(s.lampUnlocked);
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
+      if (typeof s.rainfallUnlocked === 'boolean') setRainfallUnlocked(s.rainfallUnlocked);
+      if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
       if (Array.isArray(s.actions)) {
         // Normalize to {t,d}
         const norm = s.actions.map((a) => {
@@ -1526,6 +1534,8 @@ function stationTarget(type) {
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
     poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
     lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
+    // Polaroid on desk (50% smaller than before)
+    polaroid: { xPct: 64.6,  yPct: 59.9,  wPct: 2.6 }, // on desk near computer
   };
   function anchorStyle(a){
     return {
@@ -1594,6 +1604,8 @@ function stationTarget(type) {
       lampUnlocked,
       lampOn,
       midnightHazeUnlocked,
+      rainfallUnlocked,
+      polaroidUnlocked,
       ts: Date.now(),
     };
     try {
@@ -1601,9 +1613,33 @@ function stationTarget(type) {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, polaroidUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
+  // Occasional lightning during Rock performances with Rainfall Lighting
+  useEffect(() => {
+    const shouldFlash = !!(isPerforming && performingSong && (performingSong.genre === 'Rock') && rainfallUnlocked);
+    if (!shouldFlash) {
+      if (lightningTimerRef.current) { clearTimeout(lightningTimerRef.current); lightningTimerRef.current = null; }
+      setLightningOn(false);
+      return;
+    }
+    function schedule() {
+      const delay = 7000 + Math.floor(Math.random() * 10000); // 7s - 17s
+      lightningTimerRef.current = setTimeout(() => {
+        try {
+          setLightningOn(true);
+          setTimeout(() => {
+            setLightningOn(false);
+            setTimeout(() => { setLightningOn(true); setTimeout(() => setLightningOn(false), 110); }, 150);
+          }, 110);
+        } catch(_) {}
+        schedule();
+      }, delay);
+    }
+    schedule();
+    return () => { if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current); lightningTimerRef.current = null; setLightningOn(false); };
+  }, [isPerforming, performingSong, rainfallUnlocked]);
 
   function saveNow() {
     try {
@@ -1634,7 +1670,9 @@ function stationTarget(type) {
         pendingFriendEvents,
         lampUnlocked,
         lampOn,
-        midnightHazeUnlocked,
+      midnightHazeUnlocked,
+      rainfallUnlocked,
+      polaroidUnlocked,
         ts: Date.now(),
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
@@ -2191,7 +2229,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2321,6 +2359,12 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.mirror)} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                {/* Polaroid desk item */}
+                {polaroidUnlocked && (
+                  <div style={{ ...anchorStyle(ANCHORS.polaroid), transform: 'translate(-50%, -50%) translate(115px, 65px)', cursor:'pointer' }} onClick={() => setPolaroidOpen(true)} title="Polaroid Photograph">
+                    <img src={'/art/forestpolaroid.png'} alt={'Polaroid'} style={{ width:'100%', height:'auto', transform:'rotate(-6deg)', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                  </div>
+                )}
                 
               </div>
               )}
@@ -2332,6 +2376,16 @@ function stationTarget(type) {
               {isPerforming && performingSong && (performingSong.genre === 'Synthwave') && midnightHazeUnlocked && (
                 <div style={styles.performHazeOverlay}>
                   <div style={styles.performHazeShimmer} />
+                </div>
+              )}
+              {/* Performance cosmetic overlay: Rainfall Lighting (Rock only) */}
+              {isPerforming && performingSong && (performingSong.genre === 'Rock') && rainfallUnlocked && (
+                <div style={styles.performRainOverlay}>
+                  <div style={styles.performRainMute} />
+                  <div style={styles.performRainDropsBack} />
+                  <div style={styles.performRainDrops} />
+                  <div style={styles.performRainDropsFront} />
+                  {lightningOn && (<div style={styles.performLightning} />)}
                 </div>
               )}
               {/* Room HUD: show money and rolls */}
@@ -2351,6 +2405,9 @@ function stationTarget(type) {
                 <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
                   <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
                   <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
+                  {(rainfallUnlocked && (performingSong?.genre||genre) === 'Rock') && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#9ec9ff', marginTop: 2 }}>Rainfall Stage Lighting</div>
+                  )}
                   {(midnightHazeUnlocked && (performingSong?.genre||genre) === 'Synthwave') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#caa7ff', marginTop: 2 }}>Midnight Haze Lighting</div>
                   )}
@@ -2550,7 +2607,7 @@ function stationTarget(type) {
                 )}
 
                 {financeOpen && (
-                  <div style={styles.overlay} onClick={() => setFinanceOpen(false)}>
+                  <div style={styles.overlayClear} onClick={() => setFinanceOpen(false)}>
                     <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
                       <div style={styles.mirrorFrame}>
                         <div className="hide-scrollbar" style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
@@ -2613,7 +2670,7 @@ function stationTarget(type) {
         {/* Streamlined: hide the persistent last result section */}
 
         {isOver && suppressFinale && (
-          <div style={styles.overlay}>
+          <div style={styles.overlayClear}>
             <div style={{ ...styles.modal, maxWidth: 460 }}>
               <div style={styles.title}>Year Summary</div>
               <div style={{ marginTop: 8 }}>
@@ -2646,6 +2703,10 @@ function stationTarget(type) {
             setBonusRolls={setBonusRolls}
             pushToast={pushToast}
             setWriting={setWriting}
+            rainfallUnlocked={rainfallUnlocked}
+            setRainfallUnlocked={setRainfallUnlocked}
+            polaroidUnlocked={polaroidUnlocked}
+            setPolaroidUnlocked={setPolaroidUnlocked}
             unlockedPosters={unlockedPosters}
             setUnlockedPosters={setUnlockedPosters}
             currentPosterIdx={currentPosterIdx}
@@ -2665,7 +2726,7 @@ function stationTarget(type) {
         
 
         {progressOpen && (
-          <div style={styles.overlay} onClick={() => setProgressOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setProgressOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -2704,8 +2765,14 @@ function stationTarget(type) {
           </div>
         )}
 
-              {menuOpen && !isOver && (
-                <div style={styles.overlay} onClick={() => setMenuOpen(false)}>
+        {polaroidOpen && (
+          <div style={styles.overlayClear} onClick={() => setPolaroidOpen(false)}>
+            <img src={'/art/forestpolaroid.png'} alt={'Polaroid'} style={{ maxWidth: '92%', maxHeight: '88%', objectFit:'contain' }} />
+          </div>
+        )}
+
+        {menuOpen && !isOver && (
+                <div style={styles.overlayClear} onClick={() => setMenuOpen(false)}>
                   <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
                     <div style={styles.mirrorFrame}>
                       <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -2735,7 +2802,7 @@ function stationTarget(type) {
                 )}
 
         {showWelcome && (
-          <div style={styles.overlay} onClick={() => setShowWelcome(false)}>
+          <div style={styles.overlayClear} onClick={() => setShowWelcome(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -2758,7 +2825,7 @@ function stationTarget(type) {
 
         {showConcept && !conceptLocked && (
           <div
-            style={styles.overlay}
+            style={styles.overlayClear}
             onClick={(e) => {
               const ae = document.activeElement;
               if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.getAttribute('contenteditable') === 'true')) {
@@ -2818,7 +2885,7 @@ function stationTarget(type) {
         )}
 
         {statsOpen && (
-          <div style={styles.overlay} onClick={() => setStatsOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setStatsOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '13%', bottom: '4%', left: '15%', justifyContent: 'flex-start' }}>
@@ -2996,7 +3063,7 @@ function stationTarget(type) {
 
         {socialOpen && (
           <div
-            style={styles.overlay}
+            style={styles.overlayClear}
             onClick={() => {
               if (selectedFriendId != null) { setSelectedFriendId(null); return; }
               if (showFriendsList) { setShowFriendsList(false); return; }
@@ -3160,7 +3227,7 @@ function stationTarget(type) {
         )}
 
         {eventModal && eventModal.event && (
-          <div style={styles.overlay} onClick={() => setEventModal(null)}>
+          <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>{eventModal.event.title}</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
@@ -3184,7 +3251,7 @@ function stationTarget(type) {
         )}
 
         {eventInfoModal && (
-          <div style={styles.overlay} onClick={() => setEventInfoModal(null)}>
+          <div style={styles.overlayClear} onClick={() => setEventInfoModal(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>This Week: {Math.min(week, MAX_WEEKS)} / {MAX_WEEKS}</div>
               <div style={{ marginTop: 6, display:'grid', gap:6 }}>
@@ -3253,7 +3320,7 @@ function stationTarget(type) {
         )}
 
         {nudgeOpen && (
-          <div style={styles.overlay} onClick={() => setNudgeOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setNudgeOpen(false)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Use Nudge</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>Nudges available: <b>{nudges}</b></div>
@@ -3298,7 +3365,7 @@ function stationTarget(type) {
         )}
 
         {shopOpen && (
-          <div style={styles.overlay} onClick={() => setShopOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setShopOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={styles.mirrorInner}>
@@ -3460,7 +3527,7 @@ function stationTarget(type) {
         )}
 
         {myMusicOpen && (
-          <div style={styles.overlay} onClick={() => setMyMusicOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setMyMusicOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -3532,7 +3599,7 @@ function stationTarget(type) {
         )}
 
         {calendarOpen && (
-          <div style={styles.overlay} onClick={() => setCalendarOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setCalendarOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
@@ -3582,7 +3649,7 @@ function stationTarget(type) {
         )}
 
         {pairFeedback && (
-          <div style={styles.overlay} onClick={() => setPairFeedback(null)}>
+          <div style={styles.overlayClear} onClick={() => setPairFeedback(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>{pairFeedback}</div>
               <button onClick={() => setPairFeedback(null)} style={{ ...styles.primaryBtn, marginTop: 14 }}>
@@ -3593,7 +3660,7 @@ function stationTarget(type) {
         )}
 
         {releaseOpen && lastResult && (
-          <div style={styles.overlay} onClick={() => setReleaseOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setReleaseOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -3645,7 +3712,7 @@ function stationTarget(type) {
 
         {/* Poster collection modal */}
         {posterOpen && (
-          <div style={styles.overlay} onClick={() => setPosterOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setPosterOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '10%', justifyContent: 'flex-start' }}>
@@ -3674,7 +3741,7 @@ function stationTarget(type) {
         )}
 
         {venueOpen && (
-          <div style={styles.overlay} onClick={() => setVenueOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setVenueOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '8%', justifyContent: 'flex-start' }}>
@@ -3736,7 +3803,7 @@ function stationTarget(type) {
         )}
 
         {gigOpen && (
-          <div style={styles.overlay} onClick={() => setGigOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setGigOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, justifyContent: 'flex-start' }}>
@@ -3847,7 +3914,7 @@ function stationTarget(type) {
 
         {/* Finale: choose a past song to perform at Katie's Birthday Party */}
         {finaleOpen && (
-          <div style={styles.overlay} onClick={() => setFinaleOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setFinaleOpen(false)}>
             <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Katie's Birthday Celebration</div>
               <div style={{ ...styles.sub, marginTop: 6 }}>Pick a favorite song from your history to perform at Katie's Birthday Party.</div>
@@ -3890,7 +3957,7 @@ function stationTarget(type) {
 
         {/* Finale Summary (appears after Week 52 release, before party) */}
         {finaleSummaryOpen && (
-          <div style={styles.overlay}>
+          <div style={styles.overlayClear}>
             <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Year Summary</div>
               <div style={{ marginTop: 8 }}>
@@ -3927,7 +3994,7 @@ function stationTarget(type) {
         )}
 
         {gigResultOpen && gigResult && (
-          <div style={styles.overlay} onClick={() => setGigResultOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setGigResultOpen(false)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Gig Results</div>
               <div style={{ marginTop: 8 }}>
@@ -3951,7 +4018,7 @@ function stationTarget(type) {
 
         {/* Finale ending options after party performance */}
         {finaleEndOpen && (
-          <div style={styles.overlay} onClick={() => setFinaleEndOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setFinaleEndOpen(false)}>
             <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.title}>Season Complete</div>
               <div style={{ ...styles.sub, marginTop: 8 }}>Thanks for celebrating at Katie's Birthday!</div>
@@ -3990,7 +4057,7 @@ function stationTarget(type) {
         )}
 
         {historyOpen && (
-          <div style={styles.overlay} onClick={() => setHistoryOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => setHistoryOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
@@ -4568,7 +4635,15 @@ const styles = {
     display: 'flex',
     alignItems: 'baseline',
     pointerEvents: 'none'
-  },    performHazeShimmer: { position:'absolute', inset:0, background: 'repeating-linear-gradient(115deg, rgba(200,120,255,0.10) 0px, rgba(200,120,255,0.10) 8px, rgba(0,0,0,0) 18px, rgba(0,0,0,0) 30px)', mixBlendMode: 'screen', pointerEvents: 'none', animation: 'hazeShimmer 9s linear infinite' },
+  },
+  performHazeOverlay: { position:'absolute', inset:0, pointerEvents:'none' },
+  performHazeShimmer: { position:'absolute', inset:0, background: 'repeating-linear-gradient(115deg, rgba(200,120,255,0.10) 0px, rgba(200,120,255,0.10) 8px, rgba(0,0,0,0) 18px, rgba(0,0,0,0) 30px)', mixBlendMode: 'screen', pointerEvents: 'none', animation: 'hazeShimmer 9s linear infinite' },
+  performRainOverlay: { position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' },
+  performRainMute: { position:'absolute', inset:0, background:'rgba(0,0,0,.18)', pointerEvents:'none' },
+  performRainDropsBack: { position:'absolute', inset:0, background: 'repeating-linear-gradient(90deg, rgba(150,190,255,.12) 0 1px, rgba(0,0,0,0) 1px 14px)', filter:'blur(.6px)', mixBlendMode:'soft-light', pointerEvents:'none', opacity: .65, transform:'skewX(-8deg)', willChange:'transform, background-position', animation: 'rainDriftSlow 1.8s linear infinite' },
+  performRainDrops: { position:'absolute', inset:0, background: 'repeating-linear-gradient(90deg, rgba(150,190,255,.20) 0 1.5px, rgba(0,0,0,0) 1.5px 12px)', filter:'blur(.35px)', mixBlendMode:'soft-light', pointerEvents:'none', opacity: .85, transform:'skewX(-10deg)', willChange:'transform, background-position', animation: 'rainDrift 1.2s linear infinite' },
+  performRainDropsFront: { position:'absolute', inset:0, background: 'repeating-linear-gradient(90deg, rgba(185,215,255,.30) 0 2px, rgba(0,0,0,0) 2px 16px)', filter:'blur(.15px)', mixBlendMode:'screen', pointerEvents:'none', opacity: .9, transform:'skewX(-12deg)', willChange:'transform, background-position', animation: 'rainDriftFast .9s linear infinite' },
+  performLightning: { position:'absolute', inset:0, pointerEvents:'none', background: 'radial-gradient(ellipse at 50% 25%, rgba(255,255,255,.58), rgba(255,255,255,0) 60%), rgba(255,255,255,.06)', mixBlendMode:'screen', animation: 'lightFlash 220ms ease-out 1' },
 
   // Visual Novel overlay styles
   vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
@@ -4910,3 +4985,6 @@ function TriadBarChart({ actions, vocals, writing, stage, totalDays }) {
     </div>
   );
 }
+
+
+
