@@ -4524,14 +4524,14 @@ const styles = {
   overlayClear: {
     position: 'absolute',
     inset: 0,
-    background: 'transparent',
+    background: 'rgba(0,0,0,.22)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
     borderRadius: 0,
     zIndex: 1000,
-    backdropFilter: 'none',
+    backdropFilter: 'blur(4px)',
   },
   modal: {
     width: "100%",
