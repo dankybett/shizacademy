@@ -2256,8 +2256,8 @@ function stationTarget(type) {
                 {/* Neon Dorm Lamp (unlocked at Lumina Lv2) */}
                 {lampUnlocked && (
                   <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 2, position:'absolute', pointerEvents:'none' }}>
-                    <img src="/art/lavalamp.png" alt="Neon Dorm Lamp"
-                      style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 14px rgba(179,92,255,.85)) drop-shadow(0 0 26px rgba(179,92,255,.45))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                    <img src="/art/lavalamp.gif" alt="Neon Dorm Lamp"
+                      style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 24px rgba(179,92,255,.95)) drop-shadow(0 0 60px rgba(179,92,255,.60))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     <div
                       title={lampOn ? 'Turn lamp off' : 'Turn lamp on'}
                       onClick={() => setLampOn(v=>!v)}
