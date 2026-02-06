@@ -426,7 +426,7 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
       const hit20 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit20Week : null;
       const hit50 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit50Week : null;
       const cands = [];
-      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track Ã¢â‚¬â€ someone might notice.");
+      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â someone might notice.");
       if ((lum.level||0) < 2 && fans >= 20 && hit20 != null && latestSynthWeek <= hit20) cands.push("After 20 fans, a Synthwave performance could spark a new connection.");
       if ((lum.level||0) < 3 && fans >= 50 && hit50 != null && latestSynthWeek <= hit50) cands.push("With 50+ fans, another Synthwave performance might open a door.");
       if ((lum.level||0) < 4) cands.push("Pushing a Synthwave into the Global Top 5 can attract attention.");
@@ -629,6 +629,9 @@ export default function App() {
   const [lampUnlocked, setLampUnlocked] = useState(false);
   const [lampOn, setLampOn] = useState(false);
   const [lampGiftOpen, setLampGiftOpen] = useState(false);
+  // Performance cosmetics (e.g., Midnight Haze Lighting)
+  const [midnightHazeUnlocked, setMidnightHazeUnlocked] = useState(false);
+  const [midnightHazeGiftOpen, setMidnightHazeGiftOpen] = useState(false);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -725,6 +728,21 @@ export default function App() {
       if (idx === 5 && !lampUnlocked && !lampGiftOpen) {
         setLampUnlocked(true);
         setLampGiftOpen(true);
+      }
+    } catch (_) {}
+  }, [friendModal.open, friendModal.friendId, friendModal.targetLevel, friendModal.idx]);
+  // Trigger Lumina Lv4 performance cosmetic gift at specific line
+  useEffect(() => {
+    try {
+      if (!friendModal.open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'luminaO') return;
+      if ((friendModal.targetLevel||0) !== 4) return;
+      const idx = friendModal.idx || 0;
+      // At Lv4 index 7: "Just dont sand off the edges that make it yours."
+      if (idx === 7 && !midnightHazeUnlocked && !midnightHazeGiftOpen) {
+        setMidnightHazeUnlocked(true);
+        setMidnightHazeGiftOpen(true);
       }
     } catch (_) {}
   }, [friendModal.open, friendModal.friendId, friendModal.targetLevel, friendModal.idx]);
@@ -1253,6 +1271,7 @@ function stationTarget(type) {
       if (s.friendMilestones && typeof s.friendMilestones === 'object') setFriendMilestones(s.friendMilestones);
       if (typeof s.lampUnlocked === 'boolean') setLampUnlocked(s.lampUnlocked);
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
+      if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
       if (Array.isArray(s.actions)) {
         // Normalize to {t,d}
         const norm = s.actions.map((a) => {
@@ -1548,6 +1567,7 @@ function stationTarget(type) {
       friendMilestones,
       lampUnlocked,
       lampOn,
+      midnightHazeUnlocked,
       ts: Date.now(),
     };
     try {
@@ -1555,7 +1575,7 @@ function stationTarget(type) {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
@@ -1585,12 +1605,13 @@ function stationTarget(type) {
         seedTs,
       trendsByWeek,
       suppressFinale,
-      friends,
-      pendingFriendEvents,
-      lampUnlocked,
-      lampOn,
-      ts: Date.now(),
-    };
+        friends,
+        pendingFriendEvents,
+        lampUnlocked,
+        lampOn,
+        midnightHazeUnlocked,
+        ts: Date.now(),
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
     } catch (_) {}
   }
@@ -2144,7 +2165,8 @@ function stationTarget(type) {
           ))}
         </div>
       )}
-      <div style={styles.card}>
+        <div style={styles.card}>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2281,6 +2303,12 @@ function stationTarget(type) {
               {lampOn && !isPerforming && (
                 <div style={styles.neonOverlay} />
               )}
+              {/* Performance cosmetic overlay: Midnight Haze (Synthwave only) */}
+              {isPerforming && performingSong && (performingSong.genre === 'Synthwave') && midnightHazeUnlocked && (
+                <div style={styles.performHazeOverlay}>
+                  <div style={styles.performHazeShimmer} />
+                </div>
+              )}
               {/* Room HUD: show money and rolls */}
               {!isPerforming && (
                 <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
@@ -2298,9 +2326,12 @@ function stationTarget(type) {
                 <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
                   <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
                   <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
+                  {(midnightHazeUnlocked && (performingSong?.genre||genre) === 'Synthwave') && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#caa7ff', marginTop: 2 }}>Midnight Haze Lighting</div>
+                  )}
                 </div>
               )}
-              {nudges > 0 && (
+              {nudges > 0 && !isPerforming && (
                 <img
                   src="/art/nudgebutton.png"
                   alt="Nudge"
@@ -2746,6 +2777,14 @@ function stationTarget(type) {
                         <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setLampGiftOpen(false)}>OK</button>
                       </div>
                     )}
+                    {/* Gift modal for Midnight Haze Lighting (Lv4) */}
+                    {(midnightHazeGiftOpen && friendModal.targetLevel===4) && (
+                      <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
+                        <div style={{ fontWeight: 800, marginBottom: 6 }}>Gift Received</div>
+                        <div style={{ ...styles.sub }}>Midnight Haze Lighting</div>
+                        <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setMidnightHazeGiftOpen(false)}>OK</button>
+                      </div>
+                    )}
                     <div style={{ position:'absolute', right: 12, top: 12, display:'flex', gap:6 }}>
                       {!(isChoiceStep && choiceIndex == null) && (
                       <button
@@ -2869,6 +2908,7 @@ function stationTarget(type) {
                 <button onClick={() => { clearSave(); setMenuOpen(false); }} style={styles.secondaryBtn}>Clear save</button>
                 <button onClick={() => { restart(); setMenuOpen(false); }} style={styles.secondaryBtn}>Restart run</button>
                 <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
+                <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Ã‚Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Ã‚Â£100 (debug)</button>
               </div>
               <div style={{ marginTop: 10 }}>
                 <label style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -4712,9 +4752,7 @@ const styles = {
     display: 'flex',
     alignItems: 'baseline',
     pointerEvents: 'none'
-  },
-  // Neon lamp overlay
-  neonOverlay: { position:'absolute', inset:0, background: 'radial-gradient(120% 120% at 50% 40%, rgba(180,80,255,0.22) 0%, rgba(120,40,220,0.18) 45%, rgba(60,10,120,0.10) 70%, rgba(0,0,0,0) 100%)', mixBlendMode: 'screen', pointerEvents: 'none', zIndex: 2 },
+  },    performHazeShimmer: { position:'absolute', inset:0, background: 'repeating-linear-gradient(115deg, rgba(200,120,255,0.10) 0px, rgba(200,120,255,0.10) 8px, rgba(0,0,0,0) 18px, rgba(0,0,0,0) 30px)', mixBlendMode: 'screen', pointerEvents: 'none', animation: 'hazeShimmer 9s linear infinite' },
 
   // Visual Novel overlay styles
   vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
