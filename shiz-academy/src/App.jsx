@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import VisualNovelModal from './vn/VisualNovelModal.jsx';
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -8,6 +9,7 @@ const DICE_MODE = true;
 const SHOW_DICE_BAR = false;
 // Optional: show mini dice HUD top-left in the room
 const SHOW_DICE_MINI = false;
+// Temporary: keep legacy inline VN renderer disabled after extraction
 
 const GENRES = ["Pop", "Rock", "EDM", "Hip-Hop", "Jazz", "Country", "R&B", "Metal", "Folk", "Synthwave"];
 const THEMES = [
@@ -26,6 +28,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Posters available in public assets
 const POSTERS = Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`);
+
+// Global season length (single source of truth)
+const MAX_WEEKS = 52;
 
 // --- Events (schedule + effects) ---
 // Event schema:
@@ -76,10 +81,9 @@ function genEventSchedule(performerName, startTs) {
   evs.sort((a,b)=>a.week-b.week);
   // Finale marker on the last week for calendar visibility
   try {
-    const MAX_WEEKS_LOCAL = 52; // keep in sync with MAX_WEEKS
     // Week 51 reminder: final chance before the celebration
-    push(MAX_WEEKS_LOCAL - 1, 'finalchance', 'Final Chance', "This is your final chance to make a song before Katie's Birthday Celebration.", "This is your final chance to make a song before Katie's Birthday Celebration.", 'info');
-    evs.push({ id:`katie-${MAX_WEEKS_LOCAL}`, week: MAX_WEEKS_LOCAL, key:'katie', title:"Katie's Birthday Celebration", short:'Finale', details:"Choose a favorite song to perform at Katie's Birthday Party!", type:'info' });
+    push(MAX_WEEKS - 1, 'finalchance', 'Final Chance', "This is your final chance to make a song before Katie's Birthday Celebration.", "This is your final chance to make a song before Katie's Birthday Celebration.", 'info');
+    evs.push({ id:`katie-${MAX_WEEKS}`, week: MAX_WEEKS, key:'katie', title:"Katie's Birthday Celebration", short:'Finale', details:"Choose a favorite song to perform at Katie's Birthday Party!", type:'info' });
     evs.sort((a,b)=>a.week-b.week);
   } catch(_) {}
   return evs;
@@ -501,9 +505,6 @@ function pickReview(grade) {
 }
 
 export default function App() {
-  // Run settings
-  const MAX_WEEKS = 52;
-
   // Game state
   const [week, setWeek] = useState(1);
   const [money, setMoney] = useState(0);
@@ -560,7 +561,28 @@ export default function App() {
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Friends / Visual Novel system
-  const [friends, setFriends] = useState({ luminaO: { level: 0, rewardsClaimed: {}, posterUnlocked: false, bio: { title: 'Lumina-O', summary: 'Synthwave artist with neon-smooth vibes.', bullets: ['Loves late-night mixes', 'Champions consistency', 'Gives practical tips'] } } });
+  const [friends, setFriends] = useState({
+    luminaO: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Lumina-O',
+        summary: 'Synthwave artist with neon-smooth vibes.',
+        bullets: ['Loves late-night mixes', 'Champions consistency', 'Gives practical tips'],
+      },
+    },
+    griswald: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Griswald',
+        summary: 'Gravel-voiced mentor with pub-tested ears.',
+        bullets: ['Prefers honest hooks', 'Values rough edges', 'Hates overthinking bar two'],
+      },
+    },
+  });
   const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
   const [vnTyping, setVnTyping] = useState(false);
@@ -694,58 +716,63 @@ export default function App() {
     if (lumLevel < 3 && hit50 != null && latestSynthWeek >= hit50) enqueueFriendEvent('luminaO', 3);
     if (lumLevel < 4 && hasTop5Synth) enqueueFriendEvent('luminaO', 4);
     if (lumLevel < 5 && hasTop1Synth) enqueueFriendEvent('luminaO', 5);
+
+    // Griswald: triggers on Rock genre, otherwise same thresholds as Lumina
+    const grisLevel = friends?.griswald?.level || 0;
+    const rockSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'rock');
+    const hasRock = rockSongs.length > 0;
+    const latestRockWeek = rockSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
+    const hasTop5Rock = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank<=5);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='rock';
+        });
+      } catch(_) { return false; }
+    })();
+    const hasTop1Rock = (()=>{
+      try {
+        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
+        return weeks.some(wk => {
+          const list = (trendsByWeek && trendsByWeek[wk]) || [];
+          const me = list.find(it => it && it.isPlayer && it.rank===1);
+          if (!me) return false;
+          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
+          return entry && (entry.genre||'').toLowerCase()==='rock';
+        });
+      } catch(_) { return false; }
+    })();
+    if (grisLevel < 1 && hasRock) enqueueFriendEvent('griswald', 1);
+    const hit20g = friendMilestones?.griswald?.hit20Week || null;
+    const hit50g = friendMilestones?.griswald?.hit50Week || null;
+    if (grisLevel < 2 && hit20g != null && latestRockWeek >= hit20g) enqueueFriendEvent('griswald', 2);
+    if (grisLevel < 3 && hit50g != null && latestRockWeek >= hit50g) enqueueFriendEvent('griswald', 3);
+    if (grisLevel < 4 && hasTop5Rock) enqueueFriendEvent('griswald', 4);
+    if (grisLevel < 5 && hasTop1Rock) enqueueFriendEvent('griswald', 5);
   }
 
   useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek]);
   // Track milestone weeks when fans cross thresholds
   useEffect(() => {
     setFriendMilestones(prev => {
-      const next = { ...prev, luminaO: { ...(prev.luminaO||{ hit20Week:null, hit50Week:null }) } };
+      const next = {
+        ...prev,
+        luminaO: { ...(prev.luminaO||{ hit20Week:null, hit50Week:null }) },
+        griswald: { ...(prev.griswald||{ hit20Week:null, hit50Week:null }) },
+      };
       if (fans >= 20 && (next.luminaO.hit20Week == null)) next.luminaO.hit20Week = week;
       if (fans >= 50 && (next.luminaO.hit50Week == null)) next.luminaO.hit50Week = week;
+      if (fans >= 20 && (next.griswald.hit20Week == null)) next.griswald.hit20Week = week;
+      if (fans >= 50 && (next.griswald.hit50Week == null)) next.griswald.hit50Week = week;
       return next;
     });
   }, [fans, week]);
 
-  // VN typing effect: brief animated ellipsis before each line
-  useEffect(() => {
-    if (!friendModal.open) return;
-    setVnTyping(true);
-    setVnTypingTick(0);
-    const int = setInterval(() => setVnTypingTick(t => (t + 1) % 3), 250);
-    const to = setTimeout(() => { setVnTyping(false); clearInterval(int); }, 900);
-    return () => { clearInterval(int); clearTimeout(to); };
-  }, [friendModal.open, friendModal.idx, friendModal.targetLevel]);
-  // Trigger Lumina Lv2 gift popup when specific line appears
-  useEffect(() => {
-    try {
-      if (!friendModal.open) return;
-      const fid = friendModal.friendId || 'luminaO';
-      if (fid !== 'luminaO') return;
-      if ((friendModal.targetLevel||0) !== 2) return;
-      const idx = friendModal.idx || 0;
-      // At Lv2 index 5: "Small things glow brighter in the dark."
-      if (idx === 5 && !lampUnlocked && !lampGiftOpen) {
-        setLampUnlocked(true);
-        setLampGiftOpen(true);
-      }
-    } catch (_) {}
-  }, [friendModal.open, friendModal.friendId, friendModal.targetLevel, friendModal.idx]);
-  // Trigger Lumina Lv4 performance cosmetic gift at specific line
-  useEffect(() => {
-    try {
-      if (!friendModal.open) return;
-      const fid = friendModal.friendId || 'luminaO';
-      if (fid !== 'luminaO') return;
-      if ((friendModal.targetLevel||0) !== 4) return;
-      const idx = friendModal.idx || 0;
-      // At Lv4 index 7: "Just dont sand off the edges that make it yours."
-      if (idx === 7 && !midnightHazeUnlocked && !midnightHazeGiftOpen) {
-        setMidnightHazeUnlocked(true);
-        setMidnightHazeGiftOpen(true);
-      }
-    } catch (_) {}
-  }, [friendModal.open, friendModal.friendId, friendModal.targetLevel, friendModal.idx]);
+  // VN typing and gift triggers moved to VisualNovelModal
   const lastSingSfxAtRef = useRef(0);
   function playSingSfx() {
     try {
@@ -1261,7 +1288,6 @@ function stationTarget(type) {
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
       if (typeof s.performerName === "string") setPerformerName(s.performerName);
-      if (typeof s.performerName === "string") setPerformerName(s.performerName);
       if (typeof s.nextRollOverride === "number") setNextRollOverride(s.nextRollOverride);
       if (s.rollBest) setRollBest(s.rollBest);
       if (Array.isArray(s.rollHistory)) setRollHistory(s.rollHistory);
@@ -1578,7 +1604,6 @@ function stationTarget(type) {
   }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
-  useEffect(() => {}, [started, conceptLocked, week, lastResult, showWelcome, showConcept]);
 
   function saveNow() {
     try {
@@ -2609,249 +2634,35 @@ function stationTarget(type) {
         )}
 
         {friendModal.open && (
-          <div style={styles.overlay}>
-            <div style={{ position:'relative', width:'100%', maxWidth: 720, height: 360, background: 'rgba(0,0,0,.3)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 16, padding: 10, overflow:'hidden' }} onClick={(e)=>e.stopPropagation()}>
-              <img src={'/art/mybubblelogo.png'} alt="myBubble" onError={(e)=>{ e.currentTarget.style.display='none'; }} style={styles.vnLogo} />
-              {(() => {
-                const scripts = {
-                  luminaO: {
-                    1: [
-                      { speaker:'lumina', text:"You released something tonight." },
-                      { speaker:'player', text:"Oh. Hi." },
-                      { speaker:'lumina', text:"I heard it on Shizy-Fi. The synthwave track." },
-                      { speaker:'lumina', text:"It felt unguarded." },
-                      { speaker:'player', text:"Unguarded?" },
-                      { speaker:'lumina', text:"Like you werent trying to impress anyone." },
-                      { speaker:'lumina', text:"You just let it exist." },
-                      { type:'choice', speaker:'player', options:[
-                        'I almost didnt release it.',
-                        'I just liked the sound.',
-                        'I wasnt sure it was good enough.'
-                      ], responses:[
-                        'Those are usually the ones worth keeping.',
-                        'Thats the best reason to make anything.',
-                        'Good is a moving target. Atmosphere isnt.'
-                      ] },
-                      { speaker:'lumina', text:"Do you usually create at night?" },
-                      { speaker:'player', text:"Sometimes. Its quieter." },
-                      { speaker:'lumina', text:"Yes. It is." },
-                      { speaker:'lumina', text:"Send me the next one too. I like hearing what people almost dont release." }
-                    ],
-                    2: [
-                      { speaker:'lumina', text:"Twenty listeners becomes fifty faster than you think." },
-                      { speaker:'player', text:"You saw that?" },
-                      { speaker:'lumina', text:"I check the charts more than I admit." },
-                      { speaker:'lumina', text:"Youre building something. Quietly. Thats my favorite way." },
-                      { speaker:'player', text:"It still feels small." },
-                      { speaker:'lumina', text:"Small things glow brighter in the dark." },
-
-                      { speaker:'lumina', text:"My first dorm room was unbearably plain." },
-                      { speaker:'lumina', text:"This helped." },
-                      { speaker:'lumina', text:"Let your room hum a little." },
-                      { speaker:'lumina', text:"It makes the dark softer." },
-
-                      { speaker:'lumina', text:"And try trusting your first instinct more next week." },
-                      { speaker:'lumina', text:"You hesitate less than you think." }
-                    ],
-                    3: [
-                      { speaker:'lumina', text:"Can I ask you something?" },
-                      { speaker:'player', text:"Sure." },
-                      { speaker:'lumina', text:"Why do you make music?" },
-                      { type:'choice', speaker:'player', options:[
-                        'To be heard.',
-                        'To understand myself.',
-                        'Im not sure anymore.'
-                      ], responses:[
-                        'Being heard is powerful. Just dont forget to listen too.',
-                        'Thats the honest answer.',
-                        'Not knowing is still a reason.'
-                      ] },
-                      { speaker:'lumina', text:"I started because daytime felt loud." },
-                      { speaker:'lumina', text:"Too many expectations." },
-                      { speaker:'lumina', text:"Synths dont interrupt you." },
-                      { speaker:'player', text:"That makes sense." },
-                      { speaker:'lumina', text:"Your last track sounded less careful." },
-                      { speaker:'lumina', text:"In a good way." },
-                      { speaker:'lumina', text:"You let a note linger longer than usual." },
-                      { speaker:'lumina', text:"I liked that." }
-                    ],
-                    4: [
-                      { speaker:'lumina', text:"Top five." },
-                      { speaker:'player', text:"I didnt expect that." },
-                      { speaker:'lumina', text:"I did." },
-                      { speaker:'lumina', text:"But not because of the chart." },
-                      { speaker:'player', text:"Then why?" },
-                      { speaker:'lumina', text:"You sounded certain." },
-                      { speaker:'lumina', text:"Shizy-Fi rewards polish. Clean hooks. Predictable glow." },
-                      { speaker:'lumina', text:"Just dont sand off the edges that make it yours." },
-                      { speaker:'lumina', text:"Here." },
-                      { speaker:'lumina', text:"A little stage haze never hurt anyone." },
-                      { speaker:'lumina', text:"Let the lights shimmer." },
-                      { speaker:'lumina', text:"But stay real inside them." }
-                    ],
-                    5: [
-                      { speaker:'lumina', text:"Number one feels strange, doesnt it?" },
-                      { speaker:'player', text:"A little." },
-                      { speaker:'lumina', text:"I went back and listened to your first synth track tonight." },
-                      { speaker:'player', text:"Oh no." },
-                      { speaker:'lumina', text:"It was hesitant." },
-                      { speaker:'lumina', text:"Careful." },
-                      { speaker:'lumina', text:"Like you were waiting for permission." },
-                      { speaker:'lumina', text:"You dont sound afraid anymore." },
-                      { speaker:'player', text:"You made this?" },
-                      { speaker:'lumina', text:"It reminded me of that early chorus you almost didnt release." },
-                      { speaker:'lumina', text:"Keep it somewhere you can see it." },
-                      { speaker:'lumina', text:"Whatever stage you choose at the end of the year" },
-                      { speaker:'lumina', text:"Sing like this." }
-                    ]
-                  }
-                };
-                const friendId = friendModal.friendId || 'luminaO';
-                const lines = (scripts[friendId] && scripts[friendId][friendModal.targetLevel]) || [ { speaker:'lumina', text:'...' } ];
-                const idx = Math.max(0, Math.min(friendModal.idx || 0, lines.length-1));
-                const rawLine = lines[idx];
-                const isChoiceStep = rawLine && rawLine.type === 'choice';
-                const choiceIndex = (typeof friendModal.choiceIndex === 'number') ? friendModal.choiceIndex : null;
-                const line = (isChoiceStep && choiceIndex != null)
-                  ? { speaker:'lumina', text: (rawLine.responses && rawLine.responses[choiceIndex]) || '' }
-                  : rawLine;
-                const isLeft = line && line.speaker === 'player';
-                const leftActive = !!line && isLeft;
-                const rightActive = !!line && !isLeft;
-                return (
-                  <div>
-                    {/* Busts with active speaker emphasis */}
-                    <img
-                      src={'/art/friends/player_bust.png'}
-                      alt="Player"
-                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                      style={{
-                        ...styles.vnBustLeft,
-                        opacity: leftActive ? 1 : 0.6,
-                        transform: `scale(${leftActive ? 1.03 : 0.97})`,
-                        transition: 'opacity 200ms ease, transform 200ms ease'
-                      }}
-                    />
-                    <img
-                      src={'/art/friends/luminao_bust.png'}
-                      alt="Lumina-O"
-                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                      style={{
-                        ...styles.vnBustRight,
-                        opacity: rightActive ? 1 : 0.6,
-                        transform: `translateY(-65px) scale(${rightActive ? 1.03 : 0.97})`,
-                        transition: 'opacity 200ms ease, transform 200ms ease'
-                      }}
-                    />
-                    {!isChoiceStep && line && (
-                      <div style={{ position:'absolute', left: isLeft? 16 : 'auto', right: !isLeft? 16 : 'auto', bottom: 16, maxWidth: 420 }}>
-                        <div style={{ ...styles.vnBubble, ...(isLeft? styles.vnBubbleLeft : styles.vnBubbleRight) }}>
-                          <div style={{ fontWeight: 800, marginBottom: 4 }}>{isLeft ? (performerName || 'You') : 'Lumina-O'}</div>
-                          <div>{vnTyping ? '.'.repeat((vnTypingTick||0)+1) : line.text}</div>
-                        </div>
-                      </div>
-                    )}
-                    {isChoiceStep && (
-                      <div style={{ position:'absolute', left: 0, right: 0, bottom: 16, display:'flex', justifyContent:'center' }}>
-                        {choiceIndex == null ? (
-                          <div style={{ display:'grid', gap:8, width:'90%', maxWidth: 520 }}>
-                            {(rawLine.options||[]).map((opt, i) => (
-                              <button key={i} style={styles.primaryBtn}
-                                onClick={() => setFriendModal(prev => ({ ...prev, choiceIndex: i }))}
-                              >{opt}</button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ ...styles.vnBubble, ...styles.vnBubbleRight }}>
-                            <div style={{ fontWeight: 800, marginBottom: 4 }}>Lumina-O</div>
-                            <div>{vnTyping ? '.'.repeat((vnTypingTick||0)+1) : ((rawLine.responses && rawLine.responses[choiceIndex]) || '')}</div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {/* Gift modal for Neon Dorm Lamp (Lv2) */}
-                    {(lampGiftOpen && friendModal.targetLevel===2) && (
-                      <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
-                        <img src={'/art/lavalamp.png'} alt={'Neon Dorm Lamp'} style={{ width: 96, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
-                        <div style={{ ...styles.sub, marginTop: 8 }}>Lumina gifted you a neon dorm lamp</div>
-                        <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setLampGiftOpen(false)}>OK</button>
-                      </div>
-                    )}
-                    {/* Gift modal for Midnight Haze Lighting (Lv4) */}
-                    {(midnightHazeGiftOpen && friendModal.targetLevel===4) && (
-                      <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
-                        <div style={{ fontWeight: 800, marginBottom: 6 }}>Gift Received</div>
-                        <div style={{ ...styles.sub }}>Midnight Haze Lighting</div>
-                        <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setMidnightHazeGiftOpen(false)}>OK</button>
-                      </div>
-                    )}
-                    <div style={{ position:'absolute', right: 12, top: 12, display:'flex', gap:6 }}>
-                      {!(isChoiceStep && choiceIndex == null) && (
-                      <button
-                        style={styles.primaryBtn}
-                        onClick={() => {
-                          const next = (friendModal.idx||0)+1;
-                          if (isChoiceStep) {
-                            if (choiceIndex == null) return; // wait for a choice
-                            // Advance past the choice step and clear selection
-                            if (next < lines.length) {
-                              setFriendModal(prev => ({ ...prev, idx: next, choiceIndex: null }));
-                            } else {
-                              // Complete at end
-                              setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
-                              if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
-                                setNudges(n=>n+1);
-                                setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
-                                pushToast('Lumina-O shared a tip: +1 Nudge');
-                              }
-                              if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
-                                setBonusRolls(r=>r+1);
-                                try {
-                                  const all = POSTERS.map((_,i)=>i);
-                                  const remaining = all.filter(i=> !(unlockedPosters||[]).includes(i));
-                                  const idxNew = remaining.length>0 ? remaining[0] : (currentPosterIdx ?? 0);
-                                  if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
-                                  if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
-                                } catch(_) {}
-                                setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
-                                pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
-                              }
-                              setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
-                            }
-                          } else if (next < lines.length) {
-                            setFriendModal(prev => ({ ...prev, idx: next }));
-                          } else {
-                            // Complete: apply rewards and level up
-                            setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
-                            if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
-                              setNudges(n=>n+1);
-                              setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
-                              pushToast('Lumina-O shared a tip: +1 Nudge');
-                            }
-                            if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
-                              setBonusRolls(r=>r+1);
-                              try {
-                                const all = POSTERS.map((_,i)=>i);
-                                const remaining = all.filter(i=> !(unlockedPosters||[]).includes(i));
-                                const idxNew = remaining.length>0 ? remaining[0] : (currentPosterIdx ?? 0);
-                                if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
-                                if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
-                              } catch(_) {}
-                              setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
-                              pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
-                            }
-                            setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
-                          }
-                        }}
-                      >{isChoiceStep ? ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish') : ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish')}</button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
+          <VisualNovelModal
+            open={friendModal.open}
+            friendModal={friendModal}
+            setFriendModal={setFriendModal}
+            performerName={performerName}
+            styles={styles}
+            friends={friends}
+            setFriends={setFriends}
+            setNudges={setNudges}
+            setBonusRolls={setBonusRolls}
+            pushToast={pushToast}
+            setWriting={setWriting}
+            unlockedPosters={unlockedPosters}
+            setUnlockedPosters={setUnlockedPosters}
+            currentPosterIdx={currentPosterIdx}
+            setCurrentPosterIdx={setCurrentPosterIdx}
+            lampGiftOpen={lampGiftOpen}
+            setLampGiftOpen={setLampGiftOpen}
+            lampUnlocked={lampUnlocked}
+            setLampUnlocked={setLampUnlocked}
+            midnightHazeGiftOpen={midnightHazeGiftOpen}
+            setMidnightHazeGiftOpen={setMidnightHazeGiftOpen}
+            midnightHazeUnlocked={midnightHazeUnlocked}
+            setMidnightHazeUnlocked={setMidnightHazeUnlocked}
+            POSTERS={POSTERS}
+          />
         )}
+
+        
 
         {progressOpen && (
           <div style={styles.overlay} onClick={() => setProgressOpen(false)}>
@@ -3209,7 +3020,7 @@ function stationTarget(type) {
                   <div style={{ marginTop: 10, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
                     <div style={{ fontWeight:900, marginBottom:6 }}>Messages</div>
                     {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
-                      (()=>{ const ev = pendingFriendEvents[0]; const name = 'Lumina-O'; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                      (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{title}</div>
@@ -3230,7 +3041,7 @@ function stationTarget(type) {
                       <div style={styles.sub}>No new messages.</div>
                     )}
                   </div>
-                  {(friends?.luminaO?.level||0) >= 1 && (
+                  {(Object.values(friends||{}).some(f => (f && f.level || 0) > 0)) && (
                     <div style={{ marginTop: 8 }}>
                       <button
                         style={styles.smallBtn}
@@ -3295,9 +3106,11 @@ function stationTarget(type) {
                     <>
                       <div style={{ display:'grid', gap:8 }}>
                         {(() => {
-                          const list = [];
-                          const lv = friends?.luminaO?.level || 0;
-                          if (lv>0) list.push({ id:'luminaO', name:'Lumina-O', level: lv, max: 5 });
+                          const list = Object.keys(friends||{}).reduce((arr, fid) => {
+                            const f = friends[fid]; const lv = (f && f.level) || 0;
+                            if (lv>0) arr.push({ id: fid, name: (f && f.bio && f.bio.title) || fid, level: lv, max: 5 });
+                            return arr;
+                          }, []);
                           if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
                           return list.map(f => (
                             <button key={f.id} onClick={() => setSelectedFriendId(f.id)} style={{ textAlign:'left', background:'transparent', color:'inherit', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, cursor:'pointer' }}>
@@ -3314,7 +3127,9 @@ function stationTarget(type) {
                   {selectedFriendId != null && (
                     (()=>{
                       const fid = selectedFriendId;
-                      const meta = fid==='luminaO' ? { name:'Lumina-O', bio: (friends?.luminaO?.bio || { title:'Lumina-O', summary:'Synthwave artist', bullets:[] }) } : { name: fid, bio:{ title: fid, summary:'', bullets:[] } };
+                      const f = (friends && friends[fid]) || {};
+                      const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
+                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : '/art/friends/luminao_bust.png');
                       return (
                         <div style={{}}>
                           <div style={{ fontWeight:900, margin:'8px 0 6px' }}>{meta.bio.title}</div>
@@ -3325,8 +3140,8 @@ function stationTarget(type) {
                             </ul>
                           )}
                           <div style={{ marginTop: 8, display:'flex', gap:8, alignItems:'center' }}>
-                            <img src={'/art/friends/luminao_bust.png'} alt={meta.name} style={{ width: 120, height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                            <div style={{ ...styles.sub }}>Level: <b>{friends?.luminaO?.level||0}</b>/5</div>
+                            <img src={bust} alt={meta.name} style={{ width: 120, height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                            <div style={{ ...styles.sub }}>Level: <b>{(f && f.level) || 0}</b>/5</div>
                           </div>
                           <div style={{ marginTop: 8 }}>
                             <button style={styles.smallBtn} onClick={()=> setSelectedFriendId(null)}>Back to Friends</button>
@@ -3387,14 +3202,7 @@ function stationTarget(type) {
                   ))
                 )}
               </div>
-              {pendingFriendEvents.length>0 && lastFriendProgressWeek !== week && (
-                <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
-                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
-                  {(() => { const ev = pendingFriendEvents[0]; const isFirst = ev && ev.targetLevel === 1; return (
-                    <div style={styles.sub}>{isFirst ? 'New friend request available in MyBubble.' : 'New message in MyBubble.'}</div>
-                  ); })()}
-                </div>
-              )}
+              
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>Upcoming</div>
                 {eventInfoModal.upcoming ? (
@@ -3421,6 +3229,14 @@ function stationTarget(type) {
                   </div>
                 );
               })()}
+              {pendingFriendEvents.length>0 && lastFriendProgressWeek !== week && (
+                <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
+                  {(() => { const ev = pendingFriendEvents[0]; const isFirst = ev && ev.targetLevel === 1; const fid = ev && (ev.friendId || 'luminaO'); const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; return (
+                    <div style={styles.sub}>{isFirst ? ('New friend request from ' + name + ' in MyBubble.') : ('New message from ' + name + ' in MyBubble.')}</div>
+                  ); })()}
+                </div>
+              )}
               <button onClick={() => {
                 setEventsResolved(r => {
                   const copy = { ...r };
