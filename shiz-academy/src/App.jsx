@@ -2741,7 +2741,7 @@ function stationTarget(type) {
                     {/* Gift modal for Neon Dorm Lamp (Lv2) */}
                     {(lampGiftOpen && friendModal.targetLevel===2) && (
                       <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
-                        <img src={'/art/lavalamp.png'} alt={'Neon Dorm Lamp'} style={{ width: 240, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
+                        <img src={'/art/lavalamp.png'} alt={'Neon Dorm Lamp'} style={{ width: 96, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
                         <div style={{ ...styles.sub, marginTop: 8 }}>Lumina gifted you a neon dorm lamp</div>
                         <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setLampGiftOpen(false)}>OK</button>
                       </div>
