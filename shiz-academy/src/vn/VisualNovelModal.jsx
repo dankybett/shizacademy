@@ -15,6 +15,11 @@ export default function VisualNovelModal({
   setBonusRolls,
   pushToast,
   setWriting,
+  setVocals,
+  spotlightSnapUnlocked,
+  setSpotlightSnapUnlocked,
+  vinylUnlocked,
+  setVinylUnlocked,
   rainfallUnlocked,
   setRainfallUnlocked,
   polaroidUnlocked,
@@ -59,8 +64,11 @@ export default function VisualNovelModal({
   const [vnTyping, setVnTyping] = useState(false);
   const [vnTypingTick, setVnTypingTick] = useState(0);
   const [grisGiftOpen, setGrisGiftOpen] = useState(false);
+  const [munchGiftOpen, setMunchGiftOpen] = useState(false);
   const [rainGiftOpen, setRainGiftOpen] = useState(false);
   const [polaroidGiftOpen, setPolaroidGiftOpen] = useState(false);
+  const [spotlightGiftOpen, setSpotlightGiftOpen] = useState(false);
+  const [vinylGiftOpen, setVinylGiftOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
     setVnTyping(true);
@@ -120,6 +128,27 @@ export default function VisualNovelModal({
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, grisGiftOpen, friends, setFriends, setWriting, pushToast]);
 
+  // MC Munch LV2: show warm-up tape gift overlay and apply vocals +0.2
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'mcmunch') return;
+      if ((friendModal.targetLevel||0) !== 2) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.mcmunch?.rewardsClaimed?.[2]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed && !munchGiftOpen) {
+        if (typeof setVocals === 'function') {
+          setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
+        }
+        setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
+        setMunchGiftOpen(true);
+        pushToast("MC Munch gift: Warm-Up Tape (+0.20 Vocals)");
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, munchGiftOpen, friends, setFriends, setVocals, pushToast]);
+
   // Griswald LV4: unlock Rainfall Stage Lighting on gift line
   useEffect(() => {
     try {
@@ -137,6 +166,23 @@ export default function VisualNovelModal({
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, rainfallUnlocked, setRainfallUnlocked, pushToast]);
 
+  // MC Munch LV4: unlock Spotlight Snap effect on gift line
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'mcmunch') return;
+      if ((friendModal.targetLevel||0) !== 4) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('spotlight snap') && !spotlightSnapUnlocked) {
+        setSpotlightSnapUnlocked(true);
+        setSpotlightGiftOpen(true);
+        pushToast('MC Munch gift: Spotlight Snap unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, spotlightSnapUnlocked, setSpotlightSnapUnlocked, pushToast]);
+
   // Griswald LV5: unlock Polaroid Photograph (desk keepsake)
   useEffect(() => {
     try {
@@ -153,6 +199,23 @@ export default function VisualNovelModal({
       }
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, polaroidUnlocked, setPolaroidUnlocked, pushToast]);
+
+  // MC Munch LV5: unlock Custom Vinyl Sleeve (room keepsake)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'mcmunch') return;
+      if ((friendModal.targetLevel||0) !== 5) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('custom vinyl sleeve') && !vinylUnlocked) {
+        setVinylUnlocked(true);
+        setVinylGiftOpen(true);
+        pushToast('MC Munch gift: Custom Vinyl Sleeve');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, vinylUnlocked, setVinylUnlocked, pushToast]);
 
   if (!open) return null;
   return (
@@ -202,7 +265,7 @@ export default function VisualNovelModal({
           {(grisGiftOpen && friendModal.targetLevel===2 && friendId==='griswald') && (
             <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
               <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
-                <div style={{ position:'absolute', width:130, height:130, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,230,150,0.35), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <div style={{ position:'absolute', width:228, height:228, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,230,150,0.35), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
                 <img src={'/art/lyricnotebook.png'} alt={'Worn Lyric Notebook'} onError={(e)=>{ e.currentTarget.src='/art/notebook.png'; }} style={{ width: 96, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
               </div>
               <div style={{ ...styles.sub, marginTop: 4 }}>Griswald gifted you a Worn Lyric Notebook</div>
@@ -220,6 +283,16 @@ export default function VisualNovelModal({
               <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setLampGiftOpen(false)}>OK</button>
             </div>
           )}
+          {(munchGiftOpen && friendModal.targetLevel===2 && friendId==='mcmunch') && (
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
+              <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
+                <div style={{ position:'absolute', width:130, height:130, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,230,150,0.35), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <img src={'/art/mixtape.png'} alt={'Munch’s Warm-Up Tape'} onError={(e)=>{ e.currentTarget.style.display='none'; }} style={{ width: 168, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} />
+              </div>
+              <div style={{ ...styles.sub, marginTop: 4 }}>MC Munch gifted you a Warm-Up Tape</div>
+              <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setMunchGiftOpen(false)}>OK</button>
+            </div>
+          )}
           {(midnightHazeGiftOpen && friendModal.targetLevel===4) && (
             <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 360 }}>
               <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
@@ -228,6 +301,16 @@ export default function VisualNovelModal({
               </div>
               <div style={{ ...styles.sub }}>Midnight Haze Lighting</div>
               <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setMidnightHazeGiftOpen(false)}>OK</button>
+            </div>
+          )}
+          {(spotlightGiftOpen && friendModal.targetLevel===4 && friendId==='mcmunch') && (
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 380 }}>
+              <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
+                <div style={{ position:'absolute', width:160, height:160, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,215,130,0.28), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <div style={{ fontWeight: 800 }}>Gift Received</div>
+              </div>
+              <div style={{ ...styles.sub }}>Spotlight Snap Effect</div>
+              <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setSpotlightGiftOpen(false)}>OK</button>
             </div>
           )}
 
@@ -239,6 +322,16 @@ export default function VisualNovelModal({
               </div>
               <div style={{ ...styles.sub, marginTop: 4 }}>Polaroid Photograph</div>
               <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setPolaroidGiftOpen(false)}>OK</button>
+            </div>
+          )}
+          {(vinylGiftOpen && friendModal.targetLevel===5 && friendId==='mcmunch') && (
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 380 }}>
+              <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
+                <div style={{ position:'absolute', width:160, height:160, borderRadius:'50%', background:'radial-gradient(closest-side, rgba(240,220,180,0.30), rgba(255,255,255,0) 70%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                <img src={'/art/customvinylsleeve.png'} alt={'Custom Vinyl Sleeve'} style={{ width: 200, height:'auto', objectFit:'contain', filter:'drop-shadow(0 6px 14px rgba(0,0,0,.55))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+              </div>
+              <div style={{ ...styles.sub, marginTop: 4 }}>Custom Vinyl Sleeve</div>
+              <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setVinylGiftOpen(false)}>OK</button>
             </div>
           )}
 
@@ -290,6 +383,13 @@ export default function VisualNovelModal({
                         setFriends(prev => ({ ...prev, griswald: { ...prev.griswald, rewardsClaimed: { ...(prev.griswald?.rewardsClaimed||{}), 2:true } } }));
                         pushToast('Griswald gift: Worn Lyric Notebook (+0.20 Writing)');
                       }
+                      if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
+                        if (typeof setVocals === 'function') {
+                          setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
+                        }
+                        setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
+                        pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
+                      }
                       setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
                     }
                   } else if (next < lines.length) {
@@ -320,6 +420,13 @@ export default function VisualNovelModal({
                       }
                       setFriends(prev => ({ ...prev, griswald: { ...prev.griswald, rewardsClaimed: { ...(prev.griswald?.rewardsClaimed||{}), 2:true } } }));
                       pushToast('Griswald gift: Worn Lyric Notebook (+0.20 Writing)');
+                    }
+                    if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
+                      if (typeof setVocals === 'function') {
+                        setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
+                      }
+                      setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
+                      pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
                     }
                     setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
                   }

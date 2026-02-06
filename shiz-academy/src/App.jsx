@@ -667,9 +667,15 @@ export default function App() {
   const [rainfallUnlocked, setRainfallUnlocked] = useState(false);
   const [rainfallGiftOpen, setRainfallGiftOpen] = useState(false);
   const [lightningOn, setLightningOn] = useState(false);
+  // MC Munch Spotlight Snap cosmetic
+  const [spotlightSnapUnlocked, setSpotlightSnapUnlocked] = useState(false);
+  const [spotlightActive, setSpotlightActive] = useState(false);
+  const [spotlightDurMs, setSpotlightDurMs] = useState(6000);
+  const spotlightTimerRef = useRef(null);
   const lightningTimerRef = useRef(null);
   const [polaroidUnlocked, setPolaroidUnlocked] = useState(false);
   const [polaroidOpen, setPolaroidOpen] = useState(false);
+  const [vinylUnlocked, setVinylUnlocked] = useState(false);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -1355,6 +1361,7 @@ function stationTarget(type) {
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
       if (typeof s.rainfallUnlocked === 'boolean') setRainfallUnlocked(s.rainfallUnlocked);
+      if (typeof s.spotlightSnapUnlocked === 'boolean') setSpotlightSnapUnlocked(s.spotlightSnapUnlocked);
       if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
       if (Array.isArray(s.actions)) {
         // Normalize to {t,d}
@@ -1586,6 +1593,8 @@ function stationTarget(type) {
     lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
     // Polaroid on desk (50% smaller than before)
     polaroid: { xPct: 64.6,  yPct: 59.9,  wPct: 2.6 }, // on desk near computer
+    // Framed vinyl above mirror (doubled size, +50px right, -50px up)
+    vinyl:    { xPct: 89.77,  yPct: 33.59,  wPct: 13.64 },
   };
   function anchorStyle(a){
     return {
@@ -1655,6 +1664,7 @@ function stationTarget(type) {
       lampOn,
       midnightHazeUnlocked,
       rainfallUnlocked,
+      spotlightSnapUnlocked,
       polaroidUnlocked,
       ts: Date.now(),
     };
@@ -1663,7 +1673,7 @@ function stationTarget(type) {
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, polaroidUnlocked]);
+  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -1690,6 +1700,22 @@ function stationTarget(type) {
     schedule();
     return () => { if (lightningTimerRef.current) clearTimeout(lightningTimerRef.current); lightningTimerRef.current = null; setLightningOn(false); };
   }, [isPerforming, performingSong, rainfallUnlocked]);
+
+  // Trigger Spotlight Snap at start of Hip-Hop performance
+  useEffect(() => {
+    const shouldSnap = !!(isPerforming && performingSong && (performingSong.genre === 'Hip-Hop') && spotlightSnapUnlocked);
+    if (!shouldSnap) {
+      if (spotlightTimerRef.current) { clearTimeout(spotlightTimerRef.current); spotlightTimerRef.current = null; }
+      setSpotlightActive(false);
+      return;
+    }
+    // Randomize duration 5s - 10s for venue fade-in
+    const dur = 5000 + Math.floor(Math.random() * 5000);
+    setSpotlightDurMs(dur);
+    setSpotlightActive(true);
+    spotlightTimerRef.current = setTimeout(() => setSpotlightActive(false), dur);
+    return () => { if (spotlightTimerRef.current) { clearTimeout(spotlightTimerRef.current); spotlightTimerRef.current = null; } };
+  }, [isPerforming, performingSong, spotlightSnapUnlocked]);
 
   function saveNow() {
     try {
@@ -1719,12 +1745,13 @@ function stationTarget(type) {
         friends,
         pendingFriendEvents,
         lampUnlocked,
-        lampOn,
+      lampOn,
       midnightHazeUnlocked,
       rainfallUnlocked,
+      spotlightSnapUnlocked,
       polaroidUnlocked,
-        ts: Date.now(),
-      };
+      ts: Date.now(),
+    };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
     } catch (_) {}
   }
@@ -2086,14 +2113,14 @@ function stationTarget(type) {
 
   // Idle roaming: pick random spots when idle and no target
   useEffect(() => {
-    if (target || activity !== "idle") return;
+    if (isPerforming || target || activity !== "idle") return;
     const timeout = setTimeout(() => {
       const pt = randomWalkable();
       setTarget(pt);
       setActivity("walk");
     }, 1200 + Math.random() * 2000);
     return () => clearTimeout(timeout);
-  }, [target, activity]);
+  }, [isPerforming, target, activity]);
 
   // Compute room width to fit background image scaled by fixed height
   useEffect(() => {
@@ -2279,7 +2306,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2409,6 +2436,11 @@ function stationTarget(type) {
                 <div style={anchorStyle(ANCHORS.mirror)} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                {vinylUnlocked && (
+                  <div style={{ ...anchorStyle(ANCHORS.vinyl), transform:'translate(-50%, -50%)', pointerEvents:'none' }} title="Custom Vinyl Sleeve">
+                    <img src={'/art/framedvinyl.png'} alt={'Vinyl Sleeve'} style={{ width:'100%', height:'auto' }} />
+                  </div>
+                )}
                 {/* Polaroid desk item */}
                 {polaroidUnlocked && (
                   <div style={{ ...anchorStyle(ANCHORS.polaroid), transform: 'translate(-50%, -50%) translate(115px, 65px)', cursor:'pointer' }} onClick={() => setPolaroidOpen(true)} title="Polaroid Photograph">
@@ -2438,6 +2470,18 @@ function stationTarget(type) {
                   {lightningOn && (<div style={styles.performLightning} />)}
                 </div>
               )}
+              {/* Performance cosmetic overlay: Spotlight Snap (Hip-Hop only, brief at start) */}
+              {isPerforming && performingSong && (performingSong.genre === 'Hip-Hop') && spotlightSnapUnlocked && spotlightActive && (
+                <div style={styles.performSpotlightOverlay}>
+                  <div style={{ ...styles.performSpotlightDim, animationDuration: `${spotlightDurMs}ms` }} />
+                  <div style={{
+                    ...styles.performSpotlightCircle,
+                    left: `calc(${pos.x}% + 62px)`,
+                    top: `calc(${pos.y}% + 62px)`,
+                    transform: 'translate(-50%, -50%) scale(1.1, 0.85)'
+                  }} />
+                </div>
+              )}
               {/* Room HUD: show money and rolls */}
               {!isPerforming && (
                 <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
@@ -2460,6 +2504,9 @@ function stationTarget(type) {
                   )}
                   {(midnightHazeUnlocked && (performingSong?.genre||genre) === 'Synthwave') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#caa7ff', marginTop: 2 }}>Midnight Haze Lighting</div>
+                  )}
+                  {(spotlightSnapUnlocked && (performingSong?.genre||genre) === 'Hip-Hop') && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#ffd27a', marginTop: 2 }}>Spotlight Snap</div>
                   )}
                 </div>
               )}
@@ -2750,13 +2797,18 @@ function stationTarget(type) {
             friends={friends}
             setFriends={setFriends}
             setNudges={setNudges}
-            setBonusRolls={setBonusRolls}
-            pushToast={pushToast}
-            setWriting={setWriting}
-            rainfallUnlocked={rainfallUnlocked}
-            setRainfallUnlocked={setRainfallUnlocked}
-            polaroidUnlocked={polaroidUnlocked}
-            setPolaroidUnlocked={setPolaroidUnlocked}
+          setBonusRolls={setBonusRolls}
+          pushToast={pushToast}
+          setWriting={setWriting}
+          setVocals={setVocals}
+          spotlightSnapUnlocked={spotlightSnapUnlocked}
+          setSpotlightSnapUnlocked={setSpotlightSnapUnlocked}
+          vinylUnlocked={vinylUnlocked}
+          setVinylUnlocked={setVinylUnlocked}
+          rainfallUnlocked={rainfallUnlocked}
+          setRainfallUnlocked={setRainfallUnlocked}
+          polaroidUnlocked={polaroidUnlocked}
+          setPolaroidUnlocked={setPolaroidUnlocked}
             unlockedPosters={unlockedPosters}
             setUnlockedPosters={setUnlockedPosters}
             currentPosterIdx={currentPosterIdx}
@@ -4694,6 +4746,9 @@ const styles = {
   performRainDrops: { position:'absolute', inset:0, background: 'repeating-linear-gradient(90deg, rgba(150,190,255,.20) 0 1.5px, rgba(0,0,0,0) 1.5px 12px)', filter:'blur(.35px)', mixBlendMode:'soft-light', pointerEvents:'none', opacity: .85, transform:'skewX(-10deg)', willChange:'transform, background-position', animation: 'rainDrift 1.2s linear infinite' },
   performRainDropsFront: { position:'absolute', inset:0, background: 'repeating-linear-gradient(90deg, rgba(185,215,255,.30) 0 2px, rgba(0,0,0,0) 2px 16px)', filter:'blur(.15px)', mixBlendMode:'screen', pointerEvents:'none', opacity: .9, transform:'skewX(-12deg)', willChange:'transform, background-position', animation: 'rainDriftFast .9s linear infinite' },
   performLightning: { position:'absolute', inset:0, pointerEvents:'none', background: 'radial-gradient(ellipse at 50% 25%, rgba(255,255,255,.58), rgba(255,255,255,0) 60%), rgba(255,255,255,.06)', mixBlendMode:'screen', animation: 'lightFlash 220ms ease-out 1' },
+  performSpotlightOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 4 },
+  performSpotlightDim: { position:'absolute', inset:0, background:'rgba(0,0,0,.75)', animation:'spotlightDim 6000ms ease-out 1', pointerEvents:'none' },
+  performSpotlightCircle: { position:'absolute', width:320, height:240, borderRadius:999, background:'radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,255,255,.6) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,0) 80%)', mixBlendMode:'screen', filter:'drop-shadow(0 0 22px rgba(255,255,255,.45))', transform:'translate(-50%,-50%)', animation:'spotlightPulse 900ms ease-out 1', pointerEvents:'none' },
 
   // Visual Novel overlay styles
   vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
