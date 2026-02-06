@@ -2306,7 +2306,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2707,7 +2707,7 @@ function stationTarget(type) {
                   <div style={styles.overlayClear} onClick={() => setFinanceOpen(false)}>
                     <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
                       <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_desktop.png')" }}>
-                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner, display:'flex', alignItems:'stretch', justifyContent:'center' }}>
+                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner, left:'8%', right:'8%', display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
                             <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
                               <div style={styles.desktopColumn}>
@@ -2748,6 +2748,7 @@ function stationTarget(type) {
                                 <div style={styles.desktopIconLabel}>Am-Oz-on</div>
                               </div>
                             </div>
+                            <div style={styles.desktopScanlinesOverlay} />
                           </div>
                         </div>
                       </div>
@@ -4863,6 +4864,16 @@ const styles = {
     gap: 10,
     padding: 12,
     alignItems: 'flex-start',
+  },
+  desktopScanlinesOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'repeating-linear-gradient(180deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.28) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px)',
+    mixBlendMode: 'multiply',
+    opacity: .28,
+    pointerEvents: 'none',
+    zIndex: 4,
+    animation: 'scanFlicker 6s ease-in-out infinite, scanScroll 1.5s linear infinite',
   },
   finishBtnSmall: {
     position: 'absolute',
