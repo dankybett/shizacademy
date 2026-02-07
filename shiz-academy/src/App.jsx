@@ -3772,7 +3772,7 @@ function stationTarget(type) {
                                   onClick={() => playTrendItem(item)}
                                   style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
                                 >
-                                  <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                  <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
                                     <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
                                     {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
                                   </div>
@@ -3804,7 +3804,7 @@ function stationTarget(type) {
                               onClick={() => playTrendItem(item)}
                               style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
                             >
-                              <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                              <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
                                 <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
                                 {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
                               </div>
@@ -3846,6 +3846,8 @@ function stationTarget(type) {
                   </div>
                 </div>
               </div>
+              {/* Scanlines overlay reduced width by ~40% (centered) */}
+              <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'25%', bottom:'12%', left:'25%' }} />
             </div>
           </div>
         )}
