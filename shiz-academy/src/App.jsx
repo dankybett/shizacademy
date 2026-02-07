@@ -1582,6 +1582,66 @@ function stationTarget(type) {
     return `${m}:${String(s).padStart(2,'0')}`;
   }
 
+  // --- Shizy-Fi media controls helpers ---
+  function playFirstTrendIfAvailable() {
+    ensureTrendsForWeek(week);
+    const list = trendsByWeek && trendsByWeek[week];
+    if (list && list.length) playTrendItem(list[0]);
+  }
+
+  function togglePlayPause() {
+    let audio = audioRef.current;
+    if (!audio) { audio = new Audio(); audioRef.current = audio; }
+    if (audio && !audio.paused) {
+      try { audio.pause(); } catch (_) {}
+      setPlayingTrend(null);
+    } else {
+      if (playingTrend) {
+        try { audio.play(); } catch (_) {}
+      } else {
+        playFirstTrendIfAvailable();
+      }
+    }
+  }
+
+  function skipPreview(delta) {
+    const list = trendsByWeek && trendsByWeek[week];
+    if (!list || !list.length) { playFirstTrendIfAvailable(); return; }
+    if (!playingTrend) { playTrendItem(list[0]); return; }
+    const id = playingTrend.id;
+    const idx = list.findIndex(it => (`${it.artist}__${it.title}`) === id);
+    const nextIdx = (idx < 0) ? 0 : (idx + delta + list.length) % list.length;
+    playTrendItem(list[nextIdx]);
+  }
+
+  function seekPreview(e) {
+    const track = e.currentTarget;
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / Math.max(1, rect.width)));
+    const audio = audioRef.current;
+    if (audio && isFinite(audio.duration) && audio.duration > 0) {
+      try { audio.currentTime = ratio * audio.duration; } catch (_) {}
+    }
+  }
+
+  function playPreview() {
+    let audio = audioRef.current;
+    if (!audio) { audio = new Audio(); audioRef.current = audio; }
+    if (playingTrend) {
+      try { audio.play(); } catch (_) {}
+    } else {
+      playFirstTrendIfAvailable();
+    }
+  }
+
+  function pausePreview() {
+    const audio = audioRef.current;
+    if (audio && !audio.paused) {
+      try { audio.pause(); } catch (_) {}
+      // Keep playingTrend set so the selection remains highlighted
+    }
+  }
+
   // --- Room anchor overlay (anchors props to the background artboard)
   const APT = { w: 3168, h: 1344 }; // apartmentbackgroundwide.png
   const ANCHORS = {
@@ -2709,7 +2769,7 @@ function stationTarget(type) {
                       <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_desktop.png')" }}>
                         <div className="hide-scrollbar" style={{ ...styles.mirrorInner, left:'8%', right:'8%', display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
-                            <div style={{ ...styles.desktopIcons, marginLeft: -8, top: 6 }}>
+                            <div style={{ ...styles.desktopIcons, marginLeft: 12, top: 6 }}>
                               <div style={styles.desktopColumn}>
                                 <div style={styles.desktopIconWrap}>
                                   <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
@@ -3632,69 +3692,158 @@ function stationTarget(type) {
         {myMusicOpen && (
           <div style={styles.overlayClear} onClick={() => setMyMusicOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
-              <div style={{ ...styles.title, textAlign: 'center' }}>Shizy-Fi</div>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_shizyfi.png')" }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: 'calc(12% + 45px)', justifyContent: 'flex-start' }}>
+              <img
+                src={'/art/shizyfi/shizyfilogo.png'}
+                alt={'Shizy-Fi'}
+                style={{ display:'block', margin:'0 auto', width:154, height:'auto' }}
+                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+              />
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
                   {(!endYearReady && !isOver) ? (
-                    <button
-                      onClick={() => {
-                        setMyMusicOpen(false);
-                        if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
-                      }}
-                      style={styles.primaryBtn}
-                    >
-                      {conceptLocked ? 'Current Song' : 'Create Song'}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setMyMusicOpen(false);
+                          if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
+                        }}
+                        style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
+                        title={conceptLocked ? 'Current Song' : 'Create Song'}
+                      >
+                        <img
+                          src={'/art/shizyfi/createsongbutton.png'}
+                          alt={conceptLocked ? 'Current Song' : 'Create Song'}
+                          style={{ display:'block', width:200, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <button
+                        onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }}
+                        style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
+                        title={'My Song History'}
+                      >
+                        <img
+                          src={'/art/shizyfi/mysonghistorybutton.png'}
+                          alt={'My Song History'}
+                          style={{ display:'block', width:200, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </>
                   ) : (
-                    <button
-                      onClick={() => { setMyMusicOpen(false); setFinaleSummaryOpen(true); setEndYearReady(false); }}
-                      style={styles.primaryBtn}
-                    >
-                      End year
-                    </button>
+                    <>
+                      <button
+                        onClick={() => { setMyMusicOpen(false); setFinaleSummaryOpen(true); setEndYearReady(false); }}
+                        style={styles.primaryBtn}
+                      >
+                        End year
+                      </button>
+                      <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
+                    </>
                   )}
-                  <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
-                  {null}
                 </div>
-                <div style={{ border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, width:'100%', overflow:'hidden' }}>
-                  <div style={{ fontWeight:900, marginBottom:6 }}>Global Trends (Week {Math.min(week, MAX_WEEKS)})</div>
-                  {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
-                    <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
-                      <div style={{ display:'grid', gap:8 }}>
-                      {list.map(item => (
-                        <div key={`${item.rank}-${item.title}`} onClick={() => playTrendItem(item)} style={{ display:'flex', alignItems:'center', gap:8, border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, background: (playingTrend && playingTrend.id === `${item.artist}__${item.title}`) ? 'rgba(255,255,255,.08)' : (item.isPlayer? 'rgba(100,212,154,.14)' : 'transparent'), cursor:'pointer' }}>
-                          <div style={{ minWidth:26, height:26, borderRadius:8, background:'rgba(255,255,255,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900 }}>#{item.rank}</div>
-                          <div style={{ width:30, height:30, borderRadius:6, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, overflow:'hidden', position:'relative' }}>
-                            {item.cover && (
-                              <img src={item.cover} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                            )}
-                            {!item.cover && (
-                              <span>{item.artist.slice(0,1)}</span>
-                            )}
-                          </div>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.artist} - {(item.title && item.title.length>22) ? (item.title.slice(0,22) + '...') : item.title}</div>
-                            {(playingTrend && playingTrend.id === `${item.artist}__${item.title}`) && (
-                              <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
-                                <div style={{ fontSize:11, opacity:.85 }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
-                                <div style={{ height:4, borderRadius:999, background:'rgba(255,255,255,.15)', width:120, overflow:'hidden' }}>
-                                  <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
-                                </div>
-                              </div>
-                            )}
-                            {item.isPlayer && <div style={{ ...styles.sub, fontWeight:800, color:'#64d49a' }}>You</div>}
-                          </div>
-                          <button title="Preview" style={{ ...styles.smallBtn, padding:'6px 8px' }}>Play</button>
-                        </div>
-                      ))}
+                {(!endYearReady && !isOver) && (
+                  <div style={{ width:'96%', margin:'-6px auto 0' }}>
+                    <div style={{ position:'relative' }}>
+                      <img
+                        src={'/art/shizyfi/banner.png'}
+                        alt={''}
+                        style={{ display:'block', width:'100%', height:'auto' }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                      <div style={{ position:'absolute', left:'50%', top:'46%', transform:'translate(-50%, -50%)', fontWeight:900, fontSize:18, textAlign:'center', letterSpacing:.2, textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                        Global Trends (Week {Math.min(week, MAX_WEEKS)})
                       </div>
                     </div>
-                  ); })()}
-                </div>
+                    {(() => {
+                      const list = trendsByWeek && trendsByWeek[week];
+                      if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} 
+                      return (
+                        <div className="hide-scrollbar" style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4, marginTop:8 }}>
+                          <div style={{ display:'grid', gap:8 }}>
+                            {list.map(item => {
+                              const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                              const pct = Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)));
+                              return (
+                                <div
+                                  key={`${item.rank}-${item.title}`}
+                                  onClick={() => playTrendItem(item)}
+                                  style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
+                                >
+                                  <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                    <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
+                                    {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
+                                  </div>
+                                  {item.isPlayer && (
+                                    <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                  )}
+                                  {null}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                {(endYearReady || isOver) && (
+                  <div style={{ width:'100%', margin:0, overflow:'hidden' }}>
+                    <div style={{ fontWeight:900, marginBottom:6 }}>Global Trends (Week {Math.min(week, MAX_WEEKS)})</div>
+                    {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
+                      <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
+                        <div style={{ display:'grid', gap:8 }}>
+                        {list.map(item => {
+                          const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                          const pct = Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)));
+                          return (
+                            <div
+                              key={`${item.rank}-${item.title}`}
+                              onClick={() => playTrendItem(item)}
+                              style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
+                            >
+                              <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
+                                {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
+                              </div>
+                              {item.isPlayer && (
+                                <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                              )}
+                              {null}
+                            </div>
+                          );
+                        })}
+                        </div>
+                      </div>
+                    ); })()}
+                  </div>
+                )}
               </div>
               {null}
+                </div>
+              </div>
+              {/* Shizy-Fi media controls bar (overlays bottom area; content scrolls behind) */}
+              <div style={{ position:'absolute', left:'30%', right:'30%', bottom:'calc(6% + 35px)', display:'flex', flexDirection:'column', gap:6, zIndex:2 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
+                    <div onClick={seekPreview} style={{ flex:1, height:8, borderRadius:999, background:'rgba(255,255,255,.18)', overflow:'hidden', cursor:'pointer' }}>
+                      <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
+                    </div>
+                    <div style={{ fontSize:11, opacity:.9, minWidth:70, textAlign:'right' }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <button title="Play" onClick={playPreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <img src={'/art/shizyfi/play.png'} alt={"Play"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                    </button>
+                    <button title="Pause" onClick={pausePreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <img src={'/art/shizyfi/pause.png'} alt={"Pause"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                    </button>
+                    <button title="Skip" onClick={() => skipPreview(1)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <img src={'/art/shizyfi/skip.png'} alt={"Skip"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
