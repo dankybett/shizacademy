@@ -3827,25 +3827,57 @@ function stationTarget(type) {
               {/* Shizy-Fi media controls bar (overlays bottom area; content scrolls behind) */}
               <div style={{ position:'absolute', left:'30%', right:'30%', bottom:'calc(6% + 35px)', display:'flex', flexDirection:'column', gap:6, zIndex:2 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginLeft:80 }}>
+                    <button title="Play" onClick={playPreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                        <img src={'/art/shizyfi/play.png'} alt={"Play"} style={{ display:'block', width:18, height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                      </div>
+                    </button>
+                    <button title="Pause" onClick={pausePreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                        <img src={'/art/shizyfi/pause.png'} alt={"Pause"} style={{ display:'block', width:18, height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                      </div>
+                    </button>
+                    <button title="Skip" onClick={() => skipPreview(1)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <div style={{ position:'relative', width:28, height:28, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                        <img src={'/art/shizyfi/skip.png'} alt={"Skip"} style={{ display:'block', width:18, height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                      </div>
+                    </button>
+                  </div>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
                     <div onClick={seekPreview} style={{ flex:1, height:8, borderRadius:999, background:'rgba(255,255,255,.18)', overflow:'hidden', cursor:'pointer' }}>
                       <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
                     </div>
                     <div style={{ fontSize:11, opacity:.9, minWidth:70, textAlign:'right' }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <button title="Play" onClick={playPreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                      <img src={'/art/shizyfi/play.png'} alt={"Play"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                    </button>
-                    <button title="Pause" onClick={pausePreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                      <img src={'/art/shizyfi/pause.png'} alt={"Pause"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                    </button>
-                    <button title="Skip" onClick={() => skipPreview(1)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                      <img src={'/art/shizyfi/skip.png'} alt={"Skip"} style={{ display:'block', width:18, height:'auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                    </button>
-                  </div>
                 </div>
               </div>
+              {/* Now Playing record UI (rotates while playing) */}
+              {/* Circular glow behind the record */}
+              <div
+                style={{
+                  position:'absolute',
+                  left:'calc(14% + 125px - 16px)',
+                  bottom:'calc(8% + 20px - 16px)',
+                  width:104,
+                  height:104,
+                  borderRadius:'50%',
+                  background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.42) 0%, rgba(148,129,250,.22) 40%, rgba(148,129,250,0) 75%)',
+                  filter:'blur(2px)',
+                  pointerEvents:'none',
+                  zIndex:1,
+                }}
+              />
+              <style>{`@keyframes recordSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+              <img
+                src={'/art/shizyfi/nowplaying.png'}
+                alt={''}
+                style={{ position:'absolute', left:'calc(14% + 125px)', bottom:'calc(8% + 20px)', width:72, height:'auto', transformOrigin:'50% 50%', animation: (audioRef.current && !audioRef.current.paused) ? 'recordSpin 6s linear infinite' : 'none', opacity: (audioRef.current && !audioRef.current.paused) ? 1 : 0.95, zIndex:2 }}
+                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+              />
               {/* Scanlines overlay reduced width by ~40% (centered) */}
               <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'25%', bottom:'12%', left:'25%' }} />
             </div>
