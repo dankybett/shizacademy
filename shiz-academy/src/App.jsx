@@ -561,6 +561,7 @@ export default function App() {
   const [myBubbleMessagesOpen, setMyBubbleMessagesOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [myBubbleFriendsOpen, setMyBubbleFriendsOpen] = useState(false);
   // Friends / Visual Novel system
   const [friends, setFriends] = useState({
     luminaO: {
@@ -3256,6 +3257,14 @@ function stationTarget(type) {
                       onError={(e)=>{ e.currentTarget.style.display='none'; }}
                     />
                   </button>
+                  <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/friendsbutton.png'}
+                      alt={'Friends'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
                 </div>
                 <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -3397,6 +3406,100 @@ function stationTarget(type) {
           </div>
         )}
 
+        {myBubbleFriendsOpen && (
+          <div
+            style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
+            onClick={() => setMyBubbleFriendsOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleFriendsOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <button title="Messages" onClick={() => { setMyBubbleFriendsOpen(false); setMyBubbleMessagesOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/messagebutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/friendsbutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontWeight:900, marginTop:4 }}>Friends</div>
+                      {(() => {
+                        const list = Object.keys(friends||{}).reduce((arr, fid) => {
+                          const f = friends[fid];
+                          const lv = (f && f.level) || 0;
+                          const bio = (f && f.bio) || null;
+                          if (lv>0 && bio) arr.push({ id: fid, level: lv, bio });
+                          return arr;
+                        }, []);
+                        if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
+                        return (
+                          <div className="hide-scrollbar" style={{ display:'grid', gap:8, maxHeight: 320, overflowY:'auto', paddingRight:4 }}>
+                            {list.map((f) => (
+                              <div key={f.id} style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                  <div style={{ fontWeight:900 }}>{f.bio.title || f.id}</div>
+                                  <div style={{ ...styles.sub, fontWeight:800 }}>Lv {f.level}/5</div>
+                                </div>
+                                {f.bio.summary && (
+                                  <div style={{ ...styles.sub, opacity:.95, marginTop:4 }}>{f.bio.summary}</div>
+                                )}
+                                {Array.isArray(f.bio.bullets) && f.bio.bullets.length>0 && (
+                                  <ul style={{ margin:'6px 0 0 18px', padding:0 }}>
+                                    {f.bio.bullets.map((b, i) => (
+                                      <li key={i} style={{ fontSize: 13, lineHeight: 1.4, opacity: 0.95 }}>{b}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {myBubbleMessagesOpen && (
           <div
             style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
@@ -3421,6 +3524,14 @@ function stationTarget(type) {
                         style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
                         onError={(e)=>{ e.currentTarget.style.display='none'; }}
                       />
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
                     </div>
                     <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
