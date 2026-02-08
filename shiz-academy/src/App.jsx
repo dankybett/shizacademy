@@ -558,6 +558,7 @@ export default function App() {
   const dancePreviewPlayingKeyRef = useRef(null); // track id set by preview to clear HUD later
   const dancePreviewActiveRef = useRef(false); // HUD was set by dance preview
   const [socialOpen, setSocialOpen] = useState(false);
+  const [myBubbleMessagesOpen, setMyBubbleMessagesOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Friends / Visual Novel system
@@ -3234,71 +3235,77 @@ function stationTarget(type) {
             }}
           >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
-              <div style={styles.title}>MyBubble</div>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+              {null}
+              {null}
               {!showFriendsList && (
               <div style={{ display:'flex', gap:12, marginTop: 8 }}>
-                <div style={{ flex:1 }}>
-                  <div style={styles.statRow}><span>Fans</span><b>{fans}</b></div>
+                <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                  <img
+                    src={'/art/mybubble/profilepic.png'}
+                    alt={''}
+                    style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                  />
+                  <button title="Messages" onClick={() => setMyBubbleMessagesOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/messagebutton.png'}
+                      alt={'Messages'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
+                </div>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <img
+                      src={'/art/mybubble/mybubbletitle.png'}
+                      alt={'MyBubble'}
+                      style={{ display:'block', width:220, height:'auto' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                {(() => {
+                  const targetWeek = Math.max(1, week - 1);
+                  const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                  const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                  return (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                      <span style={{ opacity:.9 }}>Fans</span>
+                      <span>{fans}</span>
+                      <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                    </div>
+                  );
+                })()}
+                  </div>
                   {(() => {
                     const targetWeek = Math.max(1, week - 1);
-                    const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
-                    const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
-                    return (<div style={styles.statRow}><span>Fans this week</span><b>+{gain}</b></div>);
-                  })()}
-                  <div style={{ marginTop: 10, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
-                    <div style={{ fontWeight:900, marginBottom:6 }}>Messages</div>
-                    {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
-                      (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
-                          <div>
-                            <div style={{ fontWeight:800 }}>{title}</div>
-                            <div style={{ ...styles.sub }}>from {name}</div>
-                          </div>
-                          <div style={{ display:'flex', gap:6 }}>
-                            <button style={styles.smallBtn} onClick={()=>{
-                              setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0 });
-                              setPendingFriendEvents(prev=> prev.slice(1));
-                              setLastFriendProgressWeek(week);
-                              setSocialOpen(false);
-                            }}>Open</button>
-                            <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                    let entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                    if (!entry) entry = (songHistory||[])[0];
+                    if (!entry) return null;
+                    return (
+                      <div>
+                        <div style={{ display:'block', width:'100%', boxSizing:'border-box', padding:'8px 12px', borderRadius:12, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>
+                          <div style={{ opacity:.9, marginBottom:4 }}>This week's drop:</div>
+                          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10 }}>
+                            <div style={{ fontStyle:'italic', fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>
+                              {entry.songName || 'Your Song'}
+                            </div>
+                            <div style={{ fontWeight:900, fontSize:16, marginLeft:10 }}>Grade {entry.grade || '-'}</div>
                           </div>
                         </div>
-                      ); })()
-                    ) : (
-                      <div style={styles.sub}>No new messages.</div>
-                    )}
-                  </div>
-                  {(Object.values(friends||{}).some(f => (f && f.level || 0) > 0)) && (
-                    <div style={{ marginTop: 8 }}>
-                      <button
-                        style={styles.smallBtn}
-                        onClick={() => {
-                          setSelectedFriendId(null);
-                          setShowFriendsList(v => !v);
-                        }}
-                      >
-                        {showFriendsList ? 'Back to MyBubble' : 'My Friends'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div style={{ flex:1.4, border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10 }}>
-                  <div style={{ fontWeight:900, marginBottom:6 }}>This Week's Buzz</div>
+                      </div>
+                    );
+                  })()}
+                  <div style={{ marginTop: 8 }}>
+                    <div>
                   {(() => {
                     // Find latest release for current calendar week (week-1), fallback to most recent entry
                     const targetWeek = Math.max(1, week - 1);
                     let entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
                     if (!entry) entry = (songHistory||[])[0];
                     if (!entry) return (<div style={styles.sub}>No songs yet. Release a song to see fan comments.</div>);
-                    const header = (
-                      <div style={{ marginBottom:8 }}>
-                        <div style={{ fontWeight:800 }}>{entry.songName || 'Your Song'}</div>
-                        <div style={{ ...styles.sub }}>Grade {entry.grade}</div>
-                      </div>
-                    );
+                    const header = null;
                     let comments = entry.fanComments && entry.fanComments.length ? entry.fanComments : generateFanComments(entry, performerName);
                     // Sanitize legacy metadata-style last line (e.g., 'Grade X - Genre - Theme')
                     const cleaned = comments.filter(c => !/^Grade\s/i.test((c||'').trim()));
@@ -3308,12 +3315,11 @@ function stationTarget(type) {
                     comments = cleaned.slice(0,3);
                     return (
                       <>
-                      {header}
                       <div style={{ display:'grid', gap:8 }}>
                         {comments.slice(0,3).map((t,i)=> {
                           const idx = fanIdxFor(targetWeek, i, seedTs);
                           return (
-                            <div key={i} style={{ border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:8 }}>
+                            <div key={i} style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:8 }}>
                               <div style={fanAvatarStyle(idx, 44, fanSpriteMeta)} />
                               <div style={{ ...styles.sub, opacity:.95 }}>{t}</div>
                             </div>
@@ -3323,6 +3329,8 @@ function stationTarget(type) {
                       </>
                     );
                   })()}
+                    </div>
+                  </div>
                 </div>
               </div>
               )}
@@ -3389,6 +3397,82 @@ function stationTarget(type) {
           </div>
         )}
 
+        {myBubbleMessagesOpen && (
+          <div
+            style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
+            onClick={() => setMyBubbleMessagesOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleMessagesOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/messagebutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
+                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                            <div>
+                              <div style={{ fontWeight:800 }}>{title}</div>
+                              <div style={{ ...styles.sub }}>from {name}</div>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                                <button style={styles.smallBtn} onClick={()=>{
+                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0 });
+                                  setPendingFriendEvents(prev=> prev.slice(1));
+                                  setLastFriendProgressWeek(week);
+                                  setMyBubbleMessagesOpen(false);
+                                  setSocialOpen(false);
+                                }}>Open</button>
+                              <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                            </div>
+                          </div>
+                        ); })()
+                      ) : (
+                        <div style={{ display:'inline-block', padding:'8px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>No new messages.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {eventModal && eventModal.event && (
           <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
