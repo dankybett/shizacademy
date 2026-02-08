@@ -2423,7 +2423,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2585,6 +2585,14 @@ function stationTarget(type) {
                   <div style={styles.performRainDrops} />
                   <div style={styles.performRainDropsFront} />
                   {lightningOn && (<div style={styles.performLightning} />)}
+                </div>
+              )}
+              {/* Performance cosmetic overlay: Snowfall (Busking venue during Wizmas) */}
+              {isPerforming && performingVenue === 'busking' && (activeEffects?.wizmas) && (
+                <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex: 3 }}>
+                  <div style={styles.performSnowBack} />
+                  <div style={styles.performSnowMid} />
+                  <div style={styles.performSnowFront} />
                 </div>
               )}
               {/* Performance cosmetic overlay: Spotlight Snap (Hip-Hop only, brief at start) */}
@@ -5196,6 +5204,41 @@ const styles = {
   performSpotlightOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 4 },
   performSpotlightDim: { position:'absolute', inset:0, background:'rgba(0,0,0,.75)', animation:'spotlightDim 6000ms ease-out 1', pointerEvents:'none' },
   performSpotlightCircle: { position:'absolute', width:320, height:240, borderRadius:999, background:'radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,255,255,.6) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,0) 80%)', mixBlendMode:'screen', filter:'drop-shadow(0 0 22px rgba(255,255,255,.45))', transform:'translate(-50%,-50%)', animation:'spotlightPulse 900ms ease-out 1', pointerEvents:'none' },
+
+  // Wizmas: Snow overlays for Busking during Wizmas weeks
+  performSnowBack: {
+    position:'absolute', inset:0, pointerEvents:'none', opacity:.22,
+    backgroundImage: 'radial-gradient(rgba(255,255,255,.72) 0.9px, rgba(255,255,255,0) 2px), radial-gradient(rgba(255,255,255,.55) 0.9px, rgba(255,255,255,0) 2px)',
+    backgroundSize: '18px 18px, 28px 28px',
+    backgroundRepeat: 'repeat, repeat',
+    backgroundPosition: '0px 0px, 40px -30px',
+    filter: 'blur(0.2px)',
+    mixBlendMode: 'screen',
+    willChange:'background-position',
+    animation: 'snowFallSlow 16s linear infinite'
+  },
+  performSnowMid: {
+    position:'absolute', inset:0, pointerEvents:'none', opacity:.28,
+    backgroundImage: 'radial-gradient(rgba(255,255,255,.82) 1.0px, rgba(255,255,255,0) 2.1px), radial-gradient(rgba(255,255,255,.65) 0.9px, rgba(255,255,255,0) 2px)',
+    backgroundSize: '20px 20px, 30px 30px',
+    backgroundRepeat: 'repeat, repeat',
+    backgroundPosition: '0px 0px, -50px 20px',
+    filter: 'blur(0.15px)',
+    mixBlendMode: 'screen',
+    willChange:'background-position',
+    animation: 'snowFallMid 13s linear infinite'
+  },
+  performSnowFront: {
+    position:'absolute', inset:0, pointerEvents:'none', opacity:.36,
+    backgroundImage: 'radial-gradient(rgba(255,255,255,.88) 0.9px, rgba(255,255,255,0) 2.2px), radial-gradient(rgba(255,255,255,.78) 1.0px, rgba(255,255,255,0) 2.4px)',
+    backgroundSize: '22px 22px, 34px 34px',
+    backgroundRepeat: 'repeat, repeat',
+    backgroundPosition: '0px 0px, 20px -10px',
+    filter: 'blur(0.1px)',
+    mixBlendMode: 'screen',
+    willChange:'background-position',
+    animation: 'snowFallFast 12s linear infinite'
+  },
 
   // Visual Novel overlay styles
   vnLogo: { position:'absolute', left: 10, top: 18, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
