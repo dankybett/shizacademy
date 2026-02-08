@@ -5133,7 +5133,7 @@ const styles = {
   performSpotlightCircle: { position:'absolute', width:320, height:240, borderRadius:999, background:'radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,255,255,.6) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,0) 80%)', mixBlendMode:'screen', filter:'drop-shadow(0 0 22px rgba(255,255,255,.45))', transform:'translate(-50%,-50%)', animation:'spotlightPulse 900ms ease-out 1', pointerEvents:'none' },
 
   // Visual Novel overlay styles
-  vnLogo: { position:'absolute', left: 10, top: -32, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
+  vnLogo: { position:'absolute', left: 10, top: 18, width: 192, height: 'auto', objectFit: 'contain', opacity: .9, pointerEvents: 'none' },
   vnBustLeft: { position:'absolute', left: 37, bottom: 0, width: 220, height: 'auto', objectFit: 'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))', opacity: .95, transform:'translate(25px, 25px)' },
   vnBustRight: { position:'absolute', right: 12, bottom: 10, width: 330, height: 'auto', objectFit: 'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))', opacity: .95 },
   vnBubble: { background:'rgba(114, 69, 187, .45)', border:'1px solid rgba(255,255,255,.35)', borderRadius: 12, padding:'10px 12px', color:'#fff', backdropFilter:'blur(2px)', boxShadow:'0 4px 12px rgba(0,0,0,.2)' },

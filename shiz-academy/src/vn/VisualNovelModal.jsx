@@ -220,7 +220,23 @@ export default function VisualNovelModal({
   if (!open) return null;
   return (
     <div style={styles.overlay}>
-      <div style={{ position:'relative', width:'100%', maxWidth: 720, height: 360, background: 'rgba(0,0,0,.3)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 16, padding: 10, overflow:'hidden' }} onClick={(e)=>e.stopPropagation()}>
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: 720,
+          height: 360,
+          backgroundImage: "linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)), url('/art/VNbackground.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          border: '1px solid rgba(255,255,255,.15)',
+          borderRadius: 16,
+          padding: 10,
+          overflow: 'hidden',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <img src={'/art/mybubblelogo.png'} alt="myBubble" onError={(e)=>{ e.currentTarget.style.display='none'; }} style={styles.vnLogo} />
         <Fragment>
           <img
@@ -232,7 +248,13 @@ export default function VisualNovelModal({
           <img
             src={friendMeta.bust}
             alt={friendMeta.name}
-            style={{ ...styles.vnBustRight, opacity: rightActive ? 1 : 0.6, transform:'translateY(-65px) scale(' + (rightActive ? 1.03 : 0.97) + ')', transition:'opacity 200ms ease, transform 200ms ease' }}
+            style={{
+              ...styles.vnBustRight,
+              ...(friendId==='griswald' ? { width: 264, right: 32 } : (friendId==='mcmunch' ? { width: 264, right: 32 } : {})),
+              opacity: rightActive ? 1 : 0.6,
+              transform: 'translateY(-65px) scale(' + (rightActive ? 1.03 : 0.97) + ')',
+              transition: 'opacity 200ms ease, transform 200ms ease'
+            }}
             onError={(e)=>{ e.currentTarget.style.display='none'; }}
           />
           {!isChoiceStep && line && (
