@@ -2,7 +2,7 @@
 // Structure mirrors luminaO: array per level with dialogue entries
 const griswald = {
   1: [
-    { speaker:'griswald', text:"Heard your track." },
+    { speaker:'griswald', text:"Heard your track '{{snap.songName}}'." },
     { speaker:'player', text:"Oh. Hi." },
     { speaker:'griswald', text:"You left the distortion in." },
     { speaker:'player', text:"Was that bad?" },
@@ -20,8 +20,7 @@ const griswald = {
     { speaker:'griswald', text:"Means they werent looking for perfect." },
     { speaker:'player', text:"It still feels small." },
     { speaker:'griswald', text:"Small rooms make louder echoes." },
-    { speaker:'griswald', text:"(Beat.)" },
-    { speaker:'griswald', text:"Your last track had a line in the second verse." },
+    { speaker:'griswald', text:"Your last track '{{snap.songName}}' had a line in the second verse." },
     { speaker:'griswald', text:"You almost rushed past it." },
     { speaker:'player', text:"Which line?" },
     { speaker:'griswald', text:"The one about not wanting to be easy to understand." },
@@ -38,9 +37,9 @@ const griswald = {
   ],
   4: [
     { speaker:'griswald', text:'Top five.' },
-    { speaker:'player', text:'I didnt think grunge would chart that high.' },
-    { speaker:'griswald', text:'Most weeks it doesnt.' },
-    { speaker:'griswald', text:'This one did.' },
+    { speaker:'player', text:'I didnt think {{snap.songName}} would chart that high.' },
+    { speaker:'griswald', text:'Grunge doesnt always rank in the charts.' },
+    { speaker:'griswald', text:'but {{snap.songName}} did.' },
     { speaker:'player', text:'Because it was good?' },
     { speaker:'griswald', text:'Because it was real.' },
     { speaker:'griswald', text:'(Gift Received: Rainfall Stage Lighting)' },
@@ -73,7 +72,6 @@ const griswald = {
     { speaker:'griswald', text:'Number one.' },
     { speaker:'player', text:'I didnt expect that.' },
     { speaker:'griswald', text:'You shouldve.' },
-    { speaker:'griswald', text:'(Beat.)' },
     { speaker:'griswald', text:'Your first grunge track felt like you were testing the water.' },
     { speaker:'player', text:'Yeah I think I was.' },
     { speaker:'griswald', text:'This one didnt.' },
@@ -85,7 +83,6 @@ const griswald = {
     { speaker:'griswald', text:'Yeah.' },
     { speaker:'player', text:'Its just trees.' },
     { speaker:'griswald', text:'Thats where I played your track.' },
-    { speaker:'griswald', text:'(Beat.)' },
     { speaker:'griswald', text:'Sounded right out there.' },
     { speaker:'player', text:'You brought a speaker into the woods?' },
     { speaker:'griswald', text:'Obviously.' },

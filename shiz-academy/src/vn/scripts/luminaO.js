@@ -4,7 +4,7 @@ const luminaO = {
   1: [
     { speaker:'lumina', text:"You released something tonight." },
     { speaker:'player', text:"Oh. Hi." },
-    { speaker:'lumina', text:"I heard it on Shizy-Fi. The synthwave track." },
+    { speaker:'lumina', text:"I heard it on Shizy-Fi. '{{snap.songName}}', the Synthwave track." },
     { speaker:'lumina', text:"It felt unguarded." },
     { speaker:'player', text:"Unguarded?" },
     { speaker:'lumina', text:"Like you werent trying to impress anyone." },
@@ -72,4 +72,3 @@ const luminaO = {
 };
 
 export default luminaO;
-

@@ -8,6 +8,7 @@ export default function VisualNovelModal({
   friendModal,
   setFriendModal,
   performerName,
+  songHistory,
   styles,
   friends,
   setFriends,
@@ -59,6 +60,28 @@ export default function VisualNovelModal({
   const leftActive = !!isLeft;
   const rightActive = !isLeft;
   const friendMeta = FRIEND_META[friendId] || { name: friendId, bust: '/art/friends/luminao_bust.png' };
+
+  // --- Text formatting helpers (placeholders) ---
+  function latestSongNameByGenre(genreName) {
+    try {
+      const g = (genreName||'').toLowerCase();
+      const entry = (songHistory||[]).find(s => (s.genre||'').toLowerCase() === g);
+      const title = (entry && typeof entry.songName === 'string' && entry.songName.trim()) ? entry.songName.trim() : null;
+      return title || (g ? `your ${g} song` : 'your song');
+    } catch { return 'your song'; }
+  }
+  function formatVNText(text) {
+    if (typeof text !== 'string') return text;
+    let out = text;
+    // Snapshot title: {{snap.songName}}
+    const snapName = friendModal && friendModal.snapshot && friendModal.snapshot.songName ? friendModal.snapshot.songName : null;
+    out = out.replace(/\{\{\s*snap\.songName\s*\}\}/g, snapName || 'your song');
+    // Explicit genre title: {{song:Genre}}
+    out = out.replace(/\{\{\s*song:([^}]+)\}\}/g, (_, g) => {
+      return latestSongNameByGenre((g||'').trim());
+    });
+    return out;
+  }
 
   // Typing effect (component-local)
   const [vnTyping, setVnTyping] = useState(false);
@@ -261,7 +284,7 @@ export default function VisualNovelModal({
             <div style={{ position:'absolute', left: isLeft? 16 : 'auto', right: !isLeft? 16 : 'auto', bottom: 16, maxWidth: 420 }}>
               <div style={{ ...styles.vnBubble, ...(isLeft? styles.vnBubbleLeft : styles.vnBubbleRight) }}>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{isLeft ? (performerName || 'You') : friendMeta.name}</div>
-                <div>{vnTyping ? '.'.repeat((vnTypingTick||0)+1) : line.text}</div>
+                <div>{vnTyping ? '.'.repeat((vnTypingTick||0)+1) : formatVNText(line.text)}</div>
               </div>
             </div>
           )}

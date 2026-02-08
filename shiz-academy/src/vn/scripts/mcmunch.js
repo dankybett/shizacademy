@@ -2,7 +2,7 @@
 // Each level is an array of entries: either {speaker, text} or {type:'choice', speaker, options, responses}
 const mcmunch = {
   1: [
-    { speaker:'mcmunch', text:"Hold up. That boom-bap track was YOU?" },
+    { speaker:'mcmunch', text:"Hold up. That hip-hop track '{{snap.songName}}' was YOU?" },
     { speaker:'player', text:"Yeah?" },
     { speaker:'mcmunch', text:"Bold move." },
     { speaker:'player', text:"Why?" },
@@ -37,7 +37,7 @@ const mcmunch = {
   3: [
     { speaker:'mcmunch', text:'Alright. Ill say it once.' },
     { speaker:'player', text:'Say what?' },
-    { speaker:'mcmunch', text:'That last track? Fire.' },
+    { speaker:'mcmunch', text:'{{snap.songName}}. Fire.' },
     { speaker:'player', text:'You dont have to' },
     { speaker:'mcmunch', text:'No, I do. Because now its interesting.' },
     { speaker:'player', text:'What is?' },

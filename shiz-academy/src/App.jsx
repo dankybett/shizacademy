@@ -620,7 +620,7 @@ export default function App() {
       },
     },
   });
-  const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number }]
+  const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number, snapshot?:{ songName?, genre?, releaseWeek?, chartRank? } }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
   const [vnTyping, setVnTyping] = useState(false);
   const [vnTypingTick, setVnTypingTick] = useState(0);
@@ -716,12 +716,12 @@ export default function App() {
   const singAudioRef = useRef(null);
 
   // --- Friends/VN helpers ---
-  function enqueueFriendEvent(friendId, targetLevel){
+  function enqueueFriendEvent(friendId, targetLevel, snapshot){
     setPendingFriendEvents(prev => {
       const curr = friends?.[friendId]?.level || 0;
       if (targetLevel <= curr) return prev;
       if (prev.some(ev => ev.friendId===friendId && ev.targetLevel===targetLevel)) return prev;
-      const next = [...prev, { friendId, targetLevel, week }];
+      const next = [...prev, { friendId, targetLevel, week, snapshot: snapshot || null }];
       next.sort((a,b)=> (a.week - b.week) || (a.targetLevel - b.targetLevel));
       return next;
     });
@@ -730,115 +730,103 @@ export default function App() {
   function checkFriendCriteria(){
     // Lumina-O template
     const lumLevel = friends?.luminaO?.level || 0;
+    const lumNext = (lumLevel || 0) + 1;
     const synthSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'synthwave');
     const hasSynth = synthSongs.length > 0;
+    const latestSynth = synthSongs.slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0] || null;
     const latestSynthWeek = synthSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
-    const hasTop5Synth = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank<=5);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='synthwave';
-        });
-      } catch(_) { return false; }
-    })();
-    const hasTop1Synth = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank===1);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='synthwave';
-        });
-      } catch(_) { return false; }
-    })();
-    if (lumLevel < 1 && hasSynth) enqueueFriendEvent('luminaO', 1);
+    // Trends-based gating: evaluate current week's chart only
+    const synthTrends = (trendsByWeek && trendsByWeek[week]) || null;
+    const synthMe = synthTrends && synthTrends.find(it => it && it.isPlayer);
+    const synthRecent = (songHistory||[]).find(s => ((s.releaseWeek===week) || (s.releaseWeek===week-1)) && (s.genre||'').toLowerCase()==='synthwave');
+    const hasTop5Synth = !!(synthMe && synthRecent && synthMe.rank <= 5);
+    const hasTop1Synth = !!(synthMe && synthRecent && synthMe.rank === 1);
     const hit20 = friendMilestones?.luminaO?.hit20Week || null;
     const hit50 = friendMilestones?.luminaO?.hit50Week || null;
-    // Allow same-week unlock when the synth release pushes you over 20/50
-    if (lumLevel < 2 && hit20 != null && latestSynthWeek >= hit20) enqueueFriendEvent('luminaO', 2);
-    if (lumLevel < 3 && hit50 != null && latestSynthWeek >= hit50) enqueueFriendEvent('luminaO', 3);
-    if (lumLevel < 4 && hasTop5Synth) enqueueFriendEvent('luminaO', 4);
-    if (lumLevel < 5 && hasTop1Synth) enqueueFriendEvent('luminaO', 5);
+    if (lumNext === 1 && hasSynth) {
+      enqueueFriendEvent('luminaO', 1, latestSynth ? { songName: latestSynth.songName, genre: latestSynth.genre, releaseWeek: latestSynth.releaseWeek } : null);
+    } else if (lumNext === 2 && hit20 != null && latestSynthWeek >= hit20) {
+      const entry = synthSongs.filter(s => (s.releaseWeek||0) >= hit20).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('luminaO', 2, snap);
+    } else if (lumNext === 3 && hit50 != null && latestSynthWeek >= hit50) {
+      const entry = synthSongs.filter(s => (s.releaseWeek||0) >= hit50).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('luminaO', 3, snap);
+    } else if (lumNext === 4 && hasTop5Synth) {
+      const entry = synthRecent || latestSynth;
+      const rank = synthMe ? synthMe.rank : null;
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek, chartRank: rank } : null;
+      enqueueFriendEvent('luminaO', 4, snap);
+    } else if (lumNext === 5 && hasTop1Synth) {
+      enqueueFriendEvent('luminaO', 5, null);
+    }
 
     // Griswald: triggers on Rock genre, otherwise same thresholds as Lumina
     const grisLevel = friends?.griswald?.level || 0;
+    const grisNext = (grisLevel || 0) + 1;
     const rockSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'rock');
     const hasRock = rockSongs.length > 0;
+    const latestRock = rockSongs.slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0] || null;
     const latestRockWeek = rockSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
-    const hasTop5Rock = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank<=5);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='rock';
-        });
-      } catch(_) { return false; }
-    })();
-    const hasTop1Rock = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank===1);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='rock';
-        });
-      } catch(_) { return false; }
-    })();
-    if (grisLevel < 1 && hasRock) enqueueFriendEvent('griswald', 1);
+    const rockTrends = (trendsByWeek && trendsByWeek[week]) || null;
+    const rockMe = rockTrends && rockTrends.find(it => it && it.isPlayer);
+    const rockRecent = (songHistory||[]).find(s => ((s.releaseWeek===week) || (s.releaseWeek===week-1)) && (s.genre||'').toLowerCase()==='rock');
+    const hasTop5Rock = !!(rockMe && rockRecent && rockMe.rank <= 5);
+    const hasTop1Rock = !!(rockMe && rockRecent && rockMe.rank === 1);
     const hit20g = friendMilestones?.griswald?.hit20Week || null;
     const hit50g = friendMilestones?.griswald?.hit50Week || null;
-    if (grisLevel < 2 && hit20g != null && latestRockWeek >= hit20g) enqueueFriendEvent('griswald', 2);
-    if (grisLevel < 3 && hit50g != null && latestRockWeek >= hit50g) enqueueFriendEvent('griswald', 3);
-    if (grisLevel < 4 && hasTop5Rock) enqueueFriendEvent('griswald', 4);
-    if (grisLevel < 5 && hasTop1Rock) enqueueFriendEvent('griswald', 5);
+    if (grisNext === 1 && hasRock) {
+      enqueueFriendEvent('griswald', 1, latestRock ? { songName: latestRock.songName, genre: latestRock.genre, releaseWeek: latestRock.releaseWeek } : null);
+    } else if (grisNext === 2 && hit20g != null && latestRockWeek >= hit20g) {
+      const entry = rockSongs.filter(s => (s.releaseWeek||0) >= hit20g).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('griswald', 2, snap);
+    } else if (grisNext === 3 && hit50g != null && latestRockWeek >= hit50g) {
+      const entry = rockSongs.filter(s => (s.releaseWeek||0) >= hit50g).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('griswald', 3, snap);
+    } else if (grisNext === 4 && hasTop5Rock) {
+      const entry = rockRecent || latestRock;
+      const rank = rockMe ? rockMe.rank : null;
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek, chartRank: rank } : null;
+      enqueueFriendEvent('griswald', 4, snap);
+    } else if (grisNext === 5 && hasTop1Rock) {
+      enqueueFriendEvent('griswald', 5, null);
+    }
 
     // MC Munch: triggers on Hip-Hop genre
     const munchLevel = friends?.mcmunch?.level || 0;
+    const munchNext = (munchLevel || 0) + 1;
     const hhSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'hip-hop');
     const hasHipHop = hhSongs.length > 0;
+    const latestHipHop = hhSongs.slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0] || null;
     const latestHipHopWeek = hhSongs.reduce((max, s) => Math.max(max, s.releaseWeek||0), 0);
-    const hasTop5HipHop = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank<=5);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='hip-hop';
-        });
-      } catch(_) { return false; }
-    })();
-    const hasTop1HipHop = (()=>{
-      try {
-        const weeks = Object.keys(trendsByWeek||{}).map(k=>+k);
-        return weeks.some(wk => {
-          const list = (trendsByWeek && trendsByWeek[wk]) || [];
-          const me = list.find(it => it && it.isPlayer && it.rank===1);
-          if (!me) return false;
-          const entry = (songHistory||[]).find(s => s.releaseWeek===wk || s.releaseWeek===wk-1);
-          return entry && (entry.genre||'').toLowerCase()==='hip-hop';
-        });
-      } catch(_) { return false; }
-    })();
-    if (munchLevel < 1 && hasHipHop) enqueueFriendEvent('mcmunch', 1);
+    const hhTrends = (trendsByWeek && trendsByWeek[week]) || null;
+    const hhMe = hhTrends && hhTrends.find(it => it && it.isPlayer);
+    const hhRecent = (songHistory||[]).find(s => ((s.releaseWeek===week) || (s.releaseWeek===week-1)) && (s.genre||'').toLowerCase()==='hip-hop');
+    const hasTop5HipHop = !!(hhMe && hhRecent && hhMe.rank <= 5);
+    const hasTop1HipHop = !!(hhMe && hhRecent && hhMe.rank === 1);
     const hit20m = friendMilestones?.mcmunch?.hit20Week || null;
     const hit50m = friendMilestones?.mcmunch?.hit50Week || null;
-    if (munchLevel < 2 && hit20m != null && latestHipHopWeek >= hit20m) enqueueFriendEvent('mcmunch', 2);
-    if (munchLevel < 3 && hit50m != null && latestHipHopWeek >= hit50m) enqueueFriendEvent('mcmunch', 3);
-    if (munchLevel < 4 && hasTop5HipHop) enqueueFriendEvent('mcmunch', 4);
-    if (munchLevel < 5 && hasTop1HipHop) enqueueFriendEvent('mcmunch', 5);
+    if (munchNext === 1 && hasHipHop) {
+      enqueueFriendEvent('mcmunch', 1, latestHipHop ? { songName: latestHipHop.songName, genre: latestHipHop.genre, releaseWeek: latestHipHop.releaseWeek } : null);
+    } else if (munchNext === 2 && hit20m != null && latestHipHopWeek >= hit20m) {
+      const entry = hhSongs.filter(s => (s.releaseWeek||0) >= hit20m).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('mcmunch', 2, snap);
+    } else if (munchNext === 3 && hit50m != null && latestHipHopWeek >= hit50m) {
+      const entry = hhSongs.filter(s => (s.releaseWeek||0) >= hit50m).slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0];
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek } : null;
+      enqueueFriendEvent('mcmunch', 3, snap);
+    } else if (munchNext === 4 && hasTop5HipHop) {
+      const entry = hhRecent || latestHipHop;
+      const rank = hhMe ? hhMe.rank : null;
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek, chartRank: rank } : null;
+      enqueueFriendEvent('mcmunch', 4, snap);
+    } else if (munchNext === 5 && hasTop1HipHop) {
+      enqueueFriendEvent('mcmunch', 5, null);
+    }
   }
 
   useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek]);
@@ -2919,6 +2907,7 @@ function stationTarget(type) {
             friendModal={friendModal}
             setFriendModal={setFriendModal}
             performerName={performerName}
+            songHistory={songHistory}
             styles={styles}
             friends={friends}
             setFriends={setFriends}
@@ -3630,7 +3619,7 @@ function stationTarget(type) {
                             </div>
                             <div style={{ display:'flex', gap:6 }}>
                                 <button style={styles.smallBtn} onClick={()=>{
-                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0 });
+                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null });
                                   setPendingFriendEvents(prev=> prev.slice(1));
                                   setLastFriendProgressWeek(week);
                                   setMyBubbleMessagesOpen(false);
