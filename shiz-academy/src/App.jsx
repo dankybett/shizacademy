@@ -3237,6 +3237,7 @@ function stationTarget(type) {
           >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
               {null}
               {null}
@@ -3413,6 +3414,7 @@ function stationTarget(type) {
           >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
                   <div style={{ display:'flex', gap:12, marginTop: 8 }}>
                     <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
@@ -3507,6 +3509,7 @@ function stationTarget(type) {
           >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
                   <div style={{ display:'flex', gap:12, marginTop: 8 }}>
                     <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
