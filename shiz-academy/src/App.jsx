@@ -74,6 +74,12 @@ function genEventSchedule(performerName, startTs) {
   ]);
   push(28, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.85 });
   push(34, 'festival', 'City Spotlight', 'Music week', 'Citywide spotlight increases turnout and payouts.', 'bonus', { fanMult: 1.3, payoutMult: 1.2 });
+  // Seasonal: Upcoming Wizmas period (weeks 44-48)
+  // Adds temporary genre 'Wizmas Banger' with special multipliers
+  for (let wk = 44; wk <= 48; wk++) {
+    const title = (wk === 48) ? 'Wizmas' : 'Wizmas this month';
+    push(wk, 'wizmas', title, 'Seasonal hype', 'Wizmas season: Wizmas Banger songs get boosted money and fans, but are swingy and can flop hard.', 'bonus', { wizmas: true, wizmasFanMult: 1.5, wizmasPayoutMult: 1.5 });
+  }
   // One random mild penalty (spaced after week 16)
   const randWeek = 16 + Math.floor(rnd() * 12); // 16..27
   push(randWeek, 'offweek', 'Off-Week', 'Crowds feel quiet', 'Lower than usual interest this week.', 'penalty', { fanMult: 0.9, payoutMult: 0.9 });
@@ -97,6 +103,10 @@ function mergeEffects(eventsForWeek) {
       if (typeof e.effect.payoutMult === 'number') eff.payoutMult *= e.effect.payoutMult;
       if (typeof e.effect.shopDiscount === 'number') eff.shopDiscount *= e.effect.shopDiscount;
       if (typeof e.effect.grantMoney === 'number') eff.grantMoney = (eff.grantMoney||0) + e.effect.grantMoney;
+      // Seasonal Wizmas flags/multipliers (apply only to Wizmas Banger songs in release flow)
+      if (e.effect.wizmas) eff.wizmas = true;
+      if (typeof e.effect.wizmasFanMult === 'number') eff.wizmasFanMult = (eff.wizmasFanMult||1) * e.effect.wizmasFanMult;
+      if (typeof e.effect.wizmasPayoutMult === 'number') eff.wizmasPayoutMult = (eff.wizmasPayoutMult||1) * e.effect.wizmasPayoutMult;
     }
   });
   return eff;
@@ -340,6 +350,19 @@ const COMPAT = {
     Heartbreak: -1,
     Melancholy: 0,
   },
+  // Seasonal temporary genre: always risky with any theme
+  'Wizmas Banger': {
+    Love: -1,
+    Heartbreak: -1,
+    Freedom: -1,
+    Party: -1,
+    Rebellion: -1,
+    Nostalgia: -1,
+    Adventure: -1,
+    Dreams: -1,
+    Empowerment: -1,
+    Melancholy: -1,
+  },
 };
 
 function clamp(n, min, max) {
@@ -379,7 +402,9 @@ function computePairBonus(genre, theme, randomize = false) {
 // Swingier, release-time only bonus based on weakest roll quality
 // s, w, p are inverted normalized dice results in [0,1], higher = better
 function computePairSwingBonus(compat, s, w, p) {
-  const q = Math.min(s || 0, w || 0, p || 0); // weakest link
+  // Median gate: use the median of the three rolls instead of the minimum
+  const vals = [s || 0, w || 0, p || 0].sort((a, b) => a - b);
+  const q = vals[1]; // median
   const a = ((s || 0) + (w || 0) + (p || 0)) / 3; // average
   const good = q >= 0.74 && a >= 0.78;
   const mid = !good && q >= 0.45; // anything above bad but not meeting good gate
@@ -1001,6 +1026,7 @@ export default function App() {
   }
 
   const allDiceSet = useMemo(() => !!(rollBest?.sing && rollBest?.write && rollBest?.perform), [rollBest]);
+
   const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
 
   const gains = useMemo(() => ({
@@ -1338,7 +1364,7 @@ function stationTarget(type) {
       if (typeof s.vocals === "number") setVocals(s.vocals);
       if (typeof s.writing === "number") setWriting(s.writing);
       if (typeof s.stage === "number") setStage(s.stage);
-      if (GENRES.includes(s.genre)) setGenre(s.genre);
+      if (GENRES.includes(s.genre) || s.genre === 'Wizmas Banger') setGenre(s.genre);
       if (THEMES.includes(s.theme)) setTheme(s.theme);
       if (typeof s.songName === "string") setSongName(s.songName);
       if (typeof s.conceptLocked === "boolean") setConceptLocked(s.conceptLocked);
@@ -1880,25 +1906,43 @@ function stationTarget(type) {
     const fanBonus = Math.floor(fans * 0.05); // +5% of current fans
     let fansGain = Math.round((fansGainByGrade[grade] + fanBonus) * (venue.fanMult ?? 1));
 
+    // Risky underperformance rule: if risky pairing and grade is C or D, no new fans
+    const riskyFlopNoFans = (compat < 0 && (grade === 'C' || grade === 'D'));
+    if (riskyFlopNoFans) {
+      fansGain = 0;
+    }
+
     // Money: venue economics (apply payout multiplier from events)
+    const isWizmasActive = !!(activeEffects && activeEffects.wizmas);
+    const isWizmasSong = (genre === 'Wizmas Banger');
     const margin = score - (venue.breakEven ?? 0);
-    let gross = Math.max(0, margin) * (venue.payoutPerPoint ?? 0) * (activeEffects?.payoutMult || 1);
+    let gross = Math.max(0, margin) * (venue.payoutPerPoint ?? 0) * (activeEffects?.payoutMult || 1) * ((isWizmasActive && isWizmasSong) ? (activeEffects?.wizmasPayoutMult || 1) : 1);
     let net = Math.floor(gross - (venue.cost ?? 0));
     // Busking never loses money; small tip floor
     if (venueKey === 'busking') net = Math.max(venue.tipFloor ?? 5, net);
     // Early guardrail: weeks 1?3, cap losses
     if (week <= 3) net = Math.max(net, -20);
 
-    const moneyGain = net;
+    let moneyGain = net;
 
     // Optional twist: busking grants small stage boost
     if (venueKey === 'busking') {
       setStage((v) => clamp(v + 0.2, 0, 10));
     }
 
+    // Wizmas: releases of Wizmas Banger during Wizmas weeks get boosted fans/money,
+    // but if they flop (C/D), they earn neither fans nor money.
+    const wizmasFlopZeroAll = (isWizmasActive && isWizmasSong && (grade === 'C' || grade === 'D'));
+    if (wizmasFlopZeroAll) {
+      moneyGain = 0;
+      fansGain = 0;
+    }
+
     setMoney((m) => m + moneyGain);
-    // Apply fan multiplier from events
-    const fansGainApplied = Math.round(fansGain * (activeEffects?.fanMult || 1));
+    // Apply fan multiplier from events (+ seasonal Wizmas boost only for Wizmas songs)
+    const fansGainApplied = Math.round(
+      fansGain * (activeEffects?.fanMult || 1) * ((isWizmasActive && isWizmasSong) ? (activeEffects?.wizmasFanMult || 1) : 1)
+    );
     setFans((f) => f + fansGainApplied);
 
     const chartPos = computeChartPosition(score, fans);
@@ -1934,6 +1978,8 @@ function stationTarget(type) {
       review: pickReview(grade),
       moneyGain,
       fansGain: fansGainApplied,
+      wizmasFlopZeroAll: !!wizmasFlopZeroAll,
+      riskyFlopNoFans: !!riskyFlopNoFans,
       feedback,
       fanComments: [],
     };
@@ -1955,6 +2001,7 @@ function stationTarget(type) {
           case 'Metal': return 'metal';
           case 'Folk': return 'folk';
           case 'Synthwave': return 'synthwave';
+          case 'Wizmas Banger': return 'wizmas';
           case 'Pop': default: return null;
         }
       })();
@@ -2012,6 +2059,7 @@ function stationTarget(type) {
           case 'Metal': return 'metal';
           case 'Folk': return 'folk';
           case 'Synthwave': return 'synthwave';
+          case 'Wizmas Banger': return 'wizmas';
           case 'Pop': default: return null; // Pop uses default
         }
       })();
@@ -2260,6 +2308,13 @@ function stationTarget(type) {
     if (ev.choices) return { effect: {} }; // no choice made yet
     return ev;
   })), [activeEvents, eventsResolved]);
+
+  // Genres available in the create-song modal (add seasonal Wizmas genre during event)
+  const availableGenres = useMemo(() => {
+    const base = [...GENRES];
+    if (activeEffects && activeEffects.wizmas && !base.includes('Wizmas Banger')) base.push('Wizmas Banger');
+    return base;
+  }, [activeEffects]);
 
   // On week start: if event grants money immediately or requires choice, handle modal/auto-grant once
   useEffect(() => {
@@ -3008,7 +3063,7 @@ function stationTarget(type) {
               <div style={{ ...styles.label, marginTop: 10 }}>Genre</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <select value={genre} onChange={(e)=>setGenre(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 180, padding:'6px 10px', background:'white', color:'black' }}>
-                  {GENRES.map(g => (<option key={g} value={g}>{g}</option>))}
+                  {availableGenres.map(g => (<option key={g} value={g}>{g}</option>))}
                 </select>
               </div>
 
@@ -4144,7 +4199,7 @@ function stationTarget(type) {
         )}
 
         {releaseOpen && lastResult && (
-          <div style={styles.overlayClear} onClick={() => setReleaseOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => { setReleaseOpen(false); try { if (lastResult) { if (lastResult.wizmasFlopZeroAll) { pushToast("This Wizmas song didn't land: no new fans or money"); } else if (lastResult.riskyFlopNoFans) { pushToast('Risky flop: no new fans.'); } } } catch (_) {} }}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
@@ -4178,6 +4233,16 @@ function stationTarget(type) {
                     <button
                 onClick={() => {
                   setReleaseOpen(false);
+                  // Show risky flop toast after the results modal closes
+                  try {
+                    if (lastResult) {
+                      if (lastResult.wizmasFlopZeroAll) {
+                        pushToast("This Wizmas song didn't land: no new fans or money");
+                      } else if (lastResult.riskyFlopNoFans) {
+                        pushToast('Risky flop: no new fans.');
+                      }
+                    }
+                  } catch (_) {}
                   if (finalePending && lastResult && lastResult.releaseWeek === MAX_WEEKS && !isPerforming && !suppressFinale) {
                     setFinalePending(false);
                     setEndYearReady(true);
