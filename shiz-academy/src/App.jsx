@@ -703,6 +703,9 @@ export default function App() {
   const [polaroidUnlocked, setPolaroidUnlocked] = useState(false);
   const [polaroidOpen, setPolaroidOpen] = useState(false);
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
+  // Shared songs (friends share WIP after LV5)
+  const [sharedSongs, setSharedSongs] = useState([]); // [{id, friendId, title, artist, audioSrc, shareWeek, liked, listened, injectedWeek}]
+  const sharedAudioRef = useRef(null);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -1361,6 +1364,7 @@ function stationTarget(type) {
       if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
       if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
+      if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
@@ -1827,6 +1831,7 @@ function stationTarget(type) {
       spotlightSnapUnlocked,
       polaroidUnlocked,
       ts: Date.now(),
+      sharedSongs,
     };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
     } catch (_) {}
@@ -2072,6 +2077,77 @@ function stationTarget(type) {
       audio.play().catch(() => {});
     } catch (_) {}
   }
+
+  // Schedule Griswald LV5 shared track between 2-5 weeks after LV5; clamp to two weeks before finale
+  useEffect(() => {
+    try {
+      const g = friends?.griswald || {};
+      const lvl = g.level || 0;
+      if (lvl >= 5) {
+        const needsLv5Week = !g.lv5Week;
+        const lv5WeekVal = g.lv5Week || week;
+        let nextState = {};
+        if (needsLv5Week) nextState.lv5Week = lv5WeekVal;
+        if (g.sharedTrackScheduledWeek == null) {
+          const seed = hashSeed(`${seedTs||0}|share|griswald|${lv5WeekVal}`);
+          const rnd = rngFrom(seed);
+          const offset = 2 + Math.floor(rnd()*4); // 2..5
+          let sched = lv5WeekVal + offset;
+          const maxWeek = MAX_WEEKS - 2;
+          if (sched > maxWeek) sched = maxWeek;
+          nextState.sharedTrackScheduledWeek = sched;
+          nextState.sharedTrackSent = false;
+          nextState.sharedTrackId = 'griswald_static_under_skin';
+        }
+        if (Object.keys(nextState).length) {
+          setFriends(prev => ({ ...prev, griswald: { ...(prev.griswald||{}), ...nextState } }));
+        }
+      }
+    } catch {}
+  }, [friends?.griswald?.level]);
+
+  // Deliver MyBubble message on the scheduled week
+  useEffect(() => {
+    try {
+      const g = friends?.griswald || {};
+      if (g.level >= 5 && g.sharedTrackScheduledWeek === week && !g.sharedTrackSent) {
+        const entry = {
+          id: `share-griswald-${week}`,
+          friendId: 'griswald',
+          title: 'Static Under Skin',
+          artist: "Griswald's Grumble",
+          audioSrc: "/audio/Griswald's Grumble - Static Under Skin.mp3",
+          shareWeek: week,
+          liked: false,
+          listened: false,
+          injectedWeek: null,
+        };
+        setSharedSongs(arr => [entry, ...arr]);
+        setFriends(prev => ({ ...prev, griswald: { ...(prev.griswald||{}), sharedTrackSent: true } }));
+      }
+    } catch {}
+  }, [week, friends]);
+
+  // Inject shared songs into next week's Global Trends (small boost if liked)
+  useEffect(() => {
+    try {
+      const pending = (sharedSongs||[]).find(s => s.injectedWeek == null && (s.shareWeek + 1) === week);
+      if (!pending) return;
+      const liked = !!pending.liked;
+      const wk = week;
+      setTrendsByWeek(prev => {
+        const base = (prev && prev[wk]) ? prev[wk].slice() : genTrendsForWeek(wk, performerName, seedTs || Date.now(), audioTracks);
+        const scoreBase = 84; // mid-high baseline
+        const score = scoreBase + (liked ? 3 : 1);
+        const list = base.filter(it => !it.isPlayer);
+        list.push({ rank:0, artist: pending.artist, title: pending.title, score, isPlayer:false, audioSources:[pending.audioSrc], shared:true, liked });
+        list.sort((a,b)=> b.score - a.score);
+        list.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
+        return { ...(prev||{}), [wk]: list.slice(0,5) };
+      });
+      setSharedSongs(arr => arr.map(x => x.id===pending.id ? { ...x, injectedWeek: week } : x));
+    } catch {}
+  }, [week, sharedSongs, performerName, seedTs, audioTracks]);
 
   function skipPerformance() {
     try {
@@ -3609,6 +3685,39 @@ function stationTarget(type) {
                           );
                         })()}
                       </div>
+                      {/* Shared tracks section */}
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                       <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
                       {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
                         (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
@@ -3694,6 +3803,18 @@ function stationTarget(type) {
                   <div style={styles.sub}>No upcoming events.</div>
                 )}
               </div>
+              {(() => {
+                try {
+                  const sharedNew = (sharedSongs||[]).some(s => (s.shareWeek||0) === week);
+                  if (!sharedNew) return null;
+                  return (
+                    <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
+                      <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
+                      <div style={styles.sub}>New message in MyBubble.</div>
+                    </div>
+                  );
+                } catch(_) { return null; }
+              })()}
               {(() => {
                 const list = trendsByWeek && trendsByWeek[week];
                 if (!list || list.length === 0) return null;
