@@ -60,7 +60,7 @@ const mcmunch = {
   ],
   5: [ { speaker:'mcmunch', text:'Own the room.' } ],
   5: [
-    { speaker:'mcmunch', text:'Number one.' },
+    { speaker:'mcmunch', text:'{{snap.songName}}. Number one.' },
     { speaker:'mcmunch', text:'Okay. Ill say it.' },
     { speaker:'player', text:'Say what?' },
     { speaker:'mcmunch', text:"You dont sound like youre trying to beat me anymore." },

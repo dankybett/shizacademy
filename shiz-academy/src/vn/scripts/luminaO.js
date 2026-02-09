@@ -65,7 +65,7 @@ const luminaO = {
   ],
   5: [
     { speaker:'lumina', text:"Top charts are noisy." },
-    { speaker:'lumina', text:"But you cut through." },
+    { speaker:'lumina', text:"But you cut through with {{snap.songName}}." },
     { speaker:'player', text:"It doesnt feel real yet." },
     { speaker:'lumina', text:"It will." },
   ],
