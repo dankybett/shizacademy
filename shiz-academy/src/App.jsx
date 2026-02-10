@@ -27,7 +27,10 @@ const THEMES = [
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Posters available in public assets
-const POSTERS = Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`);
+const POSTERS = [
+  ...Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`),
+  '/art/posters/luminaposter.png',
+];
 
 // Global season length (single source of truth)
 const MAX_WEEKS = 52;
@@ -2128,6 +2131,105 @@ function stationTarget(type) {
     } catch {}
   }, [week, friends]);
 
+  // Schedule Lumina-O LV5 shared track between 2-5 weeks after LV5; clamp to two weeks before finale
+  useEffect(() => {
+    try {
+      const f = friends?.luminaO || {};
+      const lvl = f.level || 0;
+      if (lvl >= 5) {
+        const needsLv5Week = !f.lv5Week;
+        const lv5WeekVal = f.lv5Week || week;
+        let nextState = {};
+        if (needsLv5Week) nextState.lv5Week = lv5WeekVal;
+        if (f.sharedTrackScheduledWeek == null) {
+          const seed = hashSeed(`${seedTs||0}|share|luminaO|${lv5WeekVal}`);
+          const rnd = rngFrom(seed);
+          const offset = 2 + Math.floor(rnd()*4); // 2..5
+          let sched = lv5WeekVal + offset;
+          const maxWeek = MAX_WEEKS - 2;
+          if (sched > maxWeek) sched = maxWeek;
+          nextState.sharedTrackScheduledWeek = sched;
+          nextState.sharedTrackSent = false;
+          nextState.sharedTrackId = 'lumina_dont_touch_the_flame';
+        }
+        if (Object.keys(nextState).length) {
+          setFriends(prev => ({ ...prev, luminaO: { ...(prev.luminaO||{}), ...nextState } }));
+        }
+      }
+    } catch {}
+  }, [friends?.luminaO?.level]);
+
+  // Deliver Lumina-O shared track on the scheduled week
+  useEffect(() => {
+    try {
+      const f = friends?.luminaO || {};
+      if (f.level >= 5 && f.sharedTrackScheduledWeek === week && !f.sharedTrackSent) {
+        const entry = {
+          id: `share-lumina-${week}`,
+          friendId: 'luminaO',
+          title: "Don't Touch the Flame",
+          artist: 'Lumina-O',
+          audioSrc: "/audio/Lumina-O - Don't Touch the Flame.mp3",
+          shareWeek: week,
+          liked: false,
+          listened: false,
+          injectedWeek: null,
+        };
+        setSharedSongs(arr => [entry, ...arr]);
+        setFriends(prev => ({ ...prev, luminaO: { ...(prev.luminaO||{}), sharedTrackSent: true } }));
+      }
+    } catch {}
+  }, [week, friends]);
+
+  // Schedule MC Munch LV5 shared track between 2-5 weeks after LV5; clamp to two weeks before finale
+  useEffect(() => {
+    try {
+      const f = friends?.mcmunch || {};
+      const lvl = f.level || 0;
+      if (lvl >= 5) {
+        const needsLv5Week = !f.lv5Week;
+        const lv5WeekVal = f.lv5Week || week;
+        let nextState = {};
+        if (needsLv5Week) nextState.lv5Week = lv5WeekVal;
+        if (f.sharedTrackScheduledWeek == null) {
+          const seed = hashSeed(`${seedTs||0}|share|mcmunch|${lv5WeekVal}`);
+          const rnd = rngFrom(seed);
+          const offset = 2 + Math.floor(rnd()*4); // 2..5
+          let sched = lv5WeekVal + offset;
+          const maxWeek = MAX_WEEKS - 2;
+          if (sched > maxWeek) sched = maxWeek;
+          nextState.sharedTrackScheduledWeek = sched;
+          nextState.sharedTrackSent = false;
+          nextState.sharedTrackId = 'mcmunch_little_giant';
+        }
+        if (Object.keys(nextState).length) {
+          setFriends(prev => ({ ...prev, mcmunch: { ...(prev.mcmunch||{}), ...nextState } }));
+        }
+      }
+    } catch {}
+  }, [friends?.mcmunch?.level]);
+
+  // Deliver MC Munch shared track on the scheduled week
+  useEffect(() => {
+    try {
+      const f = friends?.mcmunch || {};
+      if (f.level >= 5 && f.sharedTrackScheduledWeek === week && !f.sharedTrackSent) {
+        const entry = {
+          id: `share-mcmunch-${week}`,
+          friendId: 'mcmunch',
+          title: 'Little Giant',
+          artist: 'MC Munch',
+          audioSrc: '/audio/MC Munch - Little Giant.mp3',
+          shareWeek: week,
+          liked: false,
+          listened: false,
+          injectedWeek: null,
+        };
+        setSharedSongs(arr => [entry, ...arr]);
+        setFriends(prev => ({ ...prev, mcmunch: { ...(prev.mcmunch||{}), sharedTrackSent: true } }));
+      }
+    } catch {}
+  }, [week, friends]);
   // Inject shared songs into next week's Global Trends (small boost if liked)
   useEffect(() => {
     try {
@@ -3965,7 +4067,8 @@ function stationTarget(type) {
                                 if (!disabled) {
                                   setMoney(m=>m-priceP);
                                   setUnlockedPosters(prev => {
-                                    const all = POSTERS.map((_,i)=>i);
+                                    const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
+                                    const all = POSTERS.map((_,i)=>i).filter(i => i !== lumIdx);
                                     const remaining = all.filter(i => !prev.includes(i));
                                     const pool = remaining.length>0 ? remaining : all;
                                     const pick = pool[Math.floor(Math.random()*pool.length)];

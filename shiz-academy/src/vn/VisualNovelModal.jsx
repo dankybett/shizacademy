@@ -412,9 +412,8 @@ export default function VisualNovelModal({
                       if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
                         setBonusRolls(r=>r+1);
                         try {
-                          const all = POSTERS.map((_,i)=>i);
-                          const remaining = all.filter(i=> !(unlockedPosters||[]).includes(i));
-                          const idxNew = remaining.length>0 ? remaining[0] : (currentPosterIdx ?? 0);
+                          const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
+                          const idxNew = lumIdx >= 0 ? lumIdx : 0;
                           if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
                           if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
                         } catch { /* ignore */ }
@@ -450,9 +449,8 @@ export default function VisualNovelModal({
                     if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
                       setBonusRolls(r=>r+1);
                       try {
-                        const all = POSTERS.map((_,i)=>i);
-                        const remaining = all.filter(i=> !(unlockedPosters||[]).includes(i));
-                        const idxNew = remaining.length>0 ? remaining[0] : (currentPosterIdx ?? 0);
+                        const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
+                        const idxNew = lumIdx >= 0 ? lumIdx : 0;
                         if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
                         if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
                       } catch { /* ignore */ }
