@@ -31,6 +31,12 @@ const POSTERS = [
   ...Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`),
   '/art/posters/luminaposter.png',
 ];
+// Seasonal Wizmas NPC tracks (appear in charts during Wizmas weeks only)
+const WIZMAS_TRACKS = [
+  { artist: 'Aurelle Starlight', title: 'Under the Emerald Mistletoe', audioSources: ["/audio/Aurelle Starlight - Under the Emerald Mistletoe.mp3"] },
+  { artist: 'The Ivy Lights', title: 'A Very Merry Wizmas', audioSources: ["/audio/The Ivy Lights - A Very Merry Wizmas.mp3"] },
+  { artist: 'Sylvie North', title: 'Cold Cocoa & Candlelight', audioSources: ["/audio/Sylvie North - Cold Cocoa & Candlelight.mp3"] },
+];
 
 // Global season length (single source of truth)
 const MAX_WEEKS = 52;
@@ -709,6 +715,8 @@ export default function App() {
   // Shared songs (friends share WIP after LV5)
   const [sharedSongs, setSharedSongs] = useState([]); // [{id, friendId, title, artist, audioSrc, shareWeek, liked, listened, injectedWeek}]
   const sharedAudioRef = useRef(null);
+  // Wizmas seasonal injection control (weeks injected this run)
+  const [wizmasInjectedWeeks, setWizmasInjectedWeeks] = useState([]);
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -1368,6 +1376,7 @@ function stationTarget(type) {
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
       if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
       if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
+      if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
@@ -1835,6 +1844,7 @@ function stationTarget(type) {
       polaroidUnlocked,
       ts: Date.now(),
       sharedSongs,
+      wizmasInjectedWeeks,
     };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
     } catch (_) {}
@@ -2241,15 +2251,41 @@ function stationTarget(type) {
         const base = (prev && prev[wk]) ? prev[wk].slice() : genTrendsForWeek(wk, performerName, seedTs || Date.now(), audioTracks);
         const scoreBase = 84; // mid-high baseline
         const score = scoreBase + (liked ? 3 : 1);
-        const list = base.filter(it => !it.isPlayer);
-        list.push({ rank:0, artist: pending.artist, title: pending.title, score, isPlayer:false, audioSources:[pending.audioSrc], shared:true, liked });
-        list.sort((a,b)=> b.score - a.score);
-        list.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
-        return { ...(prev||{}), [wk]: list.slice(0,5) };
+        base.push({ rank:0, artist: pending.artist, title: pending.title, score, isPlayer:false, audioSources:[pending.audioSrc], shared:true, liked });
+        base.sort((a,b)=> b.score - a.score);
+        base.slice(0,5).forEach((it,idx)=> it.rank = idx+1);
+        return { ...(prev||{}), [wk]: base.slice(0,5) };
       });
       setSharedSongs(arr => arr.map(x => x.id===pending.id ? { ...x, injectedWeek: week } : x));
     } catch {}
   }, [week, sharedSongs, performerName, seedTs, audioTracks]);
+
+  // Inject Wizmas NPC songs during Wizmas weeks (44-48)
+  useEffect(() => {
+    try {
+      if (week < 44 || week > 48) return;
+      if ((wizmasInjectedWeeks||[]).includes(week)) return;
+      const wk = week;
+      const seed = hashSeed(`${seedTs||0}|wizmas|${wk}`);
+      const rnd = rngFrom(seed);
+      const count = Math.min(2, WIZMAS_TRACKS.length);
+      const indices = Array.from({ length: WIZMAS_TRACKS.length }, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = indices[i]; indices[i] = indices[j]; indices[j] = t; }
+      const picks = indices.slice(0, count);
+      setTrendsByWeek(prev => {
+        const base = (prev && prev[wk]) ? prev[wk].slice() : genTrendsForWeek(wk, performerName, seedTs || Date.now(), audioTracks);
+        picks.forEach(idx => {
+          const t = WIZMAS_TRACKS[idx];
+          const score = 85 + Math.floor(rnd() * 4);
+          base.push({ rank:0, artist: t.artist, title: t.title, score, isPlayer:false, audioSources: t.audioSources, wizmas:true });
+        });
+        base.sort((a,b)=> b.score - a.score);
+        base.slice(0,5).forEach((it,ix)=> it.rank = ix+1);
+        return { ...(prev||{}), [wk]: base.slice(0,5) };
+      });
+      setWizmasInjectedWeeks(arr => (arr||[]).includes(week) ? arr : [ ...(arr||[]), week ]);
+    } catch {}
+  }, [week, wizmasInjectedWeeks, performerName, seedTs, audioTracks]);
 
   function skipPerformance() {
     try {
