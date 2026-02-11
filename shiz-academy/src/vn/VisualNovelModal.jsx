@@ -27,6 +27,14 @@ export default function VisualNovelModal({
   setPolaroidUnlocked,
   candleUnlocked,
   setCandleUnlocked,
+  setCandleVisible,
+  onairUnlocked,
+  setOnairUnlocked,
+  setOnairVisible,
+  fairylightsUnlocked,
+  setFairylightsUnlocked,
+  setFairylightsVisible,
+  setLampVisible,
   unlockedPosters,
   setUnlockedPosters,
   currentPosterIdx,
@@ -234,12 +242,80 @@ export default function VisualNovelModal({
       if ((friendModal.targetLevel||0) !== 99) return;
       const i = friendModal.idx || 0;
       const line = lines[i];
-      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('pine & smoke candle') && !candleUnlocked) {
+      const alreadyClaimed = !!(friends?.griswald?.rewardsClaimed?.wizmasCandle);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('pine & smoke candle') && !alreadyClaimed) {
         if (typeof setCandleUnlocked === 'function') setCandleUnlocked(true);
+        if (typeof setCandleVisible === 'function') setCandleVisible(true);
+        if (typeof setOnairVisible === 'function') setOnairVisible(false);
+        if (typeof setFriends === 'function') {
+          setFriends(prev => ({
+            ...prev,
+            griswald: {
+              ...(prev?.griswald||{}),
+              rewardsClaimed: { ...((prev?.griswald?.rewardsClaimed)||{}), wizmasCandle: true }
+            }
+          }));
+        }
         pushToast('Griswald gift: Pine & Smoke Candle unlocked');
       }
     } catch { /* ignore */ }
-  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, candleUnlocked, setCandleUnlocked, pushToast]);
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, candleUnlocked, setCandleUnlocked, pushToast]);
+
+  // MC Munch Wizmas (Lv99): unlock Mini ON AIR Sign (desk cosmetic)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'mcmunch') return;
+      if ((friendModal.targetLevel||0) !== 99) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.mcmunch?.rewardsClaimed?.wizmasOnAir);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('mini on air sign') && !alreadyClaimed) {
+        if (typeof setOnairUnlocked === 'function') setOnairUnlocked(true);
+        if (typeof setOnairVisible === 'function') setOnairVisible(true);
+        if (typeof setCandleVisible === 'function') setCandleVisible(false);
+        if (typeof setFriends === 'function') {
+          setFriends(prev => ({
+            ...prev,
+            mcmunch: {
+              ...(prev?.mcmunch||{}),
+              rewardsClaimed: { ...((prev?.mcmunch?.rewardsClaimed)||{}), wizmasOnAir: true }
+            }
+          }));
+        }
+        pushToast('MC Munch gift: Mini ON AIR Sign unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, onairUnlocked, setOnairUnlocked, pushToast]);
+
+  // Lumina-O Wizmas (Lv99): unlock Fairy Lights Jar (desk cosmetic)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'luminaO') return;
+      if ((friendModal.targetLevel||0) !== 99) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.luminaO?.rewardsClaimed?.wizmasFairyLights);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('frosted glass jar with fairy lights') && !alreadyClaimed) {
+        if (typeof setFairylightsUnlocked === 'function') setFairylightsUnlocked(true);
+        if (typeof setFairylightsVisible === 'function') setFairylightsVisible(true);
+        if (typeof setLampVisible === 'function') setLampVisible(false);
+        if (typeof setFriends === 'function') {
+          setFriends(prev => ({
+            ...prev,
+            luminaO: {
+              ...(prev?.luminaO||{}),
+              rewardsClaimed: { ...((prev?.luminaO?.rewardsClaimed)||{}), wizmasFairyLights: true }
+            }
+          }));
+        }
+        pushToast('Lumina-O gift: Fairy Lights Jar unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setLampVisible, setFairylightsUnlocked, setFairylightsVisible, pushToast]);
 
   // MC Munch LV5: unlock Custom Vinyl Sleeve (room keepsake)
   useEffect(() => {

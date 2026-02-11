@@ -717,11 +717,17 @@ export default function App() {
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
   // Wizmas Candle (desk cosmetic)
   const [candleUnlocked, setCandleUnlocked] = useState(false);
+  // Mini ON AIR Sign (desk cosmetic)
+  const [onairUnlocked, setOnairUnlocked] = useState(false);
+  // Fairy Lights Jar (desk cosmetic, shares lamp spot)
+  const [fairylightsUnlocked, setFairylightsUnlocked] = useState(false);
   // Furniture visibility toggles
   const [lampVisible, setLampVisible] = useState(true);
   const [vinylVisible, setVinylVisible] = useState(true);
   const [polaroidVisible, setPolaroidVisible] = useState(true);
   const [candleVisible, setCandleVisible] = useState(true);
+  const [onairVisible, setOnairVisible] = useState(true);
+  const [fairylightsVisible, setFairylightsVisible] = useState(true);
   // Furniture modal
   const [furnitureOpen, setFurnitureOpen] = useState(false);
   // Shared songs (friends share WIP after LV5)
@@ -1393,10 +1399,14 @@ function stationTarget(type) {
       if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
       if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
       if (typeof s.candleUnlocked === 'boolean') setCandleUnlocked(s.candleUnlocked);
+      if (typeof s.onairUnlocked === 'boolean') setOnairUnlocked(s.onairUnlocked);
+      if (typeof s.fairylightsUnlocked === 'boolean') setFairylightsUnlocked(s.fairylightsUnlocked);
       if (typeof s.lampVisible === 'boolean') setLampVisible(s.lampVisible);
       if (typeof s.vinylVisible === 'boolean') setVinylVisible(s.vinylVisible);
       if (typeof s.polaroidVisible === 'boolean') setPolaroidVisible(s.polaroidVisible);
       if (typeof s.candleVisible === 'boolean') setCandleVisible(s.candleVisible);
+      if (typeof s.onairVisible === 'boolean') setOnairVisible(s.onairVisible);
+      if (typeof s.fairylightsVisible === 'boolean') setFairylightsVisible(s.fairylightsVisible);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
@@ -1703,6 +1713,8 @@ function stationTarget(type) {
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
     poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
     lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
+    // Fairy lights jar anchor (slightly right of lamp, 30% smaller)
+    fairylights: { xPct: 56.40, yPct: 50.51, wPct: 5.32 },
     // Polaroid on desk (50% smaller than before)
     polaroid: { xPct: 64.6,  yPct: 59.9,  wPct: 2.6 }, // on desk near computer
     // Framed vinyl above mirror (doubled size, +50px right, -50px up)
@@ -1711,6 +1723,8 @@ function stationTarget(type) {
     posterHotspot: { xPct: 36.42, yPct: 66.0, wPct: 12.5 },
     // Wizmas candle on desk to the right of computer
     candle:   { xPct: 76.61, yPct: 59.06, wPct: 9.2 },
+    // Mini ON AIR Sign (shares desk region with candle)
+    onair:    { xPct: 75.98, yPct: 63.52, wPct: 4.6 },
   };
   function anchorStyle(a){
     return {
@@ -1783,10 +1797,14 @@ function stationTarget(type) {
       spotlightSnapUnlocked,
       polaroidUnlocked,
       candleUnlocked,
+      onairUnlocked,
+      fairylightsUnlocked,
       lampVisible,
       vinylVisible,
       polaroidVisible,
       candleVisible,
+      onairVisible,
+      fairylightsVisible,
       wizmasGift,
       ts: Date.now(),
     };
@@ -1873,10 +1891,14 @@ function stationTarget(type) {
       spotlightSnapUnlocked,
       polaroidUnlocked,
       candleUnlocked,
+      onairUnlocked,
+      fairylightsUnlocked,
       lampVisible,
       vinylVisible,
       polaroidVisible,
       candleVisible,
+      onairVisible,
+      fairylightsVisible,
       wizmasGift,
       ts: Date.now(),
       sharedSongs,
@@ -2357,6 +2379,24 @@ function stationTarget(type) {
     } catch {}
   }, [week]);
 
+  // Enforce mutual exclusivity: if both candle and ON AIR are visible, prefer ON AIR
+  useEffect(() => {
+    try {
+      if (candleVisible && onairVisible) {
+        setCandleVisible(false);
+      }
+    } catch {}
+  }, [candleVisible, onairVisible]);
+
+  // Enforce mutual exclusivity: if both lamp and fairy lights are visible, prefer Fairy Lights
+  useEffect(() => {
+    try {
+      if (lampVisible && fairylightsVisible) {
+        setLampVisible(false);
+      }
+    } catch {}
+  }, [lampVisible, fairylightsVisible]);
+
   function skipPerformance() {
     try {
       if (performAudioRef.current) {
@@ -2826,6 +2866,16 @@ function stationTarget(type) {
                     />
                   </div>
                 )}
+                {/* Fairy Lights Jar (shares lamp spot) */}
+                {fairylightsUnlocked && fairylightsVisible && (
+                  <div style={{ ...anchorStyle(ANCHORS.fairylights), zIndex: 3, position:'absolute', pointerEvents:'none' }} title="Fairy Lights Jar">
+                    {/* Intense purple glow: outer halo */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'340%', height:'300%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(180,90,255,0.75), rgba(180,90,255,0) 90%)', filter:'blur(14px)', animation:'candleFlicker 2.4s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
+                    {/* Inner vibrant core */}
+                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width:'200%', height:'180%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(210,120,255,0.95), rgba(210,120,255,0) 78%)', filter:'blur(8px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
+                    <img src={'/art/fairylights.png'} alt={'Fairy Lights'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 3px 8px rgba(0,0,0,.45))' }} />
+                  </div>
+                )}
                 {/* Microphone -> opens Create/Current Song modal */}
                 <div
                   style={{ ...anchorStyle(ANCHORS.mic), zIndex: 3 }}
@@ -2865,6 +2915,19 @@ function stationTarget(type) {
                     {/* Bright inner core */}
                     <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width:'240%', height:'220%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,200,110,0.80), rgba(255,200,110,0) 78%)', filter:'blur(6px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
                     <img src={'/art/wizmascandle.gif'} alt={'Candle'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.55))' }} />
+                  </div>
+                )}
+
+                {/* Mini ON AIR Sign (desk cosmetic) */}
+                {onairUnlocked && onairVisible && (
+                  <div style={{ ...anchorStyle(ANCHORS.onair), zIndex: 3, pointerEvents:'none' }} title="Mini ON AIR Sign">
+                    {/* Stronger red outer halo */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', width:'600%', height:'540%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,60,80,0.80), rgba(255,60,80,0) 96%)', filter:'blur(16px)', animation:'candleFlicker 2.6s ease-in-out infinite', pointerEvents:'none' }} />
+                    {/* Brighter inner core */}
+                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%, -50%)', width:'260%', height:'230%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,90,110,0.95), rgba(255,90,110,0) 85%)', filter:'blur(8px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
+                    {/* Horizontal bar glow to match sign shape */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', width:'320%', height:'80%', borderRadius:12, background:'linear-gradient(90deg, rgba(255,80,100,0) 0%, rgba(255,80,100,0.75) 20%, rgba(255,80,100,0.9) 50%, rgba(255,80,100,0.75) 80%, rgba(255,80,100,0) 100%)', filter:'blur(10px)', opacity:.9, animation:'candleFlicker 1.8s ease-in-out infinite', pointerEvents:'none' }} />
+                    <img src={'/art/onair.png'} alt={'ON AIR'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.65))' }} />
                   </div>
                 )}
                 
@@ -3230,7 +3293,18 @@ function stationTarget(type) {
                       <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
                         <img src={'/art/lavalamp.png'} alt="Lamp" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
                         <div style={{ fontWeight:800, flex:1 }}>Neon Dorm Lamp</div>
-                        <button style={lampVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setLampVisible(v=>!v)}>{lampVisible ? 'Visible' : 'Hidden'}</button>
+                        <button style={lampVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
+                          setLampVisible(v => { const nv = !v; if (nv) setFairylightsVisible(false); return nv; });
+                        }}>{lampVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {fairylightsUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/fairylights.png'} alt="Fairy Lights" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Frosted Jar with Fairy Lights</div>
+                        <button style={fairylightsVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
+                          setFairylightsVisible(v => { const nv = !v; if (nv) setLampVisible(false); return nv; });
+                        }}>{fairylightsVisible ? 'Visible' : 'Hidden'}</button>
                       </div>
                     )}
                     {vinylUnlocked && (
@@ -3251,10 +3325,21 @@ function stationTarget(type) {
                       <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
                         <img src={'/art/wizmascandle.gif'} alt="Candle" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
                         <div style={{ fontWeight:800, flex:1 }}>Pine & Smoke Candle</div>
-                        <button style={candleVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setCandleVisible(v=>!v)}>{candleVisible ? 'Visible' : 'Hidden'}</button>
+                        <button style={candleVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
+                          setCandleVisible(v => { const nv = !v; if (nv) setOnairVisible(false); return nv; });
+                        }}>{candleVisible ? 'Visible' : 'Hidden'}</button>
                       </div>
                     )}
-                    {!(lampUnlocked||vinylUnlocked||polaroidUnlocked||candleUnlocked) && (
+                    {onairUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/onair.png'} alt="ON AIR" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Mini ON AIR Sign</div>
+                        <button style={onairVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
+                          setOnairVisible(v => { const nv = !v; if (nv) setCandleVisible(false); return nv; });
+                        }}>{onairVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {!(lampUnlocked||vinylUnlocked||polaroidUnlocked||candleUnlocked||onairUnlocked) && (
                       <div style={{ ...styles.sub, marginTop: 8 }}>No furniture unlocked yet.</div>
                     )}
                   </div>
@@ -3289,6 +3374,14 @@ function stationTarget(type) {
           setPolaroidUnlocked={setPolaroidUnlocked}
           candleUnlocked={candleUnlocked}
           setCandleUnlocked={setCandleUnlocked}
+          setCandleVisible={setCandleVisible}
+          onairUnlocked={onairUnlocked}
+          setOnairUnlocked={setOnairUnlocked}
+          setOnairVisible={setOnairVisible}
+          fairylightsUnlocked={fairylightsUnlocked}
+          setFairylightsUnlocked={setFairylightsUnlocked}
+          setFairylightsVisible={setFairylightsVisible}
+          setLampVisible={setLampVisible}
           unlockedPosters={unlockedPosters}
           setUnlockedPosters={setUnlockedPosters}
           currentPosterIdx={currentPosterIdx}
