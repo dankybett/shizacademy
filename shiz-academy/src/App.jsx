@@ -715,11 +715,22 @@ export default function App() {
   const [polaroidUnlocked, setPolaroidUnlocked] = useState(false);
   const [polaroidOpen, setPolaroidOpen] = useState(false);
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
+  // Wizmas Candle (desk cosmetic)
+  const [candleUnlocked, setCandleUnlocked] = useState(false);
+  // Furniture visibility toggles
+  const [lampVisible, setLampVisible] = useState(true);
+  const [vinylVisible, setVinylVisible] = useState(true);
+  const [polaroidVisible, setPolaroidVisible] = useState(true);
+  const [candleVisible, setCandleVisible] = useState(true);
+  // Furniture modal
+  const [furnitureOpen, setFurnitureOpen] = useState(false);
   // Shared songs (friends share WIP after LV5)
   const [sharedSongs, setSharedSongs] = useState([]); // [{id, friendId, title, artist, audioSrc, shareWeek, liked, listened, injectedWeek}]
   const sharedAudioRef = useRef(null);
   // Wizmas seasonal injection control (weeks injected this run)
   const [wizmasInjectedWeeks, setWizmasInjectedWeeks] = useState([]);
+  // Wizmas gift scheduling
+  const [wizmasGift, setWizmasGift] = useState(null); // { friendId, scheduledWeek, queued }
 
   function facesFor(stat) {
     // Simplified path: d20 -> d12 -> d6
@@ -1380,6 +1391,12 @@ function stationTarget(type) {
       if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
       if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
       if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
+      if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
+      if (typeof s.candleUnlocked === 'boolean') setCandleUnlocked(s.candleUnlocked);
+      if (typeof s.lampVisible === 'boolean') setLampVisible(s.lampVisible);
+      if (typeof s.vinylVisible === 'boolean') setVinylVisible(s.vinylVisible);
+      if (typeof s.polaroidVisible === 'boolean') setPolaroidVisible(s.polaroidVisible);
+      if (typeof s.candleVisible === 'boolean') setCandleVisible(s.candleVisible);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
@@ -1692,6 +1709,8 @@ function stationTarget(type) {
     vinyl:    { xPct: 89.77,  yPct: 33.59,  wPct: 13.64 },
     // Click hotspot for Poster Collection (moved left/down towards vine scrolls area)
     posterHotspot: { xPct: 36.42, yPct: 66.0, wPct: 12.5 },
+    // Wizmas candle on desk to the right of computer
+    candle:   { xPct: 76.61, yPct: 59.06, wPct: 9.2 },
   };
   function anchorStyle(a){
     return {
@@ -1763,6 +1782,12 @@ function stationTarget(type) {
       rainfallUnlocked,
       spotlightSnapUnlocked,
       polaroidUnlocked,
+      candleUnlocked,
+      lampVisible,
+      vinylVisible,
+      polaroidVisible,
+      candleVisible,
+      wizmasGift,
       ts: Date.now(),
     };
     try {
@@ -1847,6 +1872,12 @@ function stationTarget(type) {
       rainfallUnlocked,
       spotlightSnapUnlocked,
       polaroidUnlocked,
+      candleUnlocked,
+      lampVisible,
+      vinylVisible,
+      polaroidVisible,
+      candleVisible,
+      wizmasGift,
       ts: Date.now(),
       sharedSongs,
       wizmasInjectedWeeks,
@@ -2292,6 +2323,40 @@ function stationTarget(type) {
     } catch {}
   }, [week, wizmasInjectedWeeks, performerName, seedTs, audioTracks]);
 
+  // Wizmas gift: choose highest-level friend on week 47 (or 48 if late) and schedule message for week 48
+  useEffect(() => {
+    try {
+      if (wizmasGift) return;
+      if (!(week === 47 || week === 48)) return;
+      const order = ['luminaO', 'griswald', 'mcmunch'];
+      const levels = order.map(id => ({ id, lvl: Math.max(0, friends?.[id]?.level || 0) }));
+      const maxLvl = Math.max(...levels.map(x => x.lvl));
+      if (!isFinite(maxLvl) || maxLvl <= 0) return; // no friends yet
+      const winner = levels.find(x => x.lvl === maxLvl)?.id || order[0];
+      setWizmasGift({ friendId: winner, scheduledWeek: 48, queued: false });
+    } catch {}
+  }, [week, friends, wizmasGift]);
+
+  // Wizmas gift: enqueue MyBubble message at the head of the queue on week 48
+  useEffect(() => {
+    try {
+      if (!wizmasGift || wizmasGift.queued) return;
+      if (week !== (wizmasGift.scheduledWeek||48)) return;
+      const ev = { friendId: wizmasGift.friendId, targetLevel: 99, week, wizmas: true };
+      setPendingFriendEvents(prev => [ev, ...(prev||[])]);
+      setWizmasGift(prev => ({ ...(prev||{}), queued: true }));
+    } catch {}
+  }, [week, wizmasGift]);
+
+  // Reset Wizmas gift state at the start of Wizmas (week 44)
+  useEffect(() => {
+    try {
+      if (week === 44 && wizmasGift != null) {
+        setWizmasGift(null);
+      }
+    } catch {}
+  }, [week]);
+
   function skipPerformance() {
     try {
       if (performAudioRef.current) {
@@ -2630,7 +2695,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -2750,7 +2815,7 @@ function stationTarget(type) {
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Neon Dorm Lamp (unlocked at Lumina Lv2) */}
-                {lampUnlocked && (
+                {lampUnlocked && lampVisible && (
                   <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 3, position:'absolute', pointerEvents:'none' }}>
                     <img src="/art/lavalamp.gif" alt="Neon Dorm Lamp"
                       style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 24px rgba(179,92,255,.95)) drop-shadow(0 0 60px rgba(179,92,255,.60))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
@@ -2773,29 +2838,40 @@ function stationTarget(type) {
                   <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Chair (visual only) */}
-                <div style={{ ...anchorStyle(ANCHORS.chair), zIndex: 3 }}>
+                <div style={{ ...anchorStyle(ANCHORS.chair), zIndex: 3, cursor:'pointer' }} onClick={() => setFurnitureOpen(true)} title="My Furniture">
                   <img src="/art/chair.png" alt="Chair" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Mirror (click opens stats) */}
                 <div style={{ ...anchorStyle(ANCHORS.mirror), zIndex: 3 }} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
-                {vinylUnlocked && (
+                {vinylUnlocked && vinylVisible && (
                   <div style={{ ...anchorStyle(ANCHORS.vinyl), zIndex: 3, transform:'translate(-50%, -50%)', pointerEvents:'none' }} title="Custom Vinyl Sleeve">
                     <img src={'/art/framedvinyl.png'} alt={'Vinyl Sleeve'} style={{ width:'100%', height:'auto' }} />
                   </div>
                 )}
                 {/* Polaroid desk item */}
-                {polaroidUnlocked && (
+                {polaroidUnlocked && polaroidVisible && (
                   <div style={{ ...anchorStyle(ANCHORS.polaroid), zIndex: 3, transform: 'translate(-50%, -50%) translate(115px, 65px)', cursor:'pointer' }} onClick={() => setPolaroidOpen(true)} title="Polaroid Photograph">
                     <img src={'/art/forestpolaroid.png'} alt={'Polaroid'} style={{ width:'100%', height:'auto', transform:'rotate(-6deg)', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                  </div>
+                )}
+
+                {/* Wizmas Candle (desk cosmetic) */}
+                {candleUnlocked && candleVisible && (
+                  <div style={{ ...anchorStyle(ANCHORS.candle), zIndex: 3, pointerEvents:'none' }} title="Pine & Smoke Candle">
+                    {/* Strong outer halo */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'520%', height:'480%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,170,70,0.60), rgba(255,170,70,0) 92%)', filter:'blur(12px)', animation:'candleFlicker 2.8s ease-in-out infinite', pointerEvents:'none' }} />
+                    {/* Bright inner core */}
+                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width:'240%', height:'220%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,200,110,0.80), rgba(255,200,110,0) 78%)', filter:'blur(6px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
+                    <img src={'/art/wizmascandle.gif'} alt={'Candle'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.55))' }} />
                   </div>
                 )}
                 
               </div>
               )}
               {/* Neon overlay when lamp is on */}
-              {lampOn && !isPerforming && (
+              {lampOn && lampVisible && !isPerforming && (
                 <div style={styles.neonOverlay} />
               )}
               {/* Performance cosmetic overlay: Midnight Haze (Synthwave only) */}
@@ -3141,6 +3217,53 @@ function stationTarget(type) {
           </div>
         )}
 
+        {/* My Furniture modal */}
+        {furnitureOpen && (
+          <div style={styles.overlayClear} onClick={() => setFurnitureOpen(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '10%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>My Furniture</div>
+                  <div style={{ ...styles.sub, marginTop: 6 }}>Toggle which items appear in your room.</div>
+                  <div style={{ marginTop: 10, display:'grid', gap:8 }}>
+                    {lampUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/lavalamp.png'} alt="Lamp" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Neon Dorm Lamp</div>
+                        <button style={lampVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setLampVisible(v=>!v)}>{lampVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {vinylUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/framedvinyl.png'} alt="Vinyl" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Custom Vinyl Sleeve</div>
+                        <button style={vinylVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setVinylVisible(v=>!v)}>{vinylVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {polaroidUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/forestpolaroid.png'} alt="Polaroid" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Polaroid Photograph</div>
+                        <button style={polaroidVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setPolaroidVisible(v=>!v)}>{polaroidVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {candleUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/wizmascandle.gif'} alt="Candle" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Pine & Smoke Candle</div>
+                        <button style={candleVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => setCandleVisible(v=>!v)}>{candleVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {!(lampUnlocked||vinylUnlocked||polaroidUnlocked||candleUnlocked) && (
+                      <div style={{ ...styles.sub, marginTop: 8 }}>No furniture unlocked yet.</div>
+                    )}
+                  </div>
+                  <button onClick={() => setFurnitureOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {friendModal.open && (
           <VisualNovelModal
             open={friendModal.open}
@@ -3164,11 +3287,13 @@ function stationTarget(type) {
           setRainfallUnlocked={setRainfallUnlocked}
           polaroidUnlocked={polaroidUnlocked}
           setPolaroidUnlocked={setPolaroidUnlocked}
-            unlockedPosters={unlockedPosters}
-            setUnlockedPosters={setUnlockedPosters}
-            currentPosterIdx={currentPosterIdx}
-            setCurrentPosterIdx={setCurrentPosterIdx}
-            lampGiftOpen={lampGiftOpen}
+          candleUnlocked={candleUnlocked}
+          setCandleUnlocked={setCandleUnlocked}
+          unlockedPosters={unlockedPosters}
+          setUnlockedPosters={setUnlockedPosters}
+          currentPosterIdx={currentPosterIdx}
+          setCurrentPosterIdx={setCurrentPosterIdx}
+          lampGiftOpen={lampGiftOpen}
             setLampGiftOpen={setLampGiftOpen}
             lampUnlocked={lampUnlocked}
             setLampUnlocked={setLampUnlocked}
@@ -3892,7 +4017,7 @@ function stationTarget(type) {
                             </div>
                             <div style={{ display:'flex', gap:6 }}>
                                 <button style={styles.smallBtn} onClick={()=>{
-                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null });
+                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null, isWizmas: !!ev.wizmas });
                                   setPendingFriendEvents(prev=> prev.slice(1));
                                   setLastFriendProgressWeek(week);
                                   setMyBubbleMessagesOpen(false);

@@ -71,6 +71,17 @@ const mcmunch = {
     { speaker:'mcmunch', text:'Whatever stage you end up on this year' },
     { speaker:'mcmunch', text:'Dont shrink your voice just because someone louder walks in.' },
   ],
+  // Wizmas special
+  99: [
+    { speaker:'mcmunch', text:'Yo. Wizmas.' },
+    { speaker:'player', text:'Yeah?' },
+    { speaker:'mcmunch', text:"Dont make it sappy." },
+    { speaker:'mcmunch', text:"Here. A stage timer. One button." },
+    { speaker:'player', text:'So I stop rushing the first bar?' },
+    { speaker:'mcmunch', text:'Exactly.' },
+    { speaker:'player', text:'Thanks.' },
+    { speaker:'mcmunch', text:'Own the room.' },
+  ],
 };
 
 export default mcmunch;

@@ -69,6 +69,17 @@ const luminaO = {
     { speaker:'player', text:"It doesnt feel real yet." },
     { speaker:'lumina', text:"It will." },
   ],
+  // Wizmas special
+  99: [
+    { speaker:'lumina', text:'You got a message from me because of Wizmas.' },
+    { speaker:'player', text:'I did.' },
+    { speaker:'lumina', text:"I dont like loud holidays." },
+    { speaker:'lumina', text:'But I brought you something small.' },
+    { speaker:'player', text:'A Wizmas gift?' },
+    { speaker:'lumina', text:'A lamp filter. Softer color. For late songs.' },
+    { speaker:'player', text:'Thank you.' },
+    { speaker:'lumina', text:'Keep making the quiet ones.' },
+  ],
 };
 
 export default luminaO;

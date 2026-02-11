@@ -93,6 +93,24 @@ const griswald = {
     { speaker:'griswald', text:'Whatever stage you stand on at the end of the year' },
     { speaker:'griswald', text:'Dont make it lighter just because people are watching.' },
   ],
+  // Wizmas special
+  99: [
+    { speaker:'griswald', text:'You in your room?' },
+    { speaker:'player', text:'Yeah. Why?' },
+    { speaker:'griswald', text:'Campus is too loud.' },
+    { speaker:'player', text:'Its Wizmas.' },
+    { speaker:'griswald', text:'Exactly.' },
+    { speaker:'griswald', text:'Snows settling on the quad.' },
+    { speaker:'player', text:'You out there?' },
+    { speaker:'griswald', text:'Was.' },
+    { speaker:'griswald', text:'(Gift Received: Pine & Smoke Candle)' },
+    { speaker:'player', text:'A candle?' },
+    { speaker:'griswald', text:'Pine and smoke.' },
+    { speaker:'player', text:'Very on-brand.' },
+    { speaker:'griswald', text:'Figured your dorm could use something real.' },
+    { speaker:'griswald', text:'Let it burn down slow.' },
+    { speaker:'griswald', text:'No rush.' },
+  ],
 };
 
 export default griswald;

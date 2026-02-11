@@ -25,6 +25,8 @@ export default function VisualNovelModal({
   setRainfallUnlocked,
   polaroidUnlocked,
   setPolaroidUnlocked,
+  candleUnlocked,
+  setCandleUnlocked,
   unlockedPosters,
   setUnlockedPosters,
   currentPosterIdx,
@@ -222,6 +224,22 @@ export default function VisualNovelModal({
       }
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, polaroidUnlocked, setPolaroidUnlocked, pushToast]);
+
+  // Griswald Wizmas (Lv99): unlock Pine & Smoke Candle (desk cosmetic)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'griswald') return;
+      if ((friendModal.targetLevel||0) !== 99) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('pine & smoke candle') && !candleUnlocked) {
+        if (typeof setCandleUnlocked === 'function') setCandleUnlocked(true);
+        pushToast('Griswald gift: Pine & Smoke Candle unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, candleUnlocked, setCandleUnlocked, pushToast]);
 
   // MC Munch LV5: unlock Custom Vinyl Sleeve (room keepsake)
   useEffect(() => {
@@ -439,8 +457,10 @@ export default function VisualNovelModal({
                   } else if (next < lines.length) {
                     setFriendModal(prev => ({ ...prev, idx: next }));
                   } else {
-                    // Complete at end (normal path)
-                    setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                    // Complete at end (normal path). Only promote level for standard levels (1-5).
+                    if (friendModal && typeof friendModal.targetLevel === 'number' && friendModal.targetLevel >= 1 && friendModal.targetLevel <= 5) {
+                      setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                    }
                     if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
                       setNudges(n=>n+1);
                       setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
