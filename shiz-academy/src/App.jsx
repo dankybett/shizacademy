@@ -9,6 +9,8 @@ const DICE_MODE = true;
 const SHOW_DICE_BAR = false;
 // Optional: show mini dice HUD top-left in the room
 const SHOW_DICE_MINI = false;
+// Debug: visualize poster hotspot area to help placement
+const SHOW_POSTER_HOTSPOT_DEBUG = false;
 // Temporary: keep legacy inline VN renderer disabled after extraction
 
 const GENRES = ["Pop", "Rock", "EDM", "Hip-Hop", "Jazz", "Country", "R&B", "Metal", "Folk", "Synthwave"];
@@ -36,6 +38,7 @@ const WIZMAS_TRACKS = [
   { artist: 'Aurelle Starlight', title: 'Under the Emerald Mistletoe', audioSources: ["/audio/Aurelle Starlight - Under the Emerald Mistletoe.mp3"] },
   { artist: 'The Ivy Lights', title: 'A Very Merry Wizmas', audioSources: ["/audio/The Ivy Lights - A Very Merry Wizmas.mp3"] },
   { artist: 'Sylvie North', title: 'Cold Cocoa & Candlelight', audioSources: ["/audio/Sylvie North - Cold Cocoa & Candlelight.mp3"] },
+  { artist: 'Yeti and Skelly', title: 'The Peak of the North Star', audioSources: ["/audio/Yeti and Skelly - The Peak of the North Star.mp3"] },
 ];
 
 // Global season length (single source of truth)
@@ -1687,6 +1690,8 @@ function stationTarget(type) {
     polaroid: { xPct: 64.6,  yPct: 59.9,  wPct: 2.6 }, // on desk near computer
     // Framed vinyl above mirror (doubled size, +50px right, -50px up)
     vinyl:    { xPct: 89.77,  yPct: 33.59,  wPct: 13.64 },
+    // Click hotspot for Poster Collection (moved left/down towards vine scrolls area)
+    posterHotspot: { xPct: 36.42, yPct: 66.0, wPct: 12.5 },
   };
   function anchorStyle(a){
     return {
@@ -2704,17 +2709,49 @@ function stationTarget(type) {
           <section style={styles.section}>
             {/* Streamlined main view: room dominates, buttons underneath */}
             <div style={styles.roomOuter}>
-              <div style={{ ...styles.room, backgroundImage: isPerforming && performingVenue ? `url('${VENUE_BG[performingVenue]}')` : "url('/art/apartmentbackgroundwide.png')" }}>
+              <div style={{
+                ...styles.room,
+                backgroundImage: (isPerforming && performingVenue)
+                  ? `url('${VENUE_BG[performingVenue]}')`
+                  : "url('/art/apartmentbackgroundwide.png')"
+              }}>
               {/* Anchor overlay (apartment objects) - hidden during venue performances */}
               {!(isPerforming && performingVenue) && (
               <div style={styles.roomAnchors}>
+                {currentPosterIdx != null && (
+                  <div style={{ ...anchorStyle(ANCHORS.poster), zIndex: 1 }} title="Poster">
+                    <img src={POSTERS[currentPosterIdx]} alt="Poster" style={{ width:'100%', height:'auto', borderRadius: 6 }} />
+                  </div>
+                )}
+                {currentPosterIdx == null && (
+                  <div
+                    style={{ ...anchorStyle(ANCHORS.poster), zIndex: 1, aspectRatio: '3 / 4', background: 'transparent' }}
+                    title="Poster"
+                  />
+                )}
+                {/* Wizmas foreground overlay: render after posters so it appears above them, but below other anchors. Click-through. */}
+                {(activeEffects && activeEffects.wizmas) && (
+                  <div style={styles.wizmasOverlay} />
+                )}
+                {/* Poster Collection clickable hotspot (moved to vine scrolls area). Invisible but clickable. */}
+                <div
+                  style={{
+                    ...anchorStyle(ANCHORS.posterHotspot),
+                    zIndex: 3,
+                    cursor: 'pointer',
+                    aspectRatio: '3 / 4',
+                    ...(SHOW_POSTER_HOTSPOT_DEBUG ? { background: 'rgba(255,0,0,0.10)', border: '1px dashed rgba(255,255,255,0.6)' } : { background: 'transparent' })
+                  }}
+                  onClick={() => setPosterOpen(true)}
+                  title="My Poster Collection"
+                />
                 {/* Computer (click opens Settings/desktop) */}
-                <div style={anchorStyle(ANCHORS.computer)} onClick={() => setFinanceOpen(true)}>
+                <div style={{ ...anchorStyle(ANCHORS.computer), zIndex: 3 }} onClick={() => setFinanceOpen(true)}>
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Neon Dorm Lamp (unlocked at Lumina Lv2) */}
                 {lampUnlocked && (
-                  <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 2, position:'absolute', pointerEvents:'none' }}>
+                  <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 3, position:'absolute', pointerEvents:'none' }}>
                     <img src="/art/lavalamp.gif" alt="Neon Dorm Lamp"
                       style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 24px rgba(179,92,255,.95)) drop-shadow(0 0 60px rgba(179,92,255,.60))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     <div
@@ -2724,21 +2761,9 @@ function stationTarget(type) {
                     />
                   </div>
                 )}
-                {currentPosterIdx != null && (
-                  <div style={anchorStyle(ANCHORS.poster)} onClick={() => setPosterOpen(true)} title="My Poster Collection">
-                    <img src={POSTERS[currentPosterIdx]} alt="Poster" style={{ width:'100%', height:'auto', borderRadius: 6 }} />
-                  </div>
-                )}
-                {currentPosterIdx == null && (
-                  <div
-                    style={{ ...anchorStyle(ANCHORS.poster), aspectRatio: '3 / 4', background: 'transparent', cursor: 'pointer' }}
-                    onClick={() => setPosterOpen(true)}
-                    title="My Poster Collection"
-                  />
-                )}
                 {/* Microphone -> opens Create/Current Song modal */}
                 <div
-                  style={anchorStyle(ANCHORS.mic)}
+                  style={{ ...anchorStyle(ANCHORS.mic), zIndex: 3 }}
                   onClick={() => {
                     if (endYearReady || isOver) { pushToast('Year complete - press End year'); return; }
                     if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
@@ -2748,21 +2773,21 @@ function stationTarget(type) {
                   <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Chair (visual only) */}
-                <div style={anchorStyle(ANCHORS.chair)}>
+                <div style={{ ...anchorStyle(ANCHORS.chair), zIndex: 3 }}>
                   <img src="/art/chair.png" alt="Chair" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Mirror (click opens stats) */}
-                <div style={anchorStyle(ANCHORS.mirror)} onClick={() => setStatsOpen(true)}>
+                <div style={{ ...anchorStyle(ANCHORS.mirror), zIndex: 3 }} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {vinylUnlocked && (
-                  <div style={{ ...anchorStyle(ANCHORS.vinyl), transform:'translate(-50%, -50%)', pointerEvents:'none' }} title="Custom Vinyl Sleeve">
+                  <div style={{ ...anchorStyle(ANCHORS.vinyl), zIndex: 3, transform:'translate(-50%, -50%)', pointerEvents:'none' }} title="Custom Vinyl Sleeve">
                     <img src={'/art/framedvinyl.png'} alt={'Vinyl Sleeve'} style={{ width:'100%', height:'auto' }} />
                   </div>
                 )}
                 {/* Polaroid desk item */}
                 {polaroidUnlocked && (
-                  <div style={{ ...anchorStyle(ANCHORS.polaroid), transform: 'translate(-50%, -50%) translate(115px, 65px)', cursor:'pointer' }} onClick={() => setPolaroidOpen(true)} title="Polaroid Photograph">
+                  <div style={{ ...anchorStyle(ANCHORS.polaroid), zIndex: 3, transform: 'translate(-50%, -50%) translate(115px, 65px)', cursor:'pointer' }} onClick={() => setPolaroidOpen(true)} title="Polaroid Photograph">
                     <img src={'/art/forestpolaroid.png'} alt={'Polaroid'} style={{ width:'100%', height:'auto', transform:'rotate(-6deg)', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
                   </div>
                 )}
@@ -2779,6 +2804,7 @@ function stationTarget(type) {
                   <div style={styles.performHazeShimmer} />
                 </div>
               )}
+
               {/* Performance cosmetic overlay: Rainfall Lighting (Rock only) */}
               {isPerforming && performingSong && (performingSong.genre === 'Rock') && rainfallUnlocked && (
                 <div style={styles.performRainOverlay}>
@@ -5006,6 +5032,16 @@ const styles = {
     height: '100%',
     aspectRatio: '3168 / 1344',
     pointerEvents: 'auto',
+  },
+  wizmasOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage: "url('/art/apartmentbackgroundwide_wizmas.png')",
+    backgroundSize: 'auto 100%',
+    backgroundPosition: 'center center',
+    backgroundRepeat: 'no-repeat',
+    zIndex: 2,
+    pointerEvents: 'none',
   },
   station: {
     position: "absolute",

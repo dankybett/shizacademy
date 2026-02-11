@@ -58,8 +58,8 @@ const mcmunch = {
     { speaker:'mcmunch', text:'When you perform next time, dont fade in.' },
     { speaker:'mcmunch', text:'Take the light like its yours.' },
   ],
-  5: [ { speaker:'mcmunch', text:'Own the room.' } ],
   5: [
+    { speaker:'mcmunch', text:'Own the room.' },
     { speaker:'mcmunch', text:'{{snap.songName}}. Number one.' },
     { speaker:'mcmunch', text:'Okay. Ill say it.' },
     { speaker:'player', text:'Say what?' },
