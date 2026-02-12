@@ -11,6 +11,8 @@ const SHOW_DICE_BAR = false;
 const SHOW_DICE_MINI = false;
 // Debug: visualize poster hotspot area to help placement
 const SHOW_POSTER_HOTSPOT_DEBUG = false;
+// Debug: visualize pillow hotspot area to help placement
+const SHOW_PILLOW_HOTSPOT_DEBUG = false;
 // Temporary: keep legacy inline VN renderer disabled after extraction
 
 const GENRES = ["Pop", "Rock", "EDM", "Hip-Hop", "Jazz", "Country", "R&B", "Metal", "Folk", "Synthwave"];
@@ -719,8 +721,12 @@ export default function App() {
   const [candleUnlocked, setCandleUnlocked] = useState(false);
   // Mini ON AIR Sign (desk cosmetic)
   const [onairUnlocked, setOnairUnlocked] = useState(false);
+  // ON AIR light power toggle
+  const [onairOn, setOnairOn] = useState(true);
   // Fairy Lights Jar (desk cosmetic, shares lamp spot)
   const [fairylightsUnlocked, setFairylightsUnlocked] = useState(false);
+  // Night mode (darken room + boost glows)
+  const [nightMode, setNightMode] = useState(false);
   // Furniture visibility toggles
   const [lampVisible, setLampVisible] = useState(true);
   const [vinylVisible, setVinylVisible] = useState(true);
@@ -1400,7 +1406,9 @@ function stationTarget(type) {
       if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
       if (typeof s.candleUnlocked === 'boolean') setCandleUnlocked(s.candleUnlocked);
       if (typeof s.onairUnlocked === 'boolean') setOnairUnlocked(s.onairUnlocked);
+      if (typeof s.onairOn === 'boolean') setOnairOn(s.onairOn);
       if (typeof s.fairylightsUnlocked === 'boolean') setFairylightsUnlocked(s.fairylightsUnlocked);
+      if (typeof s.nightMode === 'boolean') setNightMode(s.nightMode);
       if (typeof s.lampVisible === 'boolean') setLampVisible(s.lampVisible);
       if (typeof s.vinylVisible === 'boolean') setVinylVisible(s.vinylVisible);
       if (typeof s.polaroidVisible === 'boolean') setPolaroidVisible(s.polaroidVisible);
@@ -1713,6 +1721,8 @@ function stationTarget(type) {
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
     poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
     lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
+    // Pillow hotspot (top-left area) to toggle Night Mode
+    pillow:   { xPct: 10.34, yPct: 76.38, wPct: 12.0 },
     // Fairy lights jar anchor (slightly right of lamp, 30% smaller)
     fairylights: { xPct: 56.40, yPct: 50.51, wPct: 5.32 },
     // Polaroid on desk (50% smaller than before)
@@ -1799,6 +1809,8 @@ function stationTarget(type) {
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
+      nightMode,
+      onairOn,
       lampVisible,
       vinylVisible,
       polaroidVisible,
@@ -1893,6 +1905,8 @@ function stationTarget(type) {
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
+      nightMode,
+      onairOn,
       lampVisible,
       vinylVisible,
       polaroidVisible,
@@ -2820,6 +2834,10 @@ function stationTarget(type) {
                   ? `url('${VENUE_BG[performingVenue]}')`
                   : "url('/art/apartmentbackgroundwide.png')"
               }}>
+              {/* Night overlay (beneath anchors) */}
+              {nightMode && !isPerforming && (
+                <div style={styles.nightOverlay} />
+              )}
               {/* Anchor overlay (apartment objects) - hidden during venue performances */}
               {!(isPerforming && performingVenue) && (
               <div style={styles.roomAnchors}>
@@ -2838,42 +2856,63 @@ function stationTarget(type) {
                 {(activeEffects && activeEffects.wizmas) && (
                   <div style={styles.wizmasOverlay} />
                 )}
-                {/* Poster Collection clickable hotspot (moved to vine scrolls area). Invisible but clickable. */}
-                <div
-                  style={{
-                    ...anchorStyle(ANCHORS.posterHotspot),
-                    zIndex: 3,
-                    cursor: 'pointer',
-                    aspectRatio: '3 / 4',
-                    ...(SHOW_POSTER_HOTSPOT_DEBUG ? { background: 'rgba(255,0,0,0.10)', border: '1px dashed rgba(255,255,255,0.6)' } : { background: 'transparent' })
-                  }}
-                  onClick={() => setPosterOpen(true)}
-                  title="My Poster Collection"
-                />
+              {/* Poster Collection clickable hotspot (moved to vine scrolls area). Invisible but clickable. */}
+              <div
+                style={{
+                  ...anchorStyle(ANCHORS.posterHotspot),
+                  zIndex: 3,
+                  cursor: 'pointer',
+                  aspectRatio: '3 / 4',
+                  ...(SHOW_POSTER_HOTSPOT_DEBUG ? { background: 'rgba(255,0,0,0.10)', border: '1px dashed rgba(255,255,255,0.6)' } : { background: 'transparent' })
+                }}
+                onClick={() => setPosterOpen(true)}
+                title="My Poster Collection"
+              />
+              {/* Pillow hotspot: toggles Night Mode on/off */}
+              <div
+                style={{
+                  ...anchorStyle(ANCHORS.pillow),
+                  zIndex: 4,
+                  cursor: 'pointer',
+                  aspectRatio: '3 / 2',
+                  ...(SHOW_PILLOW_HOTSPOT_DEBUG
+                    ? { background: 'rgba(80,140,255,0.14)', border: '2px dashed rgba(80,140,255,0.85)', boxShadow: '0 0 0 2px rgba(0,0,0,0.2) inset' }
+                    : { background: 'transparent' }),
+                }}
+                onClick={() => setNightMode(v=>!v)}
+                title={nightMode ? 'Tap pillow: Night mode off' : 'Tap pillow: Night mode on'}
+              />
                 {/* Computer (click opens Settings/desktop) */}
                 <div style={{ ...anchorStyle(ANCHORS.computer), zIndex: 3 }} onClick={() => setFinanceOpen(true)}>
                   <img src="/art/computer.png" alt="Computer" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Neon Dorm Lamp (unlocked at Lumina Lv2) */}
                 {lampUnlocked && lampVisible && (
-                  <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 3, position:'absolute', pointerEvents:'none' }}>
+                  <div style={{ ...anchorStyle(ANCHORS.lamp), zIndex: 4, position:'absolute', pointerEvents:'auto' }}>
+                    {/* Neon purple glow for lamp (boosted at night) */}
+                    {lampOn && (
+                      <>
+                        <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width: nightMode? '360%' : '280%', height: nightMode? '320%' : '240%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(180,90,255,${nightMode? '0.75':'0.60'}), rgba(180,90,255,0) ${nightMode? '92%':'88%'})`, filter:'blur(10px)', pointerEvents:'none', mixBlendMode:'screen' }} />
+                        <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width: nightMode? '200%' : '150%', height: nightMode? '180%' : '140%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(210,120,255,${nightMode? '0.90':'0.85'}), rgba(210,120,255,0) ${nightMode? '82%':'76%'})`, filter:'blur(8px)', pointerEvents:'none', mixBlendMode:'screen' }} />
+                      </>
+                    )}
                     <img src="/art/lavalamp.gif" alt="Neon Dorm Lamp"
                       style={{ width:'100%', height:'auto', pointerEvents:'none', filter: lampOn ? 'drop-shadow(0 0 24px rgba(179,92,255,.95)) drop-shadow(0 0 60px rgba(179,92,255,.60))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     <div
                       title={lampOn ? 'Turn lamp off' : 'Turn lamp on'}
                       onClick={() => setLampOn(v=>!v)}
-                      style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'60%', height:'80%', pointerEvents:'auto', cursor:'pointer' }}
+                      style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'60%', height:'80%', cursor:'pointer', zIndex: 1 }}
                     />
                   </div>
                 )}
                 {/* Fairy Lights Jar (shares lamp spot) */}
                 {fairylightsUnlocked && fairylightsVisible && (
                   <div style={{ ...anchorStyle(ANCHORS.fairylights), zIndex: 3, position:'absolute', pointerEvents:'none' }} title="Fairy Lights Jar">
-                    {/* Intense purple glow: outer halo */}
-                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'340%', height:'300%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(180,90,255,0.75), rgba(180,90,255,0) 90%)', filter:'blur(14px)', animation:'candleFlicker 2.4s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
+                    {/* Intense purple glow: outer halo (boosted at night) */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width: nightMode? '480%' : '380%', height: nightMode? '420%' : '330%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(180,90,255,${nightMode? '0.92':'0.82'}), rgba(180,90,255,0) ${nightMode? '96%':'92%'})`, filter:'blur(18px)', animation:'candleFlicker 2.4s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
                     {/* Inner vibrant core */}
-                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width:'200%', height:'180%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(210,120,255,0.95), rgba(210,120,255,0) 78%)', filter:'blur(8px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
-                    <img src={'/art/fairylights.png'} alt={'Fairy Lights'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 3px 8px rgba(0,0,0,.45))' }} />
+                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width: nightMode? '300%' : '220%', height: nightMode? '270%' : '200%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(210,120,255,${nightMode? '0.99':'0.97'}), rgba(210,120,255,0) ${nightMode? '90%':'84%'})`, filter:'blur(12px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
+                    <img src={'/art/fairylights.png'} alt={'Fairy Lights'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 3px 8px rgba(0,0,0,.5))' }} />
                   </div>
                 )}
                 {/* Microphone -> opens Create/Current Song modal */}
@@ -2910,24 +2949,30 @@ function stationTarget(type) {
                 {/* Wizmas Candle (desk cosmetic) */}
                 {candleUnlocked && candleVisible && (
                   <div style={{ ...anchorStyle(ANCHORS.candle), zIndex: 3, pointerEvents:'none' }} title="Pine & Smoke Candle">
-                    {/* Strong outer halo */}
-                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'520%', height:'480%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,170,70,0.60), rgba(255,170,70,0) 92%)', filter:'blur(12px)', animation:'candleFlicker 2.8s ease-in-out infinite', pointerEvents:'none' }} />
+                    {/* Strong outer halo (boosted at night) */}
+                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width: nightMode? '700%' : '600%', height: nightMode? '640%' : '560%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(255,170,70,${nightMode? '0.90':'0.75'}), rgba(255,170,70,0) ${nightMode? '97%':'94%'})`, filter:'blur(16px)', animation:'candleFlicker 2.8s ease-in-out infinite', pointerEvents:'none' }} />
                     {/* Bright inner core */}
-                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width:'240%', height:'220%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,200,110,0.80), rgba(255,200,110,0) 78%)', filter:'blur(6px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
+                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width: nightMode? '340%' : '280%', height: nightMode? '320%' : '260%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(255,200,110,${nightMode? '0.98':'0.90'}), rgba(255,200,110,0) ${nightMode? '88%':'82%'})`, filter:'blur(10px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
                     <img src={'/art/wizmascandle.gif'} alt={'Candle'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.55))' }} />
                   </div>
                 )}
 
                 {/* Mini ON AIR Sign (desk cosmetic) */}
                 {onairUnlocked && onairVisible && (
-                  <div style={{ ...anchorStyle(ANCHORS.onair), zIndex: 3, pointerEvents:'none' }} title="Mini ON AIR Sign">
-                    {/* Stronger red outer halo */}
-                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', width:'600%', height:'540%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,60,80,0.80), rgba(255,60,80,0) 96%)', filter:'blur(16px)', animation:'candleFlicker 2.6s ease-in-out infinite', pointerEvents:'none' }} />
-                    {/* Brighter inner core */}
-                    <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%, -50%)', width:'260%', height:'230%', borderRadius:'50%', background:'radial-gradient(closest-side, rgba(255,90,110,0.95), rgba(255,90,110,0) 85%)', filter:'blur(8px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none' }} />
-                    {/* Horizontal bar glow to match sign shape */}
-                    <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', width:'320%', height:'80%', borderRadius:12, background:'linear-gradient(90deg, rgba(255,80,100,0) 0%, rgba(255,80,100,0.75) 20%, rgba(255,80,100,0.9) 50%, rgba(255,80,100,0.75) 80%, rgba(255,80,100,0) 100%)', filter:'blur(10px)', opacity:.9, animation:'candleFlicker 1.8s ease-in-out infinite', pointerEvents:'none' }} />
-                    <img src={'/art/onair.png'} alt={'ON AIR'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 4px 10px rgba(0,0,0,.65))' }} />
+                  <div style={{ ...anchorStyle(ANCHORS.onair), zIndex: 4, position:'absolute', pointerEvents:'auto' }} title="Mini ON AIR Sign">
+                    {/* Lamp-like radial glow (only when ON) */}
+                    {onairOn && (
+                      <>
+                        <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width: nightMode? '420%' : '320%', height: nightMode? '360%' : '280%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(255,70,90,${nightMode? '0.92':'0.78'}), rgba(255,70,90,0) ${nightMode? '96%':'92%'})`, filter:'blur(14px)', pointerEvents:'none' }} />
+                        <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width: nightMode? '260%' : '200%', height: nightMode? '230%' : '180%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(255,110,130,${nightMode? '0.99':'0.96'}), rgba(255,110,130,0) ${nightMode? '88%':'82%'})`, filter:'blur(11px)', pointerEvents:'none' }} />
+                      </>
+                    )}
+                    <img src={'/art/onair.png'} alt={'ON AIR'} style={{ width:'100%', height:'auto', filter: onairOn ? 'drop-shadow(0 4px 10px rgba(0,0,0,.65))' : 'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                    <div
+                      title={onairOn ? 'Turn sign off' : 'Turn sign on'}
+                      onClick={() => setOnairOn(v=>!v)}
+                      style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:'70%', height:'80%', cursor:'pointer', zIndex: 1 }}
+                    />
                   </div>
                 )}
                 
@@ -3467,6 +3512,12 @@ function stationTarget(type) {
                 <label style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <input type="checkbox" checked={earlyFinishEnabled} onChange={(e)=>setEarlyFinishEnabled(e.target.checked)} />
                   Allow Early Finish (once S/W/P rolled)
+                </label>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                <label style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <input type="checkbox" checked={nightMode} onChange={(e)=>setNightMode(e.target.checked)} />
+                  Night mode
                 </label>
               </div>
               <div style={{ ...styles.sub, marginTop: 10 }}>Autosave: On</div>
@@ -5250,6 +5301,14 @@ const styles = {
     height: '100%',
     aspectRatio: '3168 / 1344',
     pointerEvents: 'auto',
+  },
+  nightOverlay: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 2,
+    pointerEvents: 'none',
+    background: `radial-gradient(120% 120% at 50% 35%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.65) 100%), rgba(0,0,0,0.35)`,
+    mixBlendMode: 'multiply'
   },
   wizmasOverlay: {
     position: 'absolute',
