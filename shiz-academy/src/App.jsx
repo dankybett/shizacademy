@@ -3109,6 +3109,29 @@ function stationTarget(type) {
                   {activity === "sing" && <div style={styles.actionEmoji}>??</div>}
                   {activity === "dance" && <div style={styles.actionEmoji}>??</div>}
                 </div>
+                {/* Performance prop: Boombox beside performer during venue performances */}
+                {isPerforming && performingVenue && (
+                  <div
+                    style={{
+                      position:'absolute',
+                      left: `${pos.x}%`,
+                      top: `${pos.y}%`,
+                      transform:
+                        `translate(-50%, -50%)` +
+                        (performingVenue === 'busking' ? ' translate(120px, 20px)' : '') +
+                        (performingVenue === 'ozdustball' ? ' translate(-50px, 15px)' : '') +
+                        (performingVenue === 'busking'
+                          ? ' translate(-110px, 60px)'
+                          : ` translate(${facingLeft ? '-85px' : '85px'}, 12px)`),
+                      zIndex: 3,
+                      pointerEvents: 'none'
+                    }}
+                    aria-hidden
+                    title="Boombox"
+                  >
+                    <img src={'/art/boombox.gif'} alt={'Boombox'} style={{ width: 96, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                  </div>
+                )}
                 {DICE_MODE && rollFx.show && (
                   <div style={{
                     ...styles.rollBubble,
