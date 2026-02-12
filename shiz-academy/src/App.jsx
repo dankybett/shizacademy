@@ -83,7 +83,7 @@ function genEventSchedule(performerName, startTs) {
   push(12, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   push(24, 'openmic', 'Open Mic Marathon', 'Pick your focus', 'Choose between quick cash or fan hype.', 'choice', undefined, [
-    { label: 'Take tips (+\u00A3 60 now)', effect: { grantMoney: 60 } },
+    { label: 'Take tips', effect: { grantMoney: 60 } },
     { label: 'Hype it (fans x1.2 this week)', effect: { fanMult: 1.2 } },
   ]);
   push(28, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.85 });
@@ -127,12 +127,21 @@ function mergeEffects(eventsForWeek) {
 }
 
 function effectSummary(eff) {
-  const parts = [];
-  if ((eff.fanMult||1) !== 1) parts.push(`Fans x${(eff.fanMult||1).toFixed(2)}`);
-  if ((eff.payoutMult||1) !== 1) parts.push(`Payout x${(eff.payoutMult||1).toFixed(2)}`);
-  if ((eff.shopDiscount||1) !== 1) parts.push(`Shop x${(eff.shopDiscount||1).toFixed(2)}`);
-  if (eff.grantMoney) parts.push(`+\u00A3${eff.grantMoney} now`);
-  return parts.join(' - ');
+  try {
+    const parts = [];
+    if ((eff.fanMult||1) !== 1) parts.push(<span key="fans">Fans x{(eff.fanMult||1).toFixed(2)}</span>);
+    if ((eff.payoutMult||1) !== 1) parts.push(<span key="payout">Payout x{(eff.payoutMult||1).toFixed(2)}</span>);
+    if ((eff.shopDiscount||1) !== 1) parts.push(<span key="shop">Shop x{(eff.shopDiscount||1).toFixed(2)}</span>);
+    if (eff.grantMoney) parts.push(
+      <span key="grant" style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+        +{eff.grantMoney} <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} /> now
+      </span>
+    );
+    if (parts.length === 0) return null;
+    const out = [];
+    parts.forEach((p,i)=>{ if (i>0) out.push(<span key={'sep'+i}> {' - '} </span>); out.push(p); });
+    return <span>{out}</span>;
+  } catch { return null; }
 }
 
 // Build 5 lightweight fan comments for a release entry
@@ -3046,7 +3055,10 @@ function stationTarget(type) {
               )}
               {/* Room HUD: show money and rolls */}
               {!isPerforming && (
-                <div style={styles.hudMoney}>{'\u00A3'} {money}</div>
+                <div style={{ ...styles.hudMoney, display:'inline-flex', alignItems:'center', gap:6 }}>
+                  <span>{money}</span>
+                  <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:16, height:16, objectFit:'contain' }} />
+                </div>
               )}
               {!playingTrend && !isPerforming && (
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
@@ -4275,7 +4287,18 @@ function stationTarget(type) {
                       if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
                       setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
                       setEventModal(null);
-                    }}>{ch.label}</button>
+                    }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                        <span>{ch.label}</span>
+                        {(ch.effect && typeof ch.effect.grantMoney === 'number') && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                            +{ch.effect.grantMoney}
+                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} />
+                            <span>now</span>
+                          </span>
+                        )}
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -4434,7 +4457,12 @@ function stationTarget(type) {
                             disabled={money < price20}
                             onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
                             style={money<price20? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                          >Buy ({'\u00A3'}{price20})</button>
+                          >
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                              {price20}
+                              <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                            </span>
+                          </button>
                         </div>
                       </div>
                       <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
@@ -4447,7 +4475,12 @@ function stationTarget(type) {
                             disabled={money < price12}
                             onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
                             style={money<price12? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                          >Buy ({'\u00A3'}{price12})</button>
+                          >
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                              {price12}
+                              <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                            </span>
+                          </button>
                         </div>
                       </div>
                       <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
@@ -4460,7 +4493,12 @@ function stationTarget(type) {
                             disabled={money < price6}
                             onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
                             style={money<price6? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                          >Buy ({'\u00A3'}{price6})</button>
+                          >
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                              {price6}
+                              <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                            </span>
+                          </button>
                         </div>
                       </div>
                       </>); })()}
@@ -4491,7 +4529,12 @@ function stationTarget(type) {
                                 }
                               }}
                               style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                            >Buy ({'\u00A3'}{priceP})</button>
+                            >
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                {priceP}
+                                <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                              </span>
+                            </button>
                           ); })()}
                         </div>
                       </div>
@@ -4506,7 +4549,12 @@ function stationTarget(type) {
                               disabled={money < priceN}
                               onClick={() => { if (money>=priceN){ setMoney(m=>m-priceN); setNudges(n=>n+1); pushToast('Purchased: Nudge (+1)'); } }}
                               style={money<priceN? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                            >Buy ({'\u00A3'}{priceN})</button>
+                            >
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                {priceN}
+                                <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                              </span>
+                            </button>
                           ); })()}
                         </div>
                       </div>
@@ -4534,7 +4582,12 @@ function stationTarget(type) {
                                 disabled={disabled}
                                 onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Soothing Honey Drink (+0.20 Vocals)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                              >Buy ({'\u00A3'}{price})</button>
+                              >
+                                <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                  {price}
+                                  <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                                </span>
+                              </button>
                             );
                           })()}
                         </div>
@@ -4562,7 +4615,12 @@ function stationTarget(type) {
                                 disabled={disabled}
                                 onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Lyric Notebook (+0.20 Writing)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
-                              >Buy ({'\u00A3'}{price})</button>
+                              >
+                                <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                  {price}
+                                  <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                                </span>
+                              </button>
                             );
                           })()}
                         </div>
@@ -5720,12 +5778,13 @@ const styles = {
   },
   // Compact shop buy button to reduce width
   shopBuyBtn: {
-    padding: '6px 8px',
+    padding: '6px 10px',
     fontSize: 12,
-    minWidth: 0,
+    minWidth: 80,
     whiteSpace: 'nowrap',
     width: 'auto',
     flex: '0 0 auto',
+    textAlign: 'center',
   },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
