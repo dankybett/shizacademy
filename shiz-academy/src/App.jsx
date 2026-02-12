@@ -1054,6 +1054,10 @@ export default function App() {
   }
 
   const allDiceSet = useMemo(() => !!(rollBest?.sing && rollBest?.write && rollBest?.perform), [rollBest]);
+  // Lock actions while an action is in progress (walking to station or performing the action)
+  const isActionBusy = useMemo(() => {
+    return !!(pendingAct || rollFx.show || activity === 'write' || activity === 'singing' || activity === 'dancing');
+  }, [pendingAct, rollFx.show, activity]);
 
   const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
 
@@ -3209,7 +3213,7 @@ function stationTarget(type) {
                 {!isPerforming && !financeOpen && !endYearReady && !isOver && (
                   <div style={styles.buttonsOverlay}>
                     <div style={styles.actionBtnWrap}>
-                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("practice")} style={styles.actionBtn}>
+                      <button disabled={!conceptLocked || remaining<=0 || isActionBusy} onClick={() => instruct("practice")} style={styles.actionBtn}>
                         <img src={actionButtonSrc('practice')} alt="Sing" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='sing') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.sing ? { filter: solidOutlineFilter(rollGlow.sing) } : {})),
@@ -3220,7 +3224,7 @@ function stationTarget(type) {
                       </button>
                     </div>
                     <div style={styles.actionBtnWrap}>
-                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("write")} style={styles.actionBtn}>
+                      <button disabled={!conceptLocked || remaining<=0 || isActionBusy} onClick={() => instruct("write")} style={styles.actionBtn}>
                         <img src={actionButtonSrc('write')} alt="Write" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='write') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.write ? { filter: solidOutlineFilter(rollGlow.write) } : {})),
@@ -3231,7 +3235,7 @@ function stationTarget(type) {
                       </button>
                     </div>
                     <div style={styles.actionBtnWrap}>
-                      <button disabled={!conceptLocked || remaining<=0} onClick={() => instruct("perform")} style={styles.actionBtn}>
+                      <button disabled={!conceptLocked || remaining<=0 || isActionBusy} onClick={() => instruct("perform")} style={styles.actionBtn}>
                         <img src={actionButtonSrc('perform')} alt="Perform" style={{
                           ...styles.actionImg,
                           ...((rollRing.show && rollRing.action==='perform') ? { filter: solidOutlineFilter(rollRing.color) } : (rollGlow.perform ? { filter: solidOutlineFilter(rollGlow.perform) } : {})),
