@@ -3859,13 +3859,16 @@ function stationTarget(type) {
                     style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
                     onError={(e)=>{ e.currentTarget.style.display='none'; }}
                   />
-                  <button title="Messages" onClick={() => setMyBubbleMessagesOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                  <button title="Messages" onClick={() => setMyBubbleMessagesOpen(true)} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
                     <img
                       src={'/art/mybubble/messagebutton.png'}
                       alt={'Messages'}
                       style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
                       onError={(e)=>{ e.currentTarget.style.display='none'; }}
                     />
+                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                    )}
                   </button>
                   <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
                     <img
@@ -4037,13 +4040,16 @@ function stationTarget(type) {
                           onError={(e)=>{ e.currentTarget.style.display='none'; }}
                         />
                       </button>
-                      <button title="Messages" onClick={() => { setMyBubbleFriendsOpen(false); setMyBubbleMessagesOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                      <button title="Messages" onClick={() => { setMyBubbleFriendsOpen(false); setMyBubbleMessagesOpen(true); }} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
                         <img
                           src={'/art/mybubble/messagebutton.png'}
                           alt={''}
                           style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
                           onError={(e)=>{ e.currentTarget.style.display='none'; }}
                         />
+                        {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                          <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                        )}
                       </button>
                       <button title="Friends" onClick={() => setSelectedFriendId(null)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
                         <img
