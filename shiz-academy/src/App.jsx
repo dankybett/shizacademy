@@ -4441,7 +4441,7 @@ function stationTarget(type) {
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={styles.mirrorInner}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content', margin:'0 auto', marginTop: 160 }}>
+                    <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content', margin:'0 auto', marginTop: 260 }}>
                       <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     </div>
                     <div style={{ flex:0.95 }}>
@@ -4510,22 +4510,22 @@ function stationTarget(type) {
                             <img src="/art/posters/poster1.png" alt="poster" style={{ width:36, height:36, objectFit:'cover', borderRadius:6 }} />
                             Mystery Poster
                           </div>
-                          {(() => { const disc = activeEffects?.shopDiscount || 1; const priceP = 1; const disabled = money < priceP; return (
+                          {(() => { const disc = activeEffects?.shopDiscount || 1; const priceP = Math.max(1, Math.ceil(30 * disc)); const disabled = money < priceP; return (
                             <button
                               disabled={disabled}
                               onClick={() => {
                                 if (!disabled) {
                                   setMoney(m=>m-priceP);
-                                  setUnlockedPosters(prev => {
-                                    const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
-                                    const all = POSTERS.map((_,i)=>i).filter(i => i !== lumIdx);
-                                    const remaining = all.filter(i => !prev.includes(i));
-                                    const pool = remaining.length>0 ? remaining : all;
-                                    const pick = pool[Math.floor(Math.random()*pool.length)];
-                                    setCurrentPosterIdx(pick);
-                                    pushToast(remaining.length>0 ? 'Unlocked a new poster!' : 'Swapped to another poster!');
-                                    return prev.includes(pick) ? prev : [...prev, pick];
-                                  });
+                                  // Compute pick based on current unlocked list to avoid duplicate side effects
+                                  const prevList = Array.isArray(unlockedPosters) ? unlockedPosters : [];
+                                  const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
+                                  const all = POSTERS.map((_,i)=>i).filter(i => i !== lumIdx);
+                                  const remaining = all.filter(i => !prevList.includes(i));
+                                  const pool = remaining.length>0 ? remaining : all;
+                                  const pick = pool[Math.floor(Math.random()*pool.length)];
+                                  setCurrentPosterIdx(pick);
+                                  setUnlockedPosters(prev => (prev && prev.includes(pick)) ? prev : [ ...(prev||[]), pick ]);
+                                  pushToast(remaining.length>0 ? 'Unlocked a new poster!' : 'Swapped to another poster!');
                                 }
                               }}
                               style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
@@ -4569,10 +4569,10 @@ function stationTarget(type) {
                               if (!dp || !dp.next) return null;
                               const floor = dp.floor||0, goal = dp.goal||6;
                               const currPct = Math.max(0, Math.min(1, (vocals - floor) / Math.max(0.0001, goal - floor)));
-                              const newStat = Math.min(10, vocals + 0.2);
+                              const newStat = Math.min(10, vocals + 1.0);
                               const newPct = Math.max(0, Math.min(1, (newStat - floor) / Math.max(0.0001, goal - floor)));
                               const delta = Math.max(0, newPct - currPct);
-                              return <span style={{ ...styles.sub, marginLeft:6 }}>+{Math.round(delta*100)}% toward d{dp.next}</span>;
+                              return <span style={{ ...styles.sub, marginLeft:6 }}>+1 lvl toward next die</span>;
                             })()}
                           </div>
                           {(() => {
@@ -4580,7 +4580,7 @@ function stationTarget(type) {
                             return (
                               <button
                                 disabled={disabled}
-                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Soothing Honey Drink (+0.20 Vocals)'); } }}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Soothing Honey Drink (+1.00 Vocals)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -4602,10 +4602,10 @@ function stationTarget(type) {
                               if (!dp || !dp.next) return null;
                               const floor = dp.floor||0, goal = dp.goal||6;
                               const currPct = Math.max(0, Math.min(1, (writing - floor) / Math.max(0.0001, goal - floor)));
-                              const newStat = Math.min(10, writing + 0.2);
+                              const newStat = Math.min(10, writing + 1.0);
                               const newPct = Math.max(0, Math.min(1, (newStat - floor) / Math.max(0.0001, goal - floor)));
                               const delta = Math.max(0, newPct - currPct);
-                              return <span style={{ ...styles.sub, marginLeft:6 }}>+{Math.round(delta*100)}% toward d{dp.next}</span>;
+                              return <span style={{ ...styles.sub, marginLeft:6 }}>+1 lvl toward next die</span>;
                             })()}
                           </div>
                           {(() => {
@@ -4613,7 +4613,7 @@ function stationTarget(type) {
                             return (
                               <button
                                 disabled={disabled}
-                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+0.2,0,10)); pushToast('Purchased: Lyric Notebook (+0.20 Writing)'); } }}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Lyric Notebook (+1.00 Writing)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
