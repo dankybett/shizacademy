@@ -609,8 +609,15 @@ export default function App() {
       posterUnlocked: false,
       bio: {
         title: 'Lumina-O',
-        summary: 'Synthwave artist with neon-smooth vibes.',
-        bullets: ['Loves late-night mixes', 'Champions consistency', 'Gives practical tips'],
+        bullets: [
+          'Genre: Synthwave',
+          'Province: Undisclosed (rumored Emerald outskirts)',
+          'Known For: Midnight releases & atmospheric live sets'
+        ],
+        summary:
+          "A nocturnal presence at Shiz Academy, Lumina-O crafts shimmering synthwave soundscapes that feel like walking home under neon streetlights. " +
+          "She rarely speaks about her process, but her tracks linger long after the final note fades. Often spotted awake long after curfew, " +
+          "she believes music sounds better when the world is quiet enough to listen.",
       },
     },
     griswald: {
@@ -619,8 +626,15 @@ export default function App() {
       posterUnlocked: false,
       bio: {
         title: 'Griswald',
-        summary: 'Gravel-voiced mentor with pub-tested ears.',
-        bullets: ['Prefers honest hooks', 'Values rough edges', 'Hates overthinking bar two'],
+        bullets: [
+          'Genre: Rock/Grunge',
+          'Province: Gillikin (Northern Forests)',
+          'Known For: Raw live sessions & rain-soaked performances'
+        ],
+        summary:
+          "Hailing from the pine-covered North, Griswald brings a stripped-back, distortion-heavy sound to Shizs polished stages. " +
+          "He favors worn flannel, honest lyrics, and leaving imperfections untouched. Known to test his tracks outdoors before releasing them, " +
+          "he believes music should feel lived in  not cleaned up.",
       },
     },
     mcmunch: {
@@ -629,8 +643,15 @@ export default function App() {
       posterUnlocked: false,
       bio: {
         title: 'MC Munch',
-        summary: '',
-        bullets: [],
+        bullets: [
+          'Genre: Boom-Bap / Hip-Hop',
+          'Province: Eastern Munchkin',
+          'Known For: Rapid-fire verses & undeniable stage presence'
+        ],
+        summary:
+          "A self-declared prodigy of the Eastern Munchkin province, MC Munch delivers sharp boom-bap tracks with confident delivery and razor-clean timing. " +
+          "Equal parts competitive and charismatic, hes quick to call out weak bars  and even quicker to prove his own are better. " +
+          "Beneath the bravado is a relentless commitment to voice, rhythm, and being heard.",
       },
     },
   });
@@ -3966,9 +3987,13 @@ function stationTarget(type) {
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
                       const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : '/art/friends/luminao_bust.png'));
+                      const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png' : (fid==='griswald' ? '/art/friends/griswald_profile.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_profile.png' : '/art/friends/luminao_profile.png'));
                       return (
                         <div style={{}}>
-                          <div style={{ fontWeight:900, margin:'8px 0 6px' }}>{meta.bio.title}</div>
+                          <div style={{ display:'flex', justifyContent:'center', marginTop: 6 }}>
+                            <img src={profile} alt={`${meta.bio.title} profile`} style={{ width: 96, height:'auto', objectFit:'contain', borderRadius: 10, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          </div>
+                          <div style={{ fontWeight:900, margin:'8px 0 6px', textAlign:'center' }}>{meta.bio.title}</div>
                           <div style={{ ...styles.sub, marginBottom:6 }}>{meta.bio.summary}</div>
                           {meta.bio.bullets && meta.bio.bullets.length>0 && (
                             <ul style={styles.ul}>
@@ -3979,9 +4004,7 @@ function stationTarget(type) {
                             <img src={bust} alt={meta.name} style={{ width: 120, height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
                             <div style={{ ...styles.sub }}>Level: <b>{(f && f.level) || 0}</b>/5</div>
                           </div>
-                          <div style={{ marginTop: 8 }}>
-                            <button style={styles.smallBtn} onClick={()=> setSelectedFriendId(null)}>Back to Friends</button>
-                          </div>
+                          {/* Back button removed; use left-rail Friends icon to return */}
                         </div>
                       );
                     })()
@@ -4022,12 +4045,14 @@ function stationTarget(type) {
                           onError={(e)=>{ e.currentTarget.style.display='none'; }}
                         />
                       </button>
-                      <img
-                        src={'/art/mybubble/friendsbutton.png'}
-                        alt={''}
-                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
-                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                      />
+                      <button title="Friends" onClick={() => setSelectedFriendId(null)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={'Friends'}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
                     </div>
                     <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -4050,7 +4075,9 @@ function stationTarget(type) {
                           );
                         })()}
                       </div>
-                      <div style={{ fontWeight:900, marginTop:4 }}>Friends</div>
+                      {selectedFriendId == null && (
+                        <div style={{ fontWeight:900, marginTop:4 }}>Friends</div>
+                      )}
                       {(() => {
                         const list = Object.keys(friends||{}).reduce((arr, fid) => {
                           const f = friends[fid];
@@ -4062,24 +4089,45 @@ function stationTarget(type) {
                         if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
                         return (
                           <div className="hide-scrollbar" style={{ display:'grid', gap:8, maxHeight: 320, overflowY:'auto', paddingRight:4 }}>
-                            {list.map((f) => (
-                              <div key={f.id} style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
-                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                                  <div style={{ fontWeight:900 }}>{f.bio.title || f.id}</div>
-                                  <div style={{ ...styles.sub, fontWeight:800 }}>Lv {f.level}/5</div>
+                            {selectedFriendId == null ? (
+                              list.map((f) => (
+                                <div key={f.id} onClick={() => setSelectedFriendId(f.id)} style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10, cursor:'pointer' }}>
+                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                    <div style={{ fontWeight:900 }}>{f.bio.title || f.id}</div>
+                                    <div style={{ ...styles.sub, fontWeight:800 }}>Lv {f.level}/5</div>
+                                  </div>
                                 </div>
-                                {f.bio.summary && (
-                                  <div style={{ ...styles.sub, opacity:.95, marginTop:4 }}>{f.bio.summary}</div>
-                                )}
-                                {Array.isArray(f.bio.bullets) && f.bio.bullets.length>0 && (
-                                  <ul style={{ margin:'6px 0 0 18px', padding:0 }}>
-                                    {f.bio.bullets.map((b, i) => (
-                                      <li key={i} style={{ fontSize: 13, lineHeight: 1.4, opacity: 0.95 }}>{b}</li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            ))}
+                              ))
+                            ) : (
+                              (() => {
+                                const fid = selectedFriendId;
+                                const fsel = (friends && friends[fid]) || {};
+                                const bio = fsel.bio || { title: fid, summary:'', bullets:[] };
+                                const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png' : (fid==='griswald' ? '/art/friends/griswald_profile.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_profile.png' : ''));
+                                return (
+                                  <div style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:12 }}>
+                                    <div style={{ display:'flex', justifyContent:'center', marginBottom:8 }}>
+                                      <img src={profile} alt={`${bio.title} profile`} style={{ width: 96, height:'auto', objectFit:'contain', borderRadius:10, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                                    </div>
+                                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                      <div style={{ fontWeight:900 }}>{bio.title || fid}</div>
+                                      <div style={{ ...styles.sub, fontWeight:800 }}>Lv {(fsel.level||0)}/5</div>
+                                    </div>
+                                    {bio.summary && (
+                                      <div style={{ ...styles.sub, opacity:.95, marginTop:6 }}>{bio.summary}</div>
+                                    )}
+                                    {Array.isArray(bio.bullets) && bio.bullets.length>0 && (
+                                      <ul style={{ margin:'8px 0 0 18px', padding:0 }}>
+                                        {bio.bullets.map((b, i) => (
+                                          <li key={i} style={{ fontSize: 13, lineHeight: 1.4, opacity: 0.95 }}>{b}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    {/* Back button removed; use left-rail Friends icon to return */}
+                                  </div>
+                                );
+                              })()
+                            )}
                           </div>
                         );
                       })()}
@@ -4294,7 +4342,7 @@ function stationTarget(type) {
                 <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
                   <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
                   {(() => { const ev = pendingFriendEvents[0]; const isFirst = ev && ev.targetLevel === 1; const fid = ev && (ev.friendId || 'luminaO'); const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; return (
-                    <div style={styles.sub}>{isFirst ? ('New friend request from ' + name + ' in MyBubble.') : ('New message from ' + name + ' in MyBubble.')}</div>
+                    <div style={styles.sub}>{isFirst ? 'New friend request in MyBubble.' : 'New message in MyBubble.'}</div>
                   ); })()}
                 </div>
               )}
