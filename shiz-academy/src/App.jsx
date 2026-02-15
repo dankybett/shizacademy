@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { loadSave, writeSave, hasSave as hasExistingSave, clearSavedGame } from './persistence';
 import VisualNovelModal from './vn/VisualNovelModal.jsx';
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
@@ -578,6 +579,8 @@ export default function App() {
   const [actions, setActions] = useState([]); // sequence of { t: 'practice'|'write'|'perform', d: number }
   const [lastResult, setLastResult] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Debug controls are hidden unless unlocked with a simple password
+  const [debugUnlocked, setDebugUnlocked] = useState(false);
   const [status, setStatus] = useState("Ready to work!");
   const [statsOpen, setStatsOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
@@ -1411,15 +1414,25 @@ function stationTarget(type) {
     setEventModal(null);
   }
 
-  // --- Persistence (localStorage) ---
-  const STORAGE_KEY = "performer-jam-save-v3";
+// --- Persistence (localStorage) ---
+  // Guard to avoid autosave overwriting before we hydrate from an existing save
+  const [hydrated, setHydrated] = useState(false);
+  const resumeSaveRef = useRef(null);
+  const [resumeAvailable, setResumeAvailable] = useState(false);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const s = JSON.parse(raw);
-      if (!s || typeof s !== "object") return;
+      const s = loadSave();
+      if (s && typeof s === 'object') {
+        resumeSaveRef.current = s;
+        setResumeAvailable(true);
+      }
+    } catch (_) { /* ignore */ }
+  }, []);
+
+  function applySaveSnapshot(s) {
+    try {
+      if (!s || typeof s !== 'object') return;
       if (typeof s.week === "number") setWeek(s.week);
       if (typeof s.money === "number") setMoney(s.money);
       if (typeof s.fans === "number") setFans(s.fans);
@@ -1430,11 +1443,9 @@ function stationTarget(type) {
       if (THEMES.includes(s.theme)) setTheme(s.theme);
       if (typeof s.songName === "string") setSongName(s.songName);
       if (typeof s.conceptLocked === "boolean") setConceptLocked(s.conceptLocked);
-      if (typeof s.started === "boolean") setStarted(s.started);
       if (Array.isArray(s.eventsSchedule)) setEventsSchedule(s.eventsSchedule);
       if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
-      if (s && s.trendsByWeek && typeof s.trendsByWeek === 'object') setTrendsByWeek(s.trendsByWeek);
       if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
       if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
       if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
@@ -1449,6 +1460,8 @@ function stationTarget(type) {
       if (typeof s.candleVisible === 'boolean') setCandleVisible(s.candleVisible);
       if (typeof s.onairVisible === 'boolean') setOnairVisible(s.onairVisible);
       if (typeof s.fairylightsVisible === 'boolean') setFairylightsVisible(s.fairylightsVisible);
+      if (Array.isArray(s.unlockedPosters)) setUnlockedPosters(s.unlockedPosters);
+      if (typeof s.currentPosterIdx === 'number') setCurrentPosterIdx(s.currentPosterIdx);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
       if (Array.isArray(s.songHistory)) setSongHistory(s.songHistory);
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
@@ -1465,10 +1478,10 @@ function stationTarget(type) {
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
       if (typeof s.rainfallUnlocked === 'boolean') setRainfallUnlocked(s.rainfallUnlocked);
+      if (typeof s.vinylUnlocked === 'boolean') setVinylUnlocked(s.vinylUnlocked);
       if (typeof s.spotlightSnapUnlocked === 'boolean') setSpotlightSnapUnlocked(s.spotlightSnapUnlocked);
       if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
       if (Array.isArray(s.actions)) {
-        // Normalize to {t,d}
         const norm = s.actions.map((a) => {
           if (typeof a === "string") return { t: a, d: 0 };
           if (a && typeof a === "object" && (a.t === "practice" || a.t === "write" || a.t === "perform")) {
@@ -1483,7 +1496,6 @@ function stationTarget(type) {
         setPracticeT(p);
         setWriteT(w);
         setPerformT(pf);
-        // Restore week gains if available, else derive rough sum from deltas
         if (typeof s.weekVocGain === "number") setWeekVocGain(s.weekVocGain);
         else setWeekVocGain(norm.filter(a=>a.t==="practice").reduce((sum,a)=>sum+a.d,0));
         if (typeof s.weekWriGain === "number") setWeekWriGain(s.weekWriGain);
@@ -1497,16 +1509,13 @@ function stationTarget(type) {
       }
       if (typeof s.suppressFinale === 'boolean') setSuppressFinale(s.suppressFinale);
       if (s.lastResult && typeof s.lastResult === "object") setLastResult(s.lastResult);
-      // Generate schedule if missing in save
       if (!Array.isArray(s.eventsSchedule)) {
         const baseTs = (s && s.ts) || Date.now();
         const sched = genEventSchedule((s && s.performerName) || performerName, baseTs);
         setEventsSchedule(sched);
       }
-    } catch (_) {
-      // ignore corrupted saves
-    }
-  }, []);
+    } catch (_) {}
+  }
 
   // Fallback schedule generation if missing (e.g., fresh run without saved state)
   useEffect(() => {
@@ -1796,6 +1805,7 @@ function stationTarget(type) {
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     const save = {
       week,
       money,
@@ -1828,7 +1838,6 @@ function stationTarget(type) {
       eventsSchedule,
       eventsResolved,
       seedTs,
-      trendsByWeek,
       suppressFinale,
       friends,
       pendingFriendEvents,
@@ -1840,6 +1849,7 @@ function stationTarget(type) {
       rainfallUnlocked,
       spotlightSnapUnlocked,
       polaroidUnlocked,
+      vinylUnlocked,
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
@@ -1852,14 +1862,19 @@ function stationTarget(type) {
       onairVisible,
       fairylightsVisible,
       wizmasGift,
+      unlockedPosters,
+      currentPosterIdx,
+      sharedSongs,
+      wizmasInjectedWeeks,
       ts: Date.now(),
     };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+      writeSave(save);
     } catch (_) {
       // quota/full - ignore for now
     }
-  }, [week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, trendsByWeek, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked]);
+
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -1914,9 +1929,20 @@ function stationTarget(type) {
         stage,
         genre,
         theme,
+        actions,
         practiceT,
         writeT,
         performT,
+        songName,
+        conceptLocked,
+        started,
+        finishedReady,
+        rollBest,
+        rollHistory,
+        songHistory,
+        weekVocGain,
+        weekWriGain,
+        weekStageGain,
         lastResult,
         earlyFinishEnabled,
         performerName,
@@ -1926,39 +1952,44 @@ function stationTarget(type) {
         eventsSchedule,
         eventsResolved,
         seedTs,
-      trendsByWeek,
-      suppressFinale,
+        suppressFinale,
         friends,
         pendingFriendEvents,
+        lastFriendProgressWeek,
+        friendMilestones,
         lampUnlocked,
-      lampOn,
-      midnightHazeUnlocked,
-      rainfallUnlocked,
-      spotlightSnapUnlocked,
-      polaroidUnlocked,
-      candleUnlocked,
-      onairUnlocked,
-      fairylightsUnlocked,
-      nightMode,
-      onairOn,
-      lampVisible,
-      vinylVisible,
-      polaroidVisible,
-      candleVisible,
-      onairVisible,
-      fairylightsVisible,
-      wizmasGift,
-      ts: Date.now(),
-      sharedSongs,
-      wizmasInjectedWeeks,
-    };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
-    } catch (_) {}
+        lampOn,
+        midnightHazeUnlocked,
+        rainfallUnlocked,
+        spotlightSnapUnlocked,
+        polaroidUnlocked,
+        vinylUnlocked,
+        candleUnlocked,
+        onairUnlocked,
+        fairylightsUnlocked,
+        nightMode,
+        onairOn,
+        lampVisible,
+        vinylVisible,
+        polaroidVisible,
+        candleVisible,
+        onairVisible,
+        fairylightsVisible,
+        wizmasGift,
+        unlockedPosters,
+        currentPosterIdx,
+        sharedSongs,
+        wizmasInjectedWeeks,
+        ts: Date.now(),
+      };
+      const ok = writeSave(save);
+      if (ok) pushToast('Game saved'); else pushToast('Save failed');
+    } catch (_) { pushToast('Save failed'); }
   }
 
   function clearSave() {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      clearSavedGame();
     } catch (_) {}
   }
 
@@ -2747,7 +2778,7 @@ function stationTarget(type) {
       <div style={styles.page}>
         <div style={styles.titleScreen}>
           <button
-            onClick={() => setStarted(true)}
+            onClick={() => { setStarted(true); setHydrated(true); }}
             style={styles.startImgButton}
             title="Start new game"
           >
@@ -2756,11 +2787,12 @@ function stationTarget(type) {
           <button
             onClick={() => {
               try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                if (!raw) { pushToast('No save found'); return; }
-                const s = JSON.parse(raw);
+                const s = resumeSaveRef.current || loadSave();
                 if (!s || typeof s !== 'object') { pushToast('No save found'); return; }
+                applySaveSnapshot(s);
                 setStarted(true);
+                setHydrated(true);
+                pushToast('Loaded saved game');
               } catch (_) { pushToast('Unable to continue'); }
             }}
             style={styles.continueImgButton}
@@ -3565,8 +3597,26 @@ function stationTarget(type) {
                 <button onClick={saveNow} style={styles.secondaryBtn}>Save now</button>
                 <button onClick={() => { clearSave(); setMenuOpen(false); }} style={styles.secondaryBtn}>Clear save</button>
                 <button onClick={() => { restart(); setMenuOpen(false); }} style={styles.secondaryBtn}>Restart run</button>
-                <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
-                <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Ã‚Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Ã‚Â£100 (debug)</button>
+                {!debugUnlocked && (
+                  <button
+                    onClick={() => {
+                      try {
+                        const val = window.prompt('Enter debug password');
+                        if (!val) return;
+                        if (val === 'shizdebug') { setDebugUnlocked(true); pushToast('Debug unlocked'); }
+                        else { pushToast('Incorrect password'); }
+                      } catch (_) { /* ignore */ }
+                    }}
+                    style={styles.secondaryBtn}
+                  >Unlock debug</button>
+                )}
+                {debugUnlocked && (
+                  <>
+                    <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
+                    <button onClick={() => { setMoney(m=>m+100); pushToast('Money +£100 (debug)'); }} style={styles.secondaryBtn}>Add £100 (debug)</button>
+                    <button onClick={() => { setDebugUnlocked(false); pushToast('Debug locked'); }} style={styles.secondaryBtn}>Lock debug</button>
+                  </>
+                )}
               </div>
               <div style={{ marginTop: 10 }}>
                 <label style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -3983,7 +4033,7 @@ function stationTarget(type) {
                             if (lv>0) arr.push({ id: fid, name: (f && f.bio && f.bio.title) || fid, level: lv, max: 5 });
                             return arr;
                           }, []);
-                          if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
+                          if (list.length===0) return (<div style={styles.sub}>No friends yet.</div>);
                           return list.map(f => (
                             <button key={f.id} onClick={() => setSelectedFriendId(f.id)} style={{ textAlign:'left', background:'transparent', color:'inherit', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, cursor:'pointer' }}>
                               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -4104,7 +4154,7 @@ function stationTarget(type) {
                           if (lv>0 && bio) arr.push({ id: fid, level: lv, bio });
                           return arr;
                         }, []);
-                        if (list.length===0) return (<div style={styles.sub}>No friends yet. Complete requests in MyBubble when available.</div>);
+                        if (list.length===0) return (<div style={styles.sub}>No friends yet.</div>);
                         return (
                           <div className="hide-scrollbar" style={{ display:'grid', gap:8, maxHeight: 320, overflowY:'auto', paddingRight:4 }}>
                             {selectedFriendId == null ? (
@@ -4438,10 +4488,10 @@ function stationTarget(type) {
         {shopOpen && (
           <div style={styles.overlayClear} onClick={() => setShopOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_amozon.png')" }}>
                 <div className="hide-scrollbar" style={styles.mirrorInner}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <div style={{ flex:'0 0 auto', border:'1px solid rgba(255,255,255,.15)', borderRadius:12, padding:10, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.05)', width:'fit-content', margin:'0 auto', marginTop: 260 }}>
+                    <div style={{ flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 260 }}>
                       <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     </div>
                     <div style={{ flex:0.95 }}>
