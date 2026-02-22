@@ -4876,7 +4876,7 @@ function stationTarget(type) {
                         onError={(e)=>{ e.currentTarget.style.display='none'; }}
                       />
                       <div style={{ position:'absolute', left:'50%', top:'46%', transform:'translate(-50%, -50%)', fontWeight:900, fontSize:18, textAlign:'center', letterSpacing:.2, textTransform:'uppercase', whiteSpace:'nowrap' }}>
-                        Global Trends (Week {Math.min(week, MAX_WEEKS)})
+                        Academy Trends (Week {Math.min(week, MAX_WEEKS)})
                       </div>
                     </div>
                     {(() => {
@@ -4913,7 +4913,7 @@ function stationTarget(type) {
                 )}
                 {(endYearReady || isOver) && (
                   <div style={{ width:'100%', margin:0, overflow:'hidden' }}>
-                    <div style={{ fontWeight:900, marginBottom:6 }}>Global Trends (Week {Math.min(week, MAX_WEEKS)})</div>
+                    <div style={{ fontWeight:900, marginBottom:6 }}>Academy Trends (Week {Math.min(week, MAX_WEEKS)})</div>
                     {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
                       <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
                         <div style={{ display:'grid', gap:8 }}>
