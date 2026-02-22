@@ -2148,6 +2148,10 @@ function stationTarget(type) {
       friendMilestones,
       seedTs,
     });
+    // Training snapshot for Release Results: weekly gains and die faces before/after
+    const vocalsBefore = clamp(vocals - (weekVocGain||0), 0, 10);
+    const writingBefore = clamp(writing - (weekWriGain||0), 0, 10);
+    const stageBefore = clamp(stage - (weekStageGain||0), 0, 10);
     const entry = {
       week,
       releaseWeek: week,
@@ -2164,6 +2168,9 @@ function stationTarget(type) {
       fansGain: fansGainApplied,
       wizmasFlopZeroAll: !!wizmasFlopZeroAll,
       riskyFlopNoFans: !!riskyFlopNoFans,
+      trainingGains: { vocals: +(weekVocGain||0), writing: +(weekWriGain||0), stage: +(weekStageGain||0) },
+      diceBefore: { vocals: facesFor(vocalsBefore), writing: facesFor(writingBefore), stage: facesFor(stageBefore) },
+      diceAfter: { vocals: facesFor(vocals), writing: facesFor(writing), stage: facesFor(stage) },
       feedback,
       fanComments: [],
     };
@@ -4748,7 +4755,7 @@ function stationTarget(type) {
                             return (
                               <button
                                 disabled={disabled}
-                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Soothing Honey Drink (+1.00 Vocals)'); } }}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+1.0,0,10)); setWeekVocGain(g=>+(g+1.0).toFixed(3)); pushToast('Purchased: Soothing Honey Drink (+1.00 Vocals)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -4783,7 +4790,7 @@ function stationTarget(type) {
                             return (
                               <button
                                 disabled={disabled}
-                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Lyric Notebook (+1.00 Writing)'); } }}
+                                onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+1.0,0,10)); setWeekWriGain(g=>+(g+1.0).toFixed(3)); pushToast('Purchased: Lyric Notebook (+1.00 Writing)'); } }}
                                 style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -5080,8 +5087,47 @@ function stationTarget(type) {
                       "{lastResult.review}"
                     </div>
                     <div style={{ ...styles.sub, marginTop: 8 }}>
-                      +{'\u00A3'}{lastResult.moneyGain} +{lastResult.fansGain} fans
+                      +
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                        {lastResult.moneyGain}
+                        <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                      </span>
                     </div>
+                    <div style={{ ...styles.sub, marginTop: 2 }}>+{lastResult.fansGain} fans</div>
+                    {lastResult.trainingGains && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={styles.h3}>This Week's Progress</div>
+                        <div style={{ display:'grid', gap:6, marginTop: 6 }}>
+                          {(() => { const g = lastResult.trainingGains || {}; const b = lastResult.diceBefore||{}; const a = lastResult.diceAfter||{}; const changed = b.vocals!==a.vocals; const badge = a.vocals===20? '/art/d20badge.png' : a.vocals===12? '/art/d12badge.png' : '/art/d6badge.png'; return (
+                            <div style={{ ...styles.statRow }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                                <img src={badge} alt={`d${a.vocals||'-'}`} style={styles.dieBadge} />
+                                Sing
+                              </span>
+                              <b>+{Number(g.vocals||0).toFixed(2)}{changed? ` (d${b.vocals||'-'} → d${a.vocals||'-'})` : ''}</b>
+                            </div>
+                          ); })()}
+                          {(() => { const g = lastResult.trainingGains || {}; const b = lastResult.diceBefore||{}; const a = lastResult.diceAfter||{}; const changed = b.writing!==a.writing; const badge = a.writing===20? '/art/d20badge.png' : a.writing===12? '/art/d12badge.png' : '/art/d6badge.png'; return (
+                            <div style={{ ...styles.statRow }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                                <img src={badge} alt={`d${a.writing||'-'}`} style={styles.dieBadge} />
+                                Write
+                              </span>
+                              <b>+{Number(g.writing||0).toFixed(2)}{changed? ` (d${b.writing||'-'} → d${a.writing||'-'})` : ''}</b>
+                            </div>
+                          ); })()}
+                          {(() => { const g = lastResult.trainingGains || {}; const b = lastResult.diceBefore||{}; const a = lastResult.diceAfter||{}; const changed = b.stage!==a.stage; const badge = a.stage===20? '/art/d20badge.png' : a.stage===12? '/art/d12badge.png' : '/art/d6badge.png'; return (
+                            <div style={{ ...styles.statRow }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                                <img src={badge} alt={`d${a.stage||'-'}`} style={styles.dieBadge} />
+                                Dance
+                              </span>
+                              <b>+{Number(g.stage||0).toFixed(2)}{changed? ` (d${b.stage||'-'} → d${a.stage||'-'})` : ''}</b>
+                            </div>
+                          ); })()}
+                        </div>
+                      </div>
+                    )}
                     {lastResult.feedback && lastResult.feedback.length > 0 && (
                       <div style={{ marginTop: 10 }}>
                         <div style={styles.h3}>Suggestions</div>
@@ -5299,6 +5345,9 @@ function stationTarget(type) {
                               const vocalsGain = 0.12 * boost;
                               setStage((v) => clamp(v + stageGain, 0, 10));
                               setVocals((v) => clamp(v + vocalsGain, 0, 10));
+                              // Count these gains toward weekly training
+                              setWeekStageGain((g) => +(g + stageGain).toFixed(3));
+                              setWeekVocGain((g) => +(g + vocalsGain).toFixed(3));
                               // Record gig into history entry
                               setSongHistory((arr) => {
                                 const copy = arr.slice();
@@ -5529,7 +5578,15 @@ function stationTarget(type) {
               <div style={styles.title}>Gig Results</div>
               <div style={{ marginTop: 8 }}>
                 <div style={styles.statRow}><span>Venue</span><b>{gigResult.venue}</b></div>
-                <div style={styles.statRow}><span>Money</span><b>{'\u00A3'}{gigResult.money}</b></div>
+                <div style={styles.statRow}>
+                  <span>Money</span>
+                  <b>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                      {gigResult.money}
+                      <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                    </span>
+                  </b>
+                </div>
                 <div style={styles.statRow}><span>Fans</span><b>+{gigResult.fans}</b></div>
                 <div style={{ display:'flex', gap:8, marginTop:10 }}>
                   <div style={{ padding:'6px 10px', border:'1px solid rgba(255,255,255,.25)', borderRadius:999, background:'rgba(255,255,255,.08)' }}>
