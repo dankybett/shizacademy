@@ -4603,9 +4603,9 @@ function stationTarget(type) {
                       {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
-                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Extra d20 roll</div>
+                          <div style={styles.shopImageBox}>
                             <img src="/art/d20badge.png" alt="d20" style={{ width:36, height:36, objectFit:'contain' }} />
-                            Extra d20 roll
                           </div>
                           <button
                             disabled={money < price20}
@@ -4621,9 +4621,9 @@ function stationTarget(type) {
                       </div>
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
-                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Extra d12 roll</div>
+                          <div style={styles.shopImageBox}>
                             <img src="/art/d12badge.png" alt="d12" style={{ width:36, height:36, objectFit:'contain' }} />
-                            Extra d12 roll
                           </div>
                           <button
                             disabled={money < price12}
@@ -4639,9 +4639,9 @@ function stationTarget(type) {
                       </div>
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
-                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Extra d6 roll</div>
+                          <div style={styles.shopImageBox}>
                             <img src="/art/d6badge.png" alt="d6" style={{ width:36, height:36, objectFit:'contain' }} />
-                            Extra d6 roll
                           </div>
                           <button
                             disabled={money < price6}
@@ -4657,13 +4657,13 @@ function stationTarget(type) {
                       </div>
                       </>); })()}
                       </div>
-                      <div style={styles.shopGrid}>
+                      <div style={{ ...styles.shopGrid, marginTop: 10 }}>
                       {/* Mystery Poster */}
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
-                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Mystery Poster</div>
+                          <div style={styles.shopImageBox}>
                             <img src="/art/posters/poster1.png" alt="poster" style={{ width:36, height:36, objectFit:'cover', borderRadius:6 }} />
-                            Mystery Poster
                           </div>
                           {(() => { const disc = activeEffects?.shopDiscount || 1; const priceP = Math.max(1, Math.ceil(30 * disc)); const disabled = money < priceP; return (
                             <button
@@ -4695,9 +4695,9 @@ function stationTarget(type) {
                       </div>
                       <div style={styles.shopCard}>
                       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
-                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Nudge</div>
+                          <div style={styles.shopImageBox}>
                             <img src="/art/nudgebadge.png" alt="nudge" style={{ width:36, height:36, objectFit:'contain' }} />
-                            Nudge
                           </div>
                           {(() => { const disc = activeEffects?.shopDiscount || 1; const priceN = Math.max(1, Math.ceil(30 * disc)); return (
                             <button
@@ -4717,7 +4717,6 @@ function stationTarget(type) {
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
-                            <img src="/art/honey.png" alt="honey" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                             Soothing Honey Drink
                             {(() => {
                               const dp = dieProgress(vocals);
@@ -4729,6 +4728,9 @@ function stationTarget(type) {
                               const delta = Math.max(0, newPct - currPct);
                               return <span style={{ ...styles.sub, marginLeft:6 }}>+1 lvl toward next die</span>;
                             })()}
+                          </div>
+                          <div style={styles.shopImageBox}>
+                            <img src="/art/honey.png" alt="honey" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                           </div>
                           {(() => {
                             const disc = activeEffects?.shopDiscount || 1; const price = Math.max(1, Math.ceil(120 * disc)); const disabled = money < price || vocals >= 10;
@@ -4750,7 +4752,6 @@ function stationTarget(type) {
                       <div style={styles.shopCard}>
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
-                            <img src="/art/notebook.png" alt="notebook" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                             Lyric Notebook
                             {(() => {
                               const dp = dieProgress(writing);
@@ -4762,6 +4763,9 @@ function stationTarget(type) {
                               const delta = Math.max(0, newPct - currPct);
                               return <span style={{ ...styles.sub, marginLeft:6 }}>+1 lvl toward next die</span>;
                             })()}
+                          </div>
+                          <div style={styles.shopImageBox}>
+                            <img src="/art/notebook.png" alt="notebook" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                           </div>
                           {(() => {
                             const disc = activeEffects?.shopDiscount || 1; const price = Math.max(1, Math.ceil(120 * disc)); const disabled = money < price || writing >= 10;
@@ -6025,6 +6029,14 @@ const styles = {
     textAlign: 'center',
     gap: 8,
     backdropFilter: 'blur(2px)',
+  },
+  shopImageBox: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    width: '100%'
   },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
