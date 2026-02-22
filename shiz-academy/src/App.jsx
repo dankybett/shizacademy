@@ -4583,8 +4583,12 @@ function stationTarget(type) {
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_amozon.png')" }}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, color: '#8a6f1a', paddingTop: 12 }}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <div style={{ flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 450 }}>
+                    <div style={{ flex:'0 0 auto', position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 450 }}>
                       <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                      <div style={styles.shopMoneyOnLogo}>
+                        <span style={{ fontWeight: 900, letterSpacing: .2 }}>{money}</span>
+                        <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:16, height:16, objectFit:'contain' }} />
+                      </div>
                     </div>
                     {/* Mock search bar between logo and items */}
                     <div style={{ display:'flex', justifyContent:'center', marginTop: 8, marginBottom: 10 }}>
@@ -4593,6 +4597,7 @@ function stationTarget(type) {
                         <span style={{ opacity: 0.85 }}>🔍</span>
                       </div>
                     </div>
+                    
                     <div style={{ flex:0.95 }}>
                     <div style={styles.shopGrid}>
                       {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
@@ -5979,6 +5984,33 @@ const styles = {
     fontWeight: 600,
     pointerEvents: 'none',
     backdropFilter: 'blur(2px)'
+  },
+  shopMoneyInline: {
+    alignSelf: 'flex-end',
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '6px 10px',
+    borderRadius: 12,
+    fontSize: 13,
+    color: '#fff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shopMoneyOnLogo: {
+    position: 'absolute',
+    right: 0,
+    top: 6,
+    transform: 'none',
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '6px 10px',
+    borderRadius: 12,
+    fontSize: 13,
+    color: '#fff',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
   },
   shopCard: {
     border: '1px solid rgba(255,215,0,.28)',
