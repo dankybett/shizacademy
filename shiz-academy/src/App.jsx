@@ -666,6 +666,23 @@ export default function App() {
           "Beneath the bravado is a relentless commitment to voice, rhythm, and being heard.",
       },
     },
+    aureliagleam: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Aurelia Gleam',
+        bullets: [
+          'Genre: Arcane Pop / Anthemic Stage Pop',
+          'Role: Senior Prefect of Performance Studies',
+          'Known For: Poised live performances & unwavering composure'
+        ],
+        summary:
+          'Senior Prefect of Performance Studies at Shiz Academy, Aurelia Gleam is known for radiant stage presence and meticulous preparation. ' +
+          'A consistent presence on the Shizy-Fi charts, she approaches performance with grace, believing that confidence is something you practice rather than wait for. ' +
+          'Admired for her steady guidance and polished delivery, Aurelia views every stage as both responsibility and gift.',
+      },
+    },
   });
   const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number, snapshot?:{ songName?, genre?, releaseWeek?, chartRank? } }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
@@ -899,6 +916,21 @@ export default function App() {
       enqueueFriendEvent('mcmunch', 4, snap);
     } else if (munchNext === 5 && hasTop1HipHop) {
       enqueueFriendEvent('mcmunch', 5, null);
+    }
+
+    // Aurelia Gleam: calendar-week based triggers (independent of performance)
+    const aurLevel = friends?.aureliagleam?.level || 0;
+    const aurNext = (aurLevel || 0) + 1;
+    if (aurNext === 1 && week >= 2) {
+      enqueueFriendEvent('aureliagleam', 1, null); // End of Week 1 -> trigger at Week 2
+    } else if (aurNext === 2 && week >= 5) {
+      enqueueFriendEvent('aureliagleam', 2, null);
+    } else if (aurNext === 3 && week >= 26) {
+      enqueueFriendEvent('aureliagleam', 3, null);
+    } else if (aurNext === 4 && week >= 32) {
+      enqueueFriendEvent('aureliagleam', 4, null);
+    } else if (aurNext === 5 && week >= 50) {
+      enqueueFriendEvent('aureliagleam', 5, null);
     }
   }
 
@@ -3498,6 +3530,7 @@ function stationTarget(type) {
             setFriends={setFriends}
             setNudges={setNudges}
           setBonusRolls={setBonusRolls}
+          setNextRollOverride={setNextRollOverride}
           pushToast={pushToast}
           setWriting={setWriting}
           setVocals={setVocals}
@@ -4052,7 +4085,11 @@ function stationTarget(type) {
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
                       const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : '/art/friends/luminao_bust.png'));
-                      const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png' : (fid==='griswald' ? '/art/friends/griswald_profile.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_profile.png' : '/art/friends/luminao_profile.png'));
+                      const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png'
+                        : fid==='griswald' ? '/art/friends/griswald_profile.png'
+                        : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
+                        : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                        : '/art/friends/luminao_profile.png';
                       return (
                         <div style={{}}>
                           <div style={{ display:'flex', justifyContent:'center', marginTop: 6 }}>
@@ -4171,7 +4208,11 @@ function stationTarget(type) {
                                 const fid = selectedFriendId;
                                 const fsel = (friends && friends[fid]) || {};
                                 const bio = fsel.bio || { title: fid, summary:'', bullets:[] };
-                                const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png' : (fid==='griswald' ? '/art/friends/griswald_profile.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_profile.png' : ''));
+                                const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png'
+                                  : fid==='griswald' ? '/art/friends/griswald_profile.png'
+                                  : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
+                                  : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                                  : '';
                                 return (
                                   <div style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:12 }}>
                                     <div style={{ display:'flex', justifyContent:'center', marginBottom:8 }}>

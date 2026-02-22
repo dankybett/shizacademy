@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import luminaO from './scripts/luminaO.js'
 import griswald from './scripts/griswald.js'
 import mcmunch from './scripts/mcmunch.js'
+import aureliagleam from './scripts/aureliagleam.js'
 
 export default function VisualNovelModal({
   open,
@@ -14,6 +15,7 @@ export default function VisualNovelModal({
   setFriends,
   setNudges,
   setBonusRolls,
+  setNextRollOverride,
   pushToast,
   setWriting,
   setVocals,
@@ -52,12 +54,13 @@ export default function VisualNovelModal({
 
   const friendId = friendModal.friendId || 'luminaO';
 
-  const scripts = { luminaO, griswald, mcmunch };
+  const scripts = { luminaO, griswald, mcmunch, aureliagleam };
 
   const FRIEND_META = {
     luminaO: { name: 'Lumina-O', bust: '/art/friends/luminao_bust.png' },
     griswald: { name: 'Griswald', bust: '/art/friends/griswald_bust.png' },
     mcmunch: { name: 'MC Munch', bust: '/art/friends/mcmunch_bust.png' },
+    aureliagleam: { name: 'Aurelia Gleam', bust: '/art/friends/aureliagleam_bust.png' },
   };
 
   const lines = (scripts[friendId] && scripts[friendId][friendModal.targetLevel]) || [ { speaker:'lumina', text:'...' } ];
@@ -102,6 +105,7 @@ export default function VisualNovelModal({
   const [polaroidGiftOpen, setPolaroidGiftOpen] = useState(false);
   const [spotlightGiftOpen, setSpotlightGiftOpen] = useState(false);
   const [vinylGiftOpen, setVinylGiftOpen] = useState(false);
+  // Aurelia gifts (visual only for now)
   useEffect(() => {
     if (!open) return;
     setVnTyping(true);
@@ -161,6 +165,115 @@ export default function VisualNovelModal({
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, grisGiftOpen, friends, setFriends, setWriting, pushToast]);
 
+  // Aurelia LV1: grant +1 Nudge on gift line and mark claimed
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 1) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[1]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
+        if (typeof setNudges === 'function') setNudges(n => (n||0) + 1);
+        setFriends(prev => ({
+          ...prev,
+          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } }
+        }));
+        pushToast('Aurelia gift: +1 Nudge');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setNudges, pushToast]);
+
+  // Aurelia LV3: grant +1 Extra d12 roll on gift line and mark claimed
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 3) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[3]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
+        if (typeof setBonusRolls === 'function') setBonusRolls(r => (r||0) + 1);
+        if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
+        setFriends(prev => ({
+          ...prev,
+          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } }
+        }));
+        pushToast('Aurelia gift: Extra d12 roll (+1) - next roll uses d12');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setBonusRolls, setNextRollOverride, pushToast]);
+
+  // Aurelia LV4: grant +1 Extra d6 roll on gift line and mark claimed
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 4) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[4]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
+        if (typeof setBonusRolls === 'function') setBonusRolls(r => (r||0) + 1);
+        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+        setFriends(prev => ({
+          ...prev,
+          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 4:true } }
+        }));
+        pushToast('Aurelia gift: Extra d6 roll (+1) - next roll uses d6');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setBonusRolls, setNextRollOverride, pushToast]);
+
+  // Aurelia LV5: grant +1 Nudge and +1 Extra d6 roll on gift line and mark claimed
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 5) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[5]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
+        if (typeof setNudges === 'function') setNudges(n => (n||0) + 1);
+        if (typeof setBonusRolls === 'function') setBonusRolls(r => (r||0) + 1);
+        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+        setFriends(prev => ({
+          ...prev,
+          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 5:true } }
+        }));
+        pushToast('Aurelia gift: +1 Nudge and extra d6 roll (next roll uses d6)');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setNudges, setBonusRolls, setNextRollOverride, pushToast]);
+
+  // Aurelia LV2: grant +1 Nudge on gift line and mark claimed
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 2) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[2]);
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
+        if (typeof setNudges === 'function') setNudges(n => (n||0) + 1);
+        setFriends(prev => ({
+          ...prev,
+          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } }
+        }));
+        pushToast('Aurelia gift: +1 Nudge');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setNudges, pushToast]);
+
   // MC Munch LV2: show warm-up tape gift overlay and apply vocals +0.2
   useEffect(() => {
     try {
@@ -215,6 +328,8 @@ export default function VisualNovelModal({
       }
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, spotlightSnapUnlocked, setSpotlightSnapUnlocked, pushToast]);
+
+  // (Removed) Aurelia Gleam LV4: Spotlight Bloom overlay logic
 
   // Griswald LV5: unlock Polaroid Photograph (desk keepsake)
   useEffect(() => {
@@ -463,6 +578,7 @@ export default function VisualNovelModal({
               <button style={{ ...styles.primaryBtn, marginTop: 10 }} onClick={()=> setPolaroidGiftOpen(false)}>OK</button>
             </div>
           )}
+          {/* (Removed) Aurelia LV4 Spotlight Bloom overlay */}
           {(vinylGiftOpen && friendModal.targetLevel===5 && friendId==='mcmunch') && (
             <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,.75)', border:'1px solid rgba(255,255,255,.35)', borderRadius:12, padding:12, textAlign:'center', zIndex: 20, width: 380 }}>
               <div style={{ position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', paddingTop: 6, paddingBottom: 6 }}>
@@ -498,6 +614,35 @@ export default function VisualNovelModal({
                     } else {
                       // Complete at end (choice path)
                       setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                      if (friendId==='aureliagleam' && friendModal.targetLevel === 5 && !(friends?.aureliagleam?.rewardsClaimed?.[5])) {
+                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 5:true } } }));
+                        pushToast('Aurelia gift: +1 Nudge and extra d6 roll (next roll uses d6)');
+                      }
+                      if (friendId==='aureliagleam' && friendModal.targetLevel === 4 && !(friends?.aureliagleam?.rewardsClaimed?.[4])) {
+                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 4:true } } }));
+                        pushToast('Aurelia gift: Extra d6 roll (+1) - next roll uses d6');
+                      }
+                      if (friendId==='aureliagleam' && friendModal.targetLevel === 3 && !(friends?.aureliagleam?.rewardsClaimed?.[3])) {
+                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                        if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
+                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } } }));
+                        pushToast('Aurelia gift: Extra d12 roll (+1) - next roll uses d12');
+                      }
+                      if (friendId==='aureliagleam' && friendModal.targetLevel === 2 && !(friends?.aureliagleam?.rewardsClaimed?.[2])) {
+                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
+                        pushToast('Aurelia gift: +1 Nudge');
+                      }
+                      if (friendId==='aureliagleam' && friendModal.targetLevel === 1 && !(friends?.aureliagleam?.rewardsClaimed?.[1])) {
+                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } } }));
+                        pushToast('Aurelia gift: +1 Nudge');
+                      }
                       if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
                         setNudges(n=>n+1);
                         setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
@@ -536,6 +681,35 @@ export default function VisualNovelModal({
                     // Complete at end (normal path). Only promote level for standard levels (1-5).
                     if (friendModal && typeof friendModal.targetLevel === 'number' && friendModal.targetLevel >= 1 && friendModal.targetLevel <= 5) {
                       setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                    }
+                    if (friendId==='aureliagleam' && friendModal.targetLevel === 5 && !(friends?.aureliagleam?.rewardsClaimed?.[5])) {
+                      if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                      if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 5:true } } }));
+                      pushToast('Aurelia gift: +1 Nudge and extra d6 roll (next roll uses d6)');
+                    }
+                    if (friendId==='aureliagleam' && friendModal.targetLevel === 4 && !(friends?.aureliagleam?.rewardsClaimed?.[4])) {
+                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                      if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
+                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 4:true } } }));
+                      pushToast('Aurelia gift: Extra d6 roll (+1) - next roll uses d6');
+                    }
+                    if (friendId==='aureliagleam' && friendModal.targetLevel === 3 && !(friends?.aureliagleam?.rewardsClaimed?.[3])) {
+                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
+                      if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
+                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } } }));
+                      pushToast('Aurelia gift: Extra d12 roll (+1) - next roll uses d12');
+                    }
+                    if (friendId==='aureliagleam' && friendModal.targetLevel === 2 && !(friends?.aureliagleam?.rewardsClaimed?.[2])) {
+                      if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
+                      pushToast('Aurelia gift: +1 Nudge');
+                    }
+                    if (friendId==='aureliagleam' && friendModal.targetLevel === 1 && !(friends?.aureliagleam?.rewardsClaimed?.[1])) {
+                      if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
+                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } } }));
+                      pushToast('Aurelia gift: +1 Nudge');
                     }
                     if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
                       setNudges(n=>n+1);
