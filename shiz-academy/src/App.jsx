@@ -1090,6 +1090,8 @@ export default function App() {
   }
   const [started, setStarted] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeStep, setWelcomeStep] = useState(1); // 1: ask name, 2: intro message
+  const [welcomeName, setWelcomeName] = useState('');
   const [showConcept, setShowConcept] = useState(false);
 
   // Tamagotchi-style actor state
@@ -1652,6 +1654,8 @@ function stationTarget(type) {
   // Show welcome on first week once
   useEffect(() => {
     if (started && week === 1 && !welcomeShown) {
+      setWelcomeStep(1);
+      setWelcomeName(performerName || '');
       setShowWelcome(true);
       setWelcomeShown(true);
     }
@@ -3671,21 +3675,57 @@ function stationTarget(type) {
                 )}
 
         {showWelcome && (
-          <div style={styles.overlayClear} onClick={() => setShowWelcome(false)}>
+          <div
+            style={styles.overlayClear}
+            onClick={() => {
+              if (welcomeStep === 2) setShowWelcome(false);
+            }}
+          >
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
-                  <div style={{ ...styles.title, textAlign: 'center' }}>Welcome to Shiz Academy</div>
-                  <div style={{ display:'flex', gap:12, alignItems:'center', marginTop: 10 }}>
-                    <div style={{ flex:'0 0 204px', display:'flex', justifyContent:'center' }}>
-                      <img src="/art/academylogo.png" alt="Shiz Academy Crest" style={{ height: 184, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ ...styles.sub, marginTop: 0, lineHeight: 1.4 }}>
-                        This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform your masterpiece?
+                  {welcomeStep === 1 ? (
+                    <>
+                      <div style={{ ...styles.title, textAlign: 'center' }}>Welcome to Shiz Academy</div>
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, marginTop: 10 }}>
+                        <div style={{ width:'100%', maxWidth: 520 }}>
+                          <div style={{ ...styles.label, marginTop: 0, textAlign:'center' }}>What is your name?</div>
+                          <div style={{ ...styles.inlineRow, justifyContent:'center' }}>
+                            <input
+                              autoFocus
+                              value={welcomeName}
+                              onChange={(e)=> setWelcomeName(e.target.value)}
+                              onKeyDown={(e)=>{ if(e.key==='Enter'){ const nm = (welcomeName||'').trim() || 'Your Performer'; setPerformerName(nm); setWelcomeStep(2); } }}
+                              placeholder="Type your name..."
+                              style={{ ...styles.input, maxWidth: 320 }}
+                              enterKeyHint="next"
+                            />
+                            <button
+                              style={styles.smallBtn}
+                              onClick={()=>{ const nm = (welcomeName||'').trim() || 'Your Performer'; setPerformerName(nm); setWelcomeStep(2); }}
+                            >Next</button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ ...styles.title, textAlign: 'center' }}>{`Welcome ${performerName}`}</div>
+                      <div style={{ display:'flex', gap:12, alignItems:'center', marginTop: 10 }}>
+                        <div style={{ flex:'0 0 204px', display:'flex', justifyContent:'center' }}>
+                          <img src="/art/academylogo.png" alt="Shiz Academy Crest" style={{ height: 184, width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ ...styles.sub, marginTop: 0, lineHeight: 1.4 }}>
+                            This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform a masterpiece?
+                          </div>
+                          <div style={{ marginTop: 10 }}>
+                            <button style={styles.primaryBtn} onClick={()=> setShowWelcome(false)}>Start</button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
