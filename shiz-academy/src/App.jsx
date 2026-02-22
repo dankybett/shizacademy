@@ -4581,6 +4581,7 @@ function stationTarget(type) {
           <div style={styles.overlayClear} onClick={() => setShopOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_amozon.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'6%', bottom:'12%', left:'6%' }} />
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, color: '#8a6f1a', paddingTop: 12 }}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div style={{ flex:'0 0 auto', position:'relative', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 450 }}>
