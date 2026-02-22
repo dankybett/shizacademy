@@ -3880,6 +3880,41 @@ function stationTarget(type) {
                       {pr.next && (
                         <div style={{ position:'absolute', left:`calc(${pct}% - 5px)`, top:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:999, background:'#fff', boxShadow:'0 0 7px rgba(176,132,245,.9)', border:'1px solid #6d49b7' }} />
                       )}
+                      {/* Shared tracks section (moved below) - disabled */}
+                      {false && (
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track ?" it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      )}
                     </div>
                     {dieBadgePath(pr.next) ? (
                       <div style={{...styles.dieBadgeWrap, marginRight:-6}}>
@@ -4371,6 +4406,7 @@ function stationTarget(type) {
                         })()}
                       </div>
                       {/* Shared tracks section */}
+                      {false && (
                       <div style={{ marginTop: 6 }}>
                         <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
                         {(() => {
@@ -4403,6 +4439,7 @@ function stationTarget(type) {
                           );
                         })()}
                       </div>
+                      )}
                       <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
                       {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
                         (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
@@ -4426,6 +4463,39 @@ function stationTarget(type) {
                       ) : (
                         <div style={{ display:'inline-block', padding:'8px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>No new messages.</div>
                       )}
+                      {/* Shared tracks section (now below Messages) */}
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track - it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>

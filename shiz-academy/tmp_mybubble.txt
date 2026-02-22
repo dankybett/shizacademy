@@ -1,0 +1,243 @@
+                        <div style={{ position:'absolute', left:`calc(${pct}% - 5px)`, top:'50%', transform:'translate(-50%,-50%)', width:10, height:10, borderRadius:999, background:'#fff', boxShadow:'0 0 7px rgba(247,215,116,.9)', border:'1px solid #c29a2a' }} />
+                      )}
+                    </div>
+                    {dieBadgePath(pr.next) ? (
+                      <div style={{...styles.dieBadgeWrap, marginRight:-6}}>
+                        <img src={dieBadgePath(pr.next)} alt={`d${pr.next}`} style={styles.dieBadge} />
+                        <div style={styles.dieBadgeText}>{nextLabel}</div>
+                      </div>
+                    ) : (
+                      <div style={{ ...styles.dieToken, background:'linear-gradient(180deg,#ffeab6,#f2cd62)', border:'1px solid rgba(247,215,116,.7)', opacity: pr.next? 1 : .5 }}>{nextLabel}</div>
+                    )}
+                  </div>
+                ); })()}
+                
+                {false && DICE_MODE && (
+                  <div style={styles.progressHelp}>
+                    Current die: d{facesFor(stage)}{nextDieInfo(stage) ? ` ? Next: d${nextDieInfo(stage).f} at = ${nextDieInfo(stage).t.toFixed(1)}` : ' ? Max die unlocked'}
+                  </div>
+                )}
+                    </div>
+                  </div>
+                  {null}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {false && financeOpen}
+
+        {socialOpen && (
+          <div
+            style={styles.overlayClear}
+            onClick={() => {
+              if (selectedFriendId != null) { setSelectedFriendId(null); return; }
+              if (showFriendsList) { setShowFriendsList(false); return; }
+              setSocialOpen(false);
+            }}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+              {null}
+              {null}
+              {!showFriendsList && (
+              <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                  <img
+                    src={'/art/mybubble/profilepic.png'}
+                    alt={''}
+                    style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                  />
+                  <button title="Messages" onClick={() => setMyBubbleMessagesOpen(true)} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/messagebutton.png'}
+                      alt={'Messages'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                    )}
+                  </button>
+                  <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/friendsbutton.png'}
+                      alt={'Friends'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
+                </div>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <img
+                      src={'/art/mybubble/mybubbletitle.png'}
+                      alt={'MyBubble'}
+                      style={{ display:'block', width:220, height:'auto' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        : fid==='griswald' ? '/art/friends/griswald_profile.png'
+                        : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
+                        : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                        : '/art/friends/luminao_profile.png';
+                      return (
+                        <div style={{}}>
+                          <div style={{ display:'flex', justifyContent:'center', marginTop: 6 }}>
+                            <img src={profile} alt={`${meta.bio.title} profile`} style={{ width: 96, height:'auto', objectFit:'contain', borderRadius: 10, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          </div>
+                          <div style={{ fontWeight:900, margin:'8px 0 6px', textAlign:'center' }}>{meta.bio.title}</div>
+                          <div style={{ ...styles.sub, marginBottom:6 }}>{meta.bio.summary}</div>
+                          {meta.bio.bullets && meta.bio.bullets.length>0 && (
+                            <ul style={styles.ul}>
+                              {meta.bio.bullets.map((b,i)=>(<li key={i} style={styles.li}>{b}</li>))}
+                            </ul>
+                          )}
+                          <div style={{ marginTop: 8, display:'flex', gap:8, alignItems:'center' }}>
+                            <img src={bust} alt={meta.name} style={{ width: 120, height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                            <div style={{ ...styles.sub }}>Level: <b>{(f && f.level) || 0}</b>/5</div>
+                          </div>
+                          {/* Back button removed; use left-rail Friends icon to return */}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              )}
+              {null}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {myBubbleFriendsOpen && (
+          <div
+            style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
+            onClick={() => setMyBubbleFriendsOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleFriendsOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <button title="Messages" onClick={() => { setMyBubbleFriendsOpen(false); setMyBubbleMessagesOpen(true); }} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/messagebutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                          <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                        )}
+                      </button>
+                      <button title="Friends" onClick={() => setSelectedFriendId(null)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={'Friends'}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                                return (
+                                  <div style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:12 }}>
+                                    <div style={{ display:'flex', justifyContent:'center', marginBottom:8 }}>
+                                      <img src={profile} alt={`${bio.title} profile`} style={{ width: 96, height:'auto', objectFit:'contain', borderRadius:10, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                                    </div>
+                                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                      <div style={{ fontWeight:900 }}>{bio.title || fid}</div>
+                                      <div style={{ ...styles.sub, fontWeight:800 }}>Lv {(fsel.level||0)}/5</div>
+                                    </div>
+                                    {bio.summary && (
+                                      <div style={{ ...styles.sub, opacity:.95, marginTop:6 }}>{bio.summary}</div>
+                                    )}
+                                    {Array.isArray(bio.bullets) && bio.bullets.length>0 && (
+                                      <ul style={{ margin:'8px 0 0 18px', padding:0 }}>
+                                        {bio.bullets.map((b, i) => (
+                                          <li key={i} style={{ fontSize: 13, lineHeight: 1.4, opacity: 0.95 }}>{b}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    {/* Back button removed; use left-rail Friends icon to return */}
+                                  </div>
+                                );
+                              })()
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {myBubbleMessagesOpen && (
+          <div
+            style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
+            onClick={() => setMyBubbleMessagesOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleMessagesOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/messagebutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (

@@ -1,0 +1,656 @@
+  const [myBubbleMessagesOpen, setMyBubbleMessagesOpen] = useState(false);
+  const [myMusicOpen, setMyMusicOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [myBubbleFriendsOpen, setMyBubbleFriendsOpen] = useState(false);
+  // Friends / Visual Novel system
+  const [friends, setFriends] = useState({
+    luminaO: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Lumina-O',
+        bullets: [
+          'Genre: Synthwave',
+          'Province: Undisclosed (rumored Emerald outskirts)',
+          'Known For: Midnight releases & atmospheric live sets'
+        ],
+        summary:
+          "A nocturnal presence at Shiz Academy, Lumina-O crafts shimmering synthwave soundscapes that feel like walking home under neon streetlights. " +
+          "She rarely speaks about her process, but her tracks linger long after the final note fades. Often spotted awake long after curfew, " +
+          "she believes music sounds better when the world is quiet enough to listen.",
+      },
+    },
+    griswald: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Griswald',
+        bullets: [
+          'Genre: Rock/Grunge',
+          'Province: Gillikin (Northern Forests)',
+          'Known For: Raw live sessions & rain-soaked performances'
+        ],
+        summary:
+          "Hailing from the pine-covered North, Griswald brings a stripped-back, distortion-heavy sound to Shizs polished stages. " +
+          "He favors worn flannel, honest lyrics, and leaving imperfections untouched. Known to test his tracks outdoors before releasing them, " +
+          "he believes music should feel lived in  not cleaned up.",
+      },
+    },
+    mcmunch: {
+                  <button title="Messages" onClick={() => setMyBubbleMessagesOpen(true)} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/messagebutton.png'}
+                      alt={'Messages'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                    )}
+                  </button>
+                  <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/friendsbutton.png'}
+                      alt={'Friends'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
+                </div>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <img
+                      src={'/art/mybubble/mybubbletitle.png'}
+                      alt={'MyBubble'}
+                      style={{ display:'block', width:220, height:'auto' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                {(() => {
+                  const targetWeek = Math.max(1, week - 1);
+                  const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                  const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                  return (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                      <span style={{ opacity:.9 }}>Fans</span>
+                      <span>{fans}</span>
+                      <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                    </div>
+                  );
+                })()}
+                  </div>
+                      alt={'Messages'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                    )}
+                  </button>
+                  <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/friendsbutton.png'}
+                      alt={'Friends'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
+                </div>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <img
+                      src={'/art/mybubble/mybubbletitle.png'}
+                      alt={'MyBubble'}
+                      style={{ display:'block', width:220, height:'auto' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                {(() => {
+                  const targetWeek = Math.max(1, week - 1);
+                  const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                  const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                  return (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                      <span style={{ opacity:.9 }}>Fans</span>
+                      <span>{fans}</span>
+                      <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                    </div>
+                  );
+                })()}
+                  </div>
+                  {(() => {
+                    const targetWeek = Math.max(1, week - 1);
+                    let entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                    )}
+                  </button>
+                  <button title="Friends" onClick={() => setMyBubbleFriendsOpen(true)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                    <img
+                      src={'/art/mybubble/friendsbutton.png'}
+                      alt={'Friends'}
+                      style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                  </button>
+                </div>
+                <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <img
+                      src={'/art/mybubble/mybubbletitle.png'}
+                      alt={'MyBubble'}
+                      style={{ display:'block', width:220, height:'auto' }}
+                      onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                    />
+                {(() => {
+                  const targetWeek = Math.max(1, week - 1);
+                  const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                  const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                  return (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                      <span style={{ opacity:.9 }}>Fans</span>
+                      <span>{fans}</span>
+                      <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                    </div>
+                  );
+                })()}
+                  </div>
+                  {(() => {
+                    const targetWeek = Math.max(1, week - 1);
+                    let entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                    if (!entry) entry = (songHistory||[])[0];
+                    if (!entry) return null;
+                    return (
+                      <div>
+                      <button title="Messages" onClick={() => { setMyBubbleFriendsOpen(false); setMyBubbleMessagesOpen(true); }} style={{ position:'relative', background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/messagebutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                          <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                        )}
+                      </button>
+                      <button title="Friends" onClick={() => setSelectedFriendId(null)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={'Friends'}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                        {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                          <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                        )}
+                      </button>
+                      <button title="Friends" onClick={() => setSelectedFriendId(null)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={'Friends'}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      {selectedFriendId == null && (
+                        <div style={{ fontWeight:900, marginTop:4 }}>Friends</div>
+                      )}
+                      {(() => {
+                        const list = Object.keys(friends||{}).reduce((arr, fid) => {
+                          const f = friends[fid];
+                          const lv = (f && f.level) || 0;
+        {myBubbleMessagesOpen && (
+          <div
+            style={{ ...styles.overlayClear, background: 'transparent', backdropFilter: 'none' }}
+            onClick={() => setMyBubbleMessagesOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleMessagesOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/messagebutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+            onClick={() => setMyBubbleMessagesOpen(false)}
+          >
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mybubble.png')" }}>
+                <div style={{ ...styles.desktopScanlinesOverlay, top:'16%', right:'7%', bottom:'12%', left:'7%' }} />
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '12%', bottom: '12%', left: '10%', justifyContent: 'flex-start', color: '#362e46' }}>
+                  <div style={{ display:'flex', gap:12, marginTop: 8 }}>
+                    <div style={{ flex:'0 0 56px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleMessagesOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/messagebutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                      <button title="Back to MyBubble" onClick={() => setMyBubbleMessagesOpen(false)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/profilepic.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                      <img
+                        src={'/art/mybubble/messagebutton.png'}
+                        alt={''}
+                        style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)', opacity:.55 }}
+                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                      />
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                      <button title="Friends" onClick={() => { setMyBubbleMessagesOpen(false); setMyBubbleFriendsOpen(true); }} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
+                        <img
+                          src={'/art/mybubble/friendsbutton.png'}
+                          alt={''}
+                          style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                      </button>
+                    </div>
+                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <img
+                          src={'/art/mybubble/mybubbletitle.png'}
+                          alt={'MyBubble'}
+                          style={{ display:'block', width:220, height:'auto' }}
+                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                        />
+                        {(() => {
+                          const targetWeek = Math.max(1, week - 1);
+                          const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
+                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          return (
+                            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
+                              <span style={{ opacity:.9 }}>Fans</span>
+                              <span>{fans}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      {/* Shared tracks section */}
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                      {/* Shared tracks section */}
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
+                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                            <div>
+                              <div style={{ fontWeight:800 }}>{title}</div>
+                              <div style={{ ...styles.sub }}>from {name}</div>
+                            </div>
+                        <div style={{ fontWeight:800, marginBottom:4 }}>Shared Tracks</div>
+                        {(() => {
+                          const list = (sharedSongs||[]).filter(s => (s.shareWeek||0) <= week);
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
+                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                            <div>
+                              <div style={{ fontWeight:800 }}>{title}</div>
+                              <div style={{ ...styles.sub }}>from {name}</div>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                                <button style={styles.smallBtn} onClick={()=>{
+                          if (!list.length) return (<div style={styles.sub}>No shared tracks yet.</div>);
+                          return (
+                            <div style={{ display:'grid', gap:8 }}>
+                              {list.map(s => (
+                                <div key={s.id} style={{ border:'1px solid rgba(54,46,70,.25)', borderRadius:10, padding:8, display:'flex', alignItems:'center', gap:10 }}>
+                                  <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
+                                      <button style={styles.smallBtn} onClick={() => {
+                                        try {
+                                          const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
+                                          playTrendItem(item);
+                                          setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, listened:true } : x));
+                                        } catch(_){}
+                                      }}>{isPlaying ? 'Stop' : 'Play'}</button>
+                                    ); })()}
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                      if (s.liked) return;
+                                      setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
+                                      pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
+                                    }}>Like</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
+                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                            <div>
+                              <div style={{ fontWeight:800 }}>{title}</div>
+                              <div style={{ ...styles.sub }}>from {name}</div>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                                <button style={styles.smallBtn} onClick={()=>{
+                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null, isWizmas: !!ev.wizmas });
+                                  setPendingFriendEvents(prev=> prev.slice(1));
+                                  setLastFriendProgressWeek(week);
+                      <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
+                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
+                            <div>
+                              <div style={{ fontWeight:800 }}>{title}</div>
+                              <div style={{ ...styles.sub }}>from {name}</div>
+                            </div>
+                            <div style={{ display:'flex', gap:6 }}>
+                                <button style={styles.smallBtn} onClick={()=>{
+                                  setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null, isWizmas: !!ev.wizmas });
+                                  setPendingFriendEvents(prev=> prev.slice(1));
+                                  setLastFriendProgressWeek(week);
+                                  setMyBubbleMessagesOpen(false);
+                                  setSocialOpen(false);
+                                }}>Open</button>
+                              <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                            </div>
+                          </div>
+                        ); })()
+                      ) : (
+                        <div style={{ display:'inline-block', padding:'8px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>No new messages.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {eventModal && eventModal.event && (
+          <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>{eventModal.event.title}</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
+              {eventModal.event.choices && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
+                  {eventModal.event.choices.map((ch, idx) => (
+                    <button key={idx} style={styles.secondaryBtn} onClick={() => {
+                      // Apply immediate effect (grant/fanMult only matters this week, handled via activeEffects once stored)
+                      if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
+                                  setMyBubbleMessagesOpen(false);
+                                  setSocialOpen(false);
+                                }}>Open</button>
+                              <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                            </div>
+                          </div>
+                        ); })()
+                      ) : (
+                        <div style={{ display:'inline-block', padding:'8px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>No new messages.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {eventModal && eventModal.event && (
+          <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>{eventModal.event.title}</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
+              {eventModal.event.choices && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
+                  {eventModal.event.choices.map((ch, idx) => (
+                    <button key={idx} style={styles.secondaryBtn} onClick={() => {
+                      // Apply immediate effect (grant/fanMult only matters this week, handled via activeEffects once stored)
+                      if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
+                      setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
+                      setEventModal(null);
+                    }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                        <span>{ch.label}</span>
+                        {(ch.effect && typeof ch.effect.grantMoney === 'number') && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                            +{ch.effect.grantMoney}
+                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} />
+                            <span>now</span>
+                          </span>
+                        )}
+                      </span>
+                        <div style={{ display:'inline-block', padding:'8px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.10)', fontWeight:800 }}>No new messages.</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {eventModal && eventModal.event && (
+          <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.title}>{eventModal.event.title}</div>
+              <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
+              {eventModal.event.choices && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
+                  {eventModal.event.choices.map((ch, idx) => (
+                    <button key={idx} style={styles.secondaryBtn} onClick={() => {
+                      // Apply immediate effect (grant/fanMult only matters this week, handled via activeEffects once stored)
+                      if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
+                      setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
+                      setEventModal(null);
+                    }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                        <span>{ch.label}</span>
+                        {(ch.effect && typeof ch.effect.grantMoney === 'number') && (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                            +{ch.effect.grantMoney}
+                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} />
+                            <span>now</span>
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!eventModal.event.choices && (
+                <button onClick={() => setEventModal(null)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Okay</button>
+              )}
+            </div>

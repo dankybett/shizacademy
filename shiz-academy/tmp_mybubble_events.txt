@@ -1,0 +1,27 @@
+  }, [friends?.griswald?.level]);
+
+  // Deliver MyBubble message on the scheduled week
+  useEffect(() => {
+    try {
+      const g = friends?.griswald || {};
+      if (g.level >= 5 && g.sharedTrackScheduledWeek === week && !g.sharedTrackSent) {
+        const entry = {
+          id: `share-griswald-${week}`,
+  }, [week, friends, wizmasGift]);
+
+  // Wizmas gift: enqueue MyBubble message at the head of the queue on week 48
+  useEffect(() => {
+    try {
+      if (!wizmasGift || wizmasGift.queued) return;
+      if (week !== (wizmasGift.scheduledWeek||48)) return;
+      const ev = { friendId: wizmasGift.friendId, targetLevel: 99, week, wizmas: true };
+      setPendingFriendEvents(prev => [ev, ...(prev||[])]);
+  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
+
+  // Ensure fan comments exist for this week's release once MyBubble opens
+  useEffect(() => {
+    if (!socialOpen) return;
+    const targetWeek = Math.max(1, week - 1);
+    const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek) || (songHistory||[])[0];
+    if (!entry) return;
+    if (!entry.fanComments || !entry.fanComments.length) {
