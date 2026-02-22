@@ -548,6 +548,10 @@ const VENUE_BG = {
 const VENUE_FAN_REQ = { busking: 0, ozdustball: 50, stadium: 1000 };
 const MAX_GIGS_PER_WEEK = 3;
 
+// Friends summary constants
+const FRIENDS_ORDER = ['aureliagleam', 'griswald', 'luminaO', 'mcmunch'];
+const MAX_FRIEND_LEVEL = 5;
+
 function pickReview(grade) {
   const arr = REVIEW_LINES[grade] ?? ["..."];
   return arr[randInt(0, arr.length - 1)];
@@ -5429,9 +5433,11 @@ function stationTarget(type) {
         {/* Finale Summary (appears after Week 52 release, before party) */}
         {finaleSummaryOpen && (
           <div style={styles.overlayClear}>
-            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Year Summary</div>
-              <div style={{ marginTop: 8 }}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>Year Summary</div>
+                  <div style={{ marginTop: 8 }}>
                 {(() => {
                   const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
                   const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
@@ -5450,6 +5456,49 @@ function stationTarget(type) {
                           ))}
                         </div>
                       )}
+                      {(() => {
+                        // Preferred genre: most releases; tie-break by best single score
+                        const stats = (songHistory||[]).reduce((acc, s) => {
+                          const g = s && s.genre; if (!g) return acc;
+                          const sc = Number(s.score || 0);
+                          const o = acc[g] || { count: 0, best: -Infinity };
+                          o.count += 1; o.best = Math.max(o.best, sc); acc[g] = o; return acc;
+                        }, {});
+                        const keys = Object.keys(stats);
+                        const pref = keys.length ? keys.sort((a,b)=>{
+                          const A = stats[a], B = stats[b];
+                          if (B.count !== A.count) return B.count - A.count;
+                          return (B.best||-Infinity) - (A.best||-Infinity);
+                        })[0] : null;
+                        return (
+                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref || '-'}</b></div>
+                        );
+                      })()}
+                      {/* Friends summary */}
+                      {(() => {
+                        try {
+                          const met = FRIENDS_ORDER.filter(id => (friends?.[id]?.level || 0) > 0).length;
+                          return (
+                            <div style={{ marginTop: 10 }}>
+                              <div style={{ fontWeight: 900, marginBottom: 2 }}>Friends</div>
+                              <div style={{ ...styles.sub, marginBottom: 6 }}>Friends met {met}/{FRIENDS_ORDER.length}</div>
+                              <div style={{ display:'grid', gap:6 }}>
+                                {FRIENDS_ORDER.map((id) => {
+                                  const lvl = Math.max(0, friends?.[id]?.level || 0);
+                                  const name = lvl > 0 ? (friends?.[id]?.bio?.title || (id==='luminaO'?'Lumina-O': id==='aureliagleam'?'Aurelia Gleam' : id.charAt(0).toUpperCase()+id.slice(1))) : '???';
+                                  return (
+                                    <div key={id} style={{ display:'flex', justifyContent:'space-between' }}>
+                                      <div>{name}</div>
+                                      <div>lvl <b>{lvl}/{MAX_FRIEND_LEVEL}</b></div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        } catch (_) { return null; }
+                      })()}
+
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
                       <div style={styles.statRow}>
                         <span>Total Money Earned</span>
@@ -5464,9 +5513,11 @@ function stationTarget(type) {
                     </div>
                   );
                 })()}
-              </div>
-              <div style={{ display:'flex', gap:8, marginTop: 12 }}>
-                <button onClick={() => { setFinaleSummaryOpen(false); setFinaleOpen(true); }} style={styles.primaryBtn}>Celebrate Katie's Birthday</button>
+                  </div>
+                  <div style={{ display:'flex', gap:8, marginTop: 12 }}>
+                    <button onClick={() => { setFinaleSummaryOpen(false); setFinaleOpen(true); }} style={styles.primaryBtn}>Celebrate Katie's Birthday</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -5498,10 +5549,12 @@ function stationTarget(type) {
         {/* Finale ending options after party performance */}
         {finaleEndOpen && (
           <div style={styles.overlayClear} onClick={() => setFinaleEndOpen(false)}>
-            <div style={{ ...styles.modal, maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>Season Complete</div>
-              <div style={{ ...styles.sub, marginTop: 8 }}>Thanks for celebrating at Katie's Birthday!</div>
-              <div style={{ marginTop: 8 }}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>Season Complete</div>
+                  <div style={{ ...styles.sub, marginTop: 8 }}>Thanks for celebrating at Katie's Birthday!</div>
+                  <div style={{ marginTop: 8 }}>
                 {(() => {
                   const top = songHistory.slice().sort((a,b)=> (b.score||0)-(a.score||0)).slice(0,5);
                   const totalMoney = songHistory.reduce((sum, s) => sum + (s.moneyGain||0) + (Array.isArray(s.gigs)? s.gigs.reduce((gSum,g)=>gSum+(g.moneyGain||0),0):0), 0);
@@ -5520,6 +5573,23 @@ function stationTarget(type) {
                           ))}
                         </div>
                       )}
+                      {(() => {
+                        const stats = (songHistory||[]).reduce((acc, s) => {
+                          const g = s && s.genre; if (!g) return acc;
+                          const sc = Number(s.score || 0);
+                          const o = acc[g] || { count: 0, best: -Infinity };
+                          o.count += 1; o.best = Math.max(o.best, sc); acc[g] = o; return acc;
+                        }, {});
+                        const keys = Object.keys(stats);
+                        const pref = keys.length ? keys.sort((a,b)=>{
+                          const A = stats[a], B = stats[b];
+                          if (B.count !== A.count) return B.count - A.count;
+                          return (B.best||-Infinity) - (A.best||-Infinity);
+                        })[0] : null;
+                        return (
+                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref || '-'}</b></div>
+                        );
+                      })()}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
                       <div style={styles.statRow}>
                         <span>Total Money Earned</span>
@@ -5534,10 +5604,12 @@ function stationTarget(type) {
                     </div>
                   );
                 })()}
-              </div>
-              <div style={{ display:'flex', gap:8, marginTop: 12 }}>
-                <button onClick={() => { setFinaleEndOpen(false); restart(); }} style={styles.primaryBtn}>Start New Game</button>
-                <button onClick={() => { setSuppressFinale(true); setFinaleEndOpen(false); }} style={styles.secondaryBtn}>Continue playing (for fun)</button>
+                  </div>
+                  <div style={{ display:'flex', gap:8, marginTop: 12 }}>
+                    <button onClick={() => { setFinaleEndOpen(false); restart(); }} style={styles.primaryBtn}>Start New Game</button>
+                    <button onClick={() => { setSuppressFinale(true); setFinaleEndOpen(false); }} style={styles.secondaryBtn}>Continue playing (for fun)</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
