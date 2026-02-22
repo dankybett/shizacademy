@@ -165,26 +165,6 @@ export default function VisualNovelModal({
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, grisGiftOpen, friends, setFriends, setWriting, pushToast]);
 
-  // Aurelia LV1: grant +1 Nudge on gift line and mark claimed
-  useEffect(() => {
-    try {
-      if (!open) return;
-      const fid = friendModal.friendId || 'luminaO';
-      if (fid !== 'aureliagleam') return;
-      if ((friendModal.targetLevel||0) !== 1) return;
-      const i = friendModal.idx || 0;
-      const line = lines[i];
-      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[1]);
-      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
-        if (typeof setNudges === 'function') setNudges(n => (n||0) + 1);
-        setFriends(prev => ({
-          ...prev,
-          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } }
-        }));
-        pushToast('Aurelia gift: +1 Nudge');
-      }
-    } catch { /* ignore */ }
-  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setNudges, pushToast]);
 
   // Aurelia LV3: grant +1 Extra d12 roll on gift line and mark claimed
   useEffect(() => {
@@ -638,11 +618,7 @@ export default function VisualNovelModal({
                         setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
                         pushToast('Aurelia gift: +1 Nudge');
                       }
-                      if (friendId==='aureliagleam' && friendModal.targetLevel === 1 && !(friends?.aureliagleam?.rewardsClaimed?.[1])) {
-                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } } }));
-                        pushToast('Aurelia gift: +1 Nudge');
-                      }
+                      
                       if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
                         setNudges(n=>n+1);
                         setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
@@ -706,11 +682,7 @@ export default function VisualNovelModal({
                       setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
                       pushToast('Aurelia gift: +1 Nudge');
                     }
-                    if (friendId==='aureliagleam' && friendModal.targetLevel === 1 && !(friends?.aureliagleam?.rewardsClaimed?.[1])) {
-                      if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 1:true } } }));
-                      pushToast('Aurelia gift: +1 Nudge');
-                    }
+                    
                     if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
                       setNudges(n=>n+1);
                       setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));

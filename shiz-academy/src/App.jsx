@@ -921,8 +921,8 @@ export default function App() {
     // Aurelia Gleam: calendar-week based triggers (independent of performance)
     const aurLevel = friends?.aureliagleam?.level || 0;
     const aurNext = (aurLevel || 0) + 1;
-    if (aurNext === 1 && week >= 2) {
-      enqueueFriendEvent('aureliagleam', 1, null); // End of Week 1 -> trigger at Week 2
+    if (aurNext === 1 && week >= 1) {
+      enqueueFriendEvent('aureliagleam', 1, null); // Trigger at Week 1 (initial friend request)
     } else if (aurNext === 2 && week >= 5) {
       enqueueFriendEvent('aureliagleam', 2, null);
     } else if (aurNext === 3 && week >= 26) {
