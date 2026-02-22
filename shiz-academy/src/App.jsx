@@ -3826,7 +3826,7 @@ function stationTarget(type) {
         {statsOpen && (
           <div style={styles.overlayClear} onClick={() => setStatsOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: mirrorAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: mirrorAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mirror.png')" }}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', right: '13%', bottom: '4%', left: '15%', justifyContent: 'flex-start' }}>
                   <div style={{ marginTop: 0, display:'flex', gap:16, alignItems:'flex-start', paddingLeft: 50 }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginLeft: -40 }}>
@@ -3839,9 +3839,7 @@ function stationTarget(type) {
                         marginTop: 4,
                         fontFamily: "'Lobster', cursive",
                         fontWeight: 400,
-                        color: '#fff',
-                        WebkitTextStroke: '1px #6b4a2b',
-                        textShadow: '1px 0 #6b4a2b, -1px 0 #6b4a2b, 0 1px #6b4a2b, 0 -1px #6b4a2b'
+                        color: '#0d2b6f'
                       }}>
                         {editingName ? (
                           <div style={{ display:'flex', gap:6, alignItems:'center' }}>
@@ -3850,17 +3848,17 @@ function stationTarget(type) {
                               value={tempName}
                               onChange={(e)=>setTempName(e.target.value)}
                               onKeyDown={(e)=>{ if(e.key==='Enter'){ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false);} if(e.key==='Escape'){ setEditingName(false);} }}
-                              style={{ ...styles.input, height:32, fontWeight:800 }}
+                              style={{ ...styles.input, height:32, fontWeight:800, color:'#0d2b6f' }}
                             />
-                            <button className="btn" onClick={()=>{ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false); }} style={styles.smallBtn}>Save</button>
+                            <button className="btn" onClick={()=>{ setPerformerName(tempName.trim()||'Your Performer'); setEditingName(false); }} style={{ ...styles.smallBtn, color:'#0d2b6f' }}>Save</button>
                           </div>
                         ) : (
                           <span onClick={()=>{ setTempName(performerName); setEditingName(true); }} title="Click to rename" style={{ cursor:'text' }}>{performerName}</span>
                         )}
                       </div>
                     </div>
-                    <div style={{ flex:1 }}>
-                  <div style={styles.progressLabel}><span>Vocals</span></div>
+                    <div style={{ flex:1, marginTop: 20 }}>
+                  <div style={{ ...styles.progressLabel, color:'#0d2b6f' }}><span>Sing</span></div>
                 {(() => { 
                   const pr = dieProgress(vocals); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#B084F5', col2 = '#7A4CC4';
@@ -3905,7 +3903,7 @@ function stationTarget(type) {
                   </div>
                 )}
 
-                <div style={styles.progressLabel}><span>Writing</span></div>
+                <div style={{ ...styles.progressLabel, color:'#0d2b6f' }}><span>Write</span></div>
                 {(() => { 
                   const pr = dieProgress(writing); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#5FE7D9', col2 = '#2AA296';
@@ -3950,7 +3948,7 @@ function stationTarget(type) {
                   </div>
                 )}
 
-                <div style={styles.progressLabel}><span>Stage</span></div>
+                <div style={{ ...styles.progressLabel, color:'#0d2b6f' }}><span>Dance</span></div>
                 {(() => { 
                   const pr = dieProgress(stage); const pct = Math.round((pr.pct||0)*100); const nextLabel = pr.next? `d${pr.next}` : 'MAX';
                   const col1 = '#F7D774', col2 = '#C79C2A';
@@ -5207,7 +5205,7 @@ function stationTarget(type) {
                   <div style={styles.title}>Choose Venue & Perform</div>
                   <div style={{ ...styles.sub, marginTop: 6 }}>Pick a venue for your finished song.</div>
                   <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                    {Object.entries(VENUES).map(([key, v]) => {
+                    {Object.entries(VENUES).filter(([key]) => key !== 'stadium').map(([key, v]) => {
                       // Simple textual forecast
                       let expected = 0;
                       if (DICE_MODE) {
@@ -5291,7 +5289,7 @@ function stationTarget(type) {
                 <div style={{ marginTop: 10 }}>
                   <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
-                    {Object.entries(VENUES).map(([key, v]) => {
+                    {Object.entries(VENUES).filter(([key]) => key !== 'stadium').map(([key, v]) => {
                       const expected = selectedGigSong.score;
                       const margin = expected - (v.breakEven ?? 0);
                       const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
@@ -5528,7 +5526,7 @@ function stationTarget(type) {
         {finaleSummaryOpen && (
           <div style={styles.overlayClear}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.mirrorFrame}>
+              <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mirror.png')" }}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
                   <div style={styles.title}>Year Summary</div>
                   <div style={{ marginTop: 8 }}>
