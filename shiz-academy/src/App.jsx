@@ -4581,24 +4581,31 @@ function stationTarget(type) {
           <div style={styles.overlayClear} onClick={() => setShopOpen(false)}>
             <div style={{ ...styles.mirrorModal, transform: shopAnim? 'scale(1) translateY(0)' : 'scale(.985) translateY(-6px)', opacity: shopAnim? 1 : 0, transition: 'transform 220ms ease, opacity 220ms ease' }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_amozon.png')" }}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, color: '#8a6f1a' }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, color: '#8a6f1a', paddingTop: 12 }}>
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <div style={{ flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 260 }}>
+                    <div style={{ flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto', marginTop: 450 }}>
                       <img src="/art/shoplogo.png" alt="Shop" style={{ height: 96, width: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                     </div>
+                    {/* Mock search bar between logo and items */}
+                    <div style={{ display:'flex', justifyContent:'center', marginTop: 8, marginBottom: 10 }}>
+                      <div style={styles.shopSearchBar}>
+                        <span style={{ opacity: 0.6 }}>Search</span>
+                        <span style={{ opacity: 0.85 }}>🔍</span>
+                      </div>
+                    </div>
                     <div style={{ flex:0.95 }}>
-                    <div style={{ display:'grid', gap:8 }}>
+                    <div style={styles.shopGrid}>
                       {(() => { const disc = activeEffects?.shopDiscount || 1; const price20 = Math.max(1, Math.ceil(15 * disc)); const price12 = Math.max(1, Math.ceil(40 * disc)); const price6 = Math.max(1, Math.ceil(100 * disc)); return (<>
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
                             <img src="/art/d20badge.png" alt="d20" style={{ width:36, height:36, objectFit:'contain' }} />
                             Extra d20 roll
                           </div>
                           <button
                             disabled={money < price20}
                             onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
-                            style={money<price20? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                            style={money<price20? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                               {price20}
@@ -4607,16 +4614,16 @@ function stationTarget(type) {
                           </button>
                         </div>
                       </div>
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
                             <img src="/art/d12badge.png" alt="d12" style={{ width:36, height:36, objectFit:'contain' }} />
                             Extra d12 roll
                           </div>
                           <button
                             disabled={money < price12}
                             onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
-                            style={money<price12? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                            style={money<price12? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                               {price12}
@@ -4625,16 +4632,16 @@ function stationTarget(type) {
                           </button>
                         </div>
                       </div>
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
                             <img src="/art/d6badge.png" alt="d6" style={{ width:36, height:36, objectFit:'contain' }} />
                             Extra d6 roll
                           </div>
                           <button
                             disabled={money < price6}
                             onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
-                            style={money<price6? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                            style={money<price6? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                               {price6}
@@ -4645,10 +4652,11 @@ function stationTarget(type) {
                       </div>
                       </>); })()}
                       </div>
+                      <div style={styles.shopGrid}>
                       {/* Mystery Poster */}
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
                             <img src="/art/posters/poster1.png" alt="poster" style={{ width:36, height:36, objectFit:'cover', borderRadius:6 }} />
                             Mystery Poster
                           </div>
@@ -4670,7 +4678,7 @@ function stationTarget(type) {
                                   pushToast(remaining.length>0 ? 'Unlocked a new poster!' : 'Swapped to another poster!');
                                 }
                               }}
-                              style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                              style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                             >
                               <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                                 {priceP}
@@ -4680,9 +4688,9 @@ function stationTarget(type) {
                           ); })()}
                         </div>
                       </div>
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:4 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
+                      <div style={styles.shopCard}>
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
                             <img src="/art/nudgebadge.png" alt="nudge" style={{ width:36, height:36, objectFit:'contain' }} />
                             Nudge
                           </div>
@@ -4690,7 +4698,7 @@ function stationTarget(type) {
                             <button
                               disabled={money < priceN}
                               onClick={() => { if (money>=priceN){ setMoney(m=>m-priceN); setNudges(n=>n+1); pushToast('Purchased: Nudge (+1)'); } }}
-                              style={money<priceN? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                              style={money<priceN? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                             >
                               <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                                 {priceN}
@@ -4701,10 +4709,10 @@ function stationTarget(type) {
                         </div>
                       </div>
                       {/* Permanent boost items styled like other shop items */}
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                            <img src="/art/honey.png" alt="honey" style={{ width:28, height:28, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/honey.png" alt="honey" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                             Soothing Honey Drink
                             {(() => {
                               const dp = dieProgress(vocals);
@@ -4723,7 +4731,7 @@ function stationTarget(type) {
                               <button
                                 disabled={disabled}
                                 onClick={() => { if (!disabled){ setMoney(m=>m-price); setVocals(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Soothing Honey Drink (+1.00 Vocals)'); } }}
-                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                                   {price}
@@ -4734,10 +4742,10 @@ function stationTarget(type) {
                           })()}
                         </div>
                       </div>
-                      <div style={{ border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                            <img src="/art/notebook.png" alt="notebook" style={{ width:28, height:28, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
+                      <div style={styles.shopCard}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>
+                            <img src="/art/notebook.png" alt="notebook" style={{ width:56, height:56, objectFit:'contain' }} onError={(e)=>{e.currentTarget.style.display='none';}} />
                             Lyric Notebook
                             {(() => {
                               const dp = dieProgress(writing);
@@ -4756,7 +4764,7 @@ function stationTarget(type) {
                               <button
                                 disabled={disabled}
                                 onClick={() => { if (!disabled){ setMoney(m=>m-price); setWriting(v=>clamp(v+1.0,0,10)); pushToast('Purchased: Lyric Notebook (+1.00 Writing)'); } }}
-                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtn, marginLeft:'auto' } : { ...styles.smallBtn, ...styles.shopBuyBtn, marginLeft:'auto' }}
+                                style={disabled? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                               >
                                 <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                                   {price}
@@ -4766,6 +4774,7 @@ function stationTarget(type) {
                             );
                           })()}
                         </div>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -5927,7 +5936,63 @@ const styles = {
     width: 'auto',
     flex: '0 0 auto',
     textAlign: 'center',
-    color: '#8a6f1a',
+    color: '#ffffff',
+    background: 'linear-gradient(180deg, #3a4ea1 0%, #2b3f8a 100%)',
+    border: '1px solid rgba(58,78,161,.65)',
+    boxShadow: '0 2px 6px rgba(0,0,0,.25)',
+    fontWeight: 700,
+    borderRadius: 10,
+  },
+  shopBuyBtnDisabled: {
+    padding: '6px 10px',
+    fontSize: 12,
+    minWidth: 80,
+    whiteSpace: 'nowrap',
+    width: 'auto',
+    flex: '0 0 auto',
+    textAlign: 'center',
+    color: 'rgba(255,255,255,.85)',
+    background: 'rgba(43,63,138,.30)',
+    border: '1px solid rgba(58,78,161,.45)',
+    fontWeight: 700,
+    borderRadius: 10,
+  },
+  shopGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: 10,
+    alignItems: 'stretch',
+  },
+  shopSearchBar: {
+    width: '100%',
+    maxWidth: 420,
+    height: 38,
+    borderRadius: 999,
+    background: 'rgba(255,255,255,0.9)',
+    border: '1px solid rgba(0,0,0,.12)',
+    boxShadow: '0 2px 8px rgba(0,0,0,.15) inset, 0 2px 6px rgba(0,0,0,.12)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 12px',
+    color: '#1e2b57',
+    fontWeight: 600,
+    pointerEvents: 'none',
+    backdropFilter: 'blur(2px)'
+  },
+  shopCard: {
+    border: '1px solid rgba(255,215,0,.28)',
+    borderRadius: 12,
+    padding: 10,
+    background: 'rgba(255,215,0,0.12)',
+    minHeight: 150,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    textAlign: 'center',
+    gap: 8,
+    backdropFilter: 'blur(2px)',
   },
   ul: { margin: '6px 0 0 18px', padding: 0 },
   li: { fontSize: 13, lineHeight: 1.4, opacity: 0.95 },
