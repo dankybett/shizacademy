@@ -594,6 +594,7 @@ export default function App() {
   const [gigResultOpen, setGigResultOpen] = useState(false);
   const [gigResult, setGigResult] = useState(null); // {venue, money, fans}
   const [weekMode, setWeekMode] = useState(null); // 'song' | 'gig' | null
+  const [isGigPlayback, setIsGigPlayback] = useState(false); // true while a booked gig performance is playing
   const [progressOpen, setProgressOpen] = useState(false);
   const [roomWidth, setRoomWidth] = useState(520);
   const [walkablePts, setWalkablePts] = useState([]);
@@ -1641,7 +1642,7 @@ function stationTarget(type) {
       setFinalePending(false);
       setEndYearReady(true);
     }
-  }, [finalePending, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal]);
+  }, [finalePending, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal]);
 
   // When party performance ends, show final options modal
   useEffect(() => {
@@ -2520,7 +2521,12 @@ function stationTarget(type) {
       }
     } catch (_) {}
     setIsPerforming(false);
-    setReleaseOpen(true);
+    if (isGigPlayback) {
+      setGigResultOpen(true);
+    } else {
+      setReleaseOpen(true);
+    }
+    setIsGigPlayback(false);
     setActivity('idle');
     setPerformingSong(null);
   }
@@ -2762,7 +2768,7 @@ function stationTarget(type) {
       // Weekly "This Week" modal: always show once per week after overlays clear (skip week 1, show welcome instead)
       const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
       const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
+      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
       if (weeklyInfoShownWeek !== week && week > 1) {
         if (!overlaysOpen) {
           setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
@@ -2777,7 +2783,7 @@ function stationTarget(type) {
   // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
     if (!queuedEventInfo) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
     const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
@@ -2786,7 +2792,7 @@ function stationTarget(type) {
       if (typeof queuedEventInfo.week === 'number') setWeeklyInfoShownWeek(queuedEventInfo.week);
     }
     setQueuedEventInfo(null);
-  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
+  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
 
   // Ensure fan comments exist for this week's release once MyBubble opens
   useEffect(() => {
@@ -5060,7 +5066,7 @@ function stationTarget(type) {
                     <div style={{ ...styles.sub, marginBottom: 6 }}>
                       Song: <b>{lastResult.songName}</b> - {lastResult.genre} / {lastResult.theme}
                     </div>
-                    <div style={styles.statRow}><span>Critics Score</span><b>{lastResult.score}</b></div>
+                    <div style={styles.statRow}><span>Critics Score</span><b>{Number(lastResult.score ?? 0).toFixed(2)}</b></div>
                     <div style={styles.statRow}><span>Grade</span><b>{lastResult.grade}</b></div>
                     {/* Charts moved to Trends; hide legacy chartPos */}
                     {lastResult.venue && (
@@ -5178,8 +5184,12 @@ function stationTarget(type) {
                             <div style={{ fontWeight: 700 }}>
                               {v.name}
                             </div>
-                            <div style={{ ...styles.sub }}>
-                              Cost: {'\u00A3'}{v.cost}
+                            <div style={{ ...styles.sub, display:'inline-flex', alignItems:'center', gap:4 }}>
+                              Cost:
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                {v.cost}
+                                <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                              </span>
                             </div>
                           </div>
                           <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
@@ -5209,7 +5219,7 @@ function stationTarget(type) {
               <div style={styles.mirrorFrame}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, justifyContent: 'flex-start' }}>
                   <div style={styles.title}>Book Gig</div>
-                  <div style={{ ...styles.sub, marginTop: 6 }}>Play an older song to earn money/fans. Uses 1 day (max 3 gigs per week).</div>
+                  <div style={{ ...styles.sub, marginTop: 6 }}>Play an older song to earn money and potentially attract more fans. Uses 1 week. Works best when performing highly rated songs.</div>
                   <div className="hide-scrollbar" style={{ marginTop: 8, maxHeight: 240, overflowY: 'auto', border: '1px solid rgba(255,255,255,.15)', borderRadius: 10, padding: 6 }}>
                 {songHistory.length === 0 ? (
                   <div style={styles.sub}>No past songs yet.</div>
@@ -5242,7 +5252,13 @@ function stationTarget(type) {
                         <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ fontWeight: 700 }}>{v.name}</div>
-                            <div style={{ ...styles.sub }}>Cost: {'\u00A3'}{v.cost}</div>
+                            <div style={{ ...styles.sub, display:'inline-flex', alignItems:'center', gap:4 }}>
+                              Cost:
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                {v.cost}
+                                <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                              </span>
+                            </div>
                           </div>
                           <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
                           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
@@ -5255,7 +5271,7 @@ function stationTarget(type) {
                           <button
                             disabled={locked}
                             onClick={() => {
-                              // New gig flow: consumes the whole week immediately
+                              // Consume week and set up performance playback like release flow
                               const vCfg = VENUES[key] ?? VENUES.busking;
                               const score = selectedGigSong.score;
                               const grade = selectedGigSong.grade;
@@ -5269,10 +5285,11 @@ function stationTarget(type) {
                               let net = Math.floor(gross - (vCfg.cost ?? 0));
                               if (key === 'busking') net = Math.max(vCfg.tipFloor ?? 5, net);
                               if (week <= 3) net = Math.max(net, -20);
+
+                              // Apply gains up front (consistent with release flow)
                               setWeekMode('gig');
                               setMoney((m) => m + net);
                               setFans((f) => f + fansGainLocal);
-                              // Modest stat training for a gig-focused week
                               const boost = key === 'busking' ? 1.1 : 1.0;
                               const stageGain = 0.25 * boost;
                               const vocalsGain = 0.12 * boost;
@@ -5289,12 +5306,65 @@ function stationTarget(type) {
                                 }
                                 return copy;
                               });
+                              // Prepare gig results payload
                               setGigResult({ venue: vCfg.name, money: net, fans: fansGainLocal, stageGain, vocalsGain });
+
+                              // Advance to next week and reset
                               setGigOpen(false);
-                              // Advance to next week immediately
+                              setCalendarOpen(false);
+                              setFinanceOpen(false);
                               setWeek((w) => w + 1);
                               resetWeekProgress();
-                              setGigResultOpen(true);
+
+                              // Start performance playback like release flow
+                              try {
+                                if (performAudioRef.current) { try { performAudioRef.current.pause(); } catch (_) {} }
+                                setPerformingVenue(key);
+                                setPerformingSong({ name: selectedGigSong.songName, genre: selectedGigSong.genre, theme: selectedGigSong.theme });
+                                setIsPerforming(true);
+                                setIsGigPlayback(true);
+                                setTarget(null);
+                                setPos({ x: 50, y: 62 });
+                                setActivity('singing');
+                                setStatus(`Performing at ${vCfg.name}...`);
+                                const genreKey = (() => {
+                                  switch (selectedGigSong.genre) {
+                                    case 'Rock': return 'rock';
+                                    case 'EDM': return 'edm';
+                                    case 'Hip-Hop': return 'hiphop';
+                                    case 'Jazz': return 'jazz';
+                                    case 'Country': return 'country';
+                                    case 'R&B': return 'randb';
+                                    case 'Metal': return 'metal';
+                                    case 'Folk': return 'folk';
+                                    case 'Synthwave': return 'synthwave';
+                                    case 'Wizmas Banger': return 'wizmas';
+                                    case 'Pop': default: return null;
+                                  }
+                                })();
+                                const primarySrc = genreKey ? `/sounds/fullsinging_${genreKey}.ogg` : '/sounds/fullsinging.ogg';
+                                const fallbackSrc = '/sounds/fullsinging.ogg';
+                                const audio = new Audio(primarySrc);
+                                let didFallback = false;
+                                audio.onended = () => {
+                                  setIsPerforming(false);
+                                  setActivity('idle');
+                                  performAudioRef.current = null;
+                                  setPerformingSong(null);
+                                  setIsGigPlayback(false);
+                                  setGigResultOpen(true);
+                                };
+                                audio.onerror = () => {
+                                  if (!didFallback) { didFallback = true; try { audio.src = fallbackSrc; audio.play().catch(() => {}); } catch (_) {} }
+                                };
+                                performAudioRef.current = audio;
+                                audio.play().catch(() => {});
+                              } catch (_) {
+                                // If playback fails, fall back to immediate results
+                                setIsPerforming(false);
+                                setIsGigPlayback(false);
+                                setGigResultOpen(true);
+                              }
                             }}
                             style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}
                           >
@@ -5375,13 +5445,21 @@ function stationTarget(type) {
                           {top.map((s,i)=>(
                             <div key={i} style={{ display:'flex', justifyContent:'space-between', border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8 }}>
                               <div><b>#{i+1}</b> {s.songName}</div>
-                              <div>Score <b>{s.score}</b> | Grade <b>{s.grade}</b></div>
+                              <div>Score <b>{Number(s.score ?? 0).toFixed(2)}</b> | Grade <b>{s.grade}</b></div>
                             </div>
                           ))}
                         </div>
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
-                      <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
+                      <div style={styles.statRow}>
+                        <span>Total Money Earned</span>
+                        <b>
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                            {totalMoney}
+                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                          </span>
+                        </b>
+                      </div>
                       {/* Best Chart Position removed; Trends is canonical */}
                     </div>
                   );
@@ -5437,13 +5515,21 @@ function stationTarget(type) {
                           {top.map((s,i)=>(
                             <div key={i} style={{ display:'flex', justifyContent:'space-between', border:'1px solid rgba(255,255,255,.15)', borderRadius:10, padding:8 }}>
                               <div><b>#{i+1}</b> {s.songName}</div>
-                              <div>Score <b>{s.score}</b> | Grade <b>{s.grade}</b></div>
+                              <div>Score <b>{Number(s.score ?? 0).toFixed(2)}</b> | Grade <b>{s.grade}</b></div>
                             </div>
                           ))}
                         </div>
                       )}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
-                      <div style={styles.statRow}><span>Total Money Earned</span><b>{'\u00A3'}{totalMoney}</b></div>
+                      <div style={styles.statRow}>
+                        <span>Total Money Earned</span>
+                        <b>
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                            {totalMoney}
+                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                          </span>
+                        </b>
+                      </div>
                       {/* Best Chart Position removed; Trends is canonical */}
                     </div>
                   );
