@@ -3720,7 +3720,18 @@ function stationTarget(type) {
                             This year is all about making music. Create and perform songs across Oz. There is a big celebration at the end of the year. Perhaps you will be able to perform a masterpiece?
                           </div>
                           <div style={{ marginTop: 10 }}>
-                            <button style={styles.primaryBtn} onClick={()=> setShowWelcome(false)}>Start</button>
+                            <button
+                              style={styles.primaryBtn}
+                              onClick={() => {
+                                setShowWelcome(false);
+                                try {
+                                  const toNotify = (activeEvents||[]).filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
+                                  const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
+                                  setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
+                                  setWeeklyInfoShownWeek(week);
+                                } catch(_) {}
+                              }}
+                            >Start</button>
                           </div>
                         </div>
                       </div>
