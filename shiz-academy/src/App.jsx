@@ -3244,7 +3244,9 @@ function stationTarget(type) {
                         (performingVenue === 'ozdustball' ? ' translate(-50px, 15px)' : '') +
                         (performingVenue === 'busking'
                           ? ' translate(-110px, 60px)'
-                          : ` translate(${facingLeft ? '-85px' : '85px'}, 12px)`),
+                          : (performingVenue === 'katieparty'
+                              ? ' translate(-135px, 22px)'
+                               : ` translate(${facingLeft ? '-85px' : '85px'}, 12px)`)),
                       zIndex: 3,
                       pointerEvents: 'none'
                     }}
@@ -5461,14 +5463,57 @@ function stationTarget(type) {
                 disabled={!finaleSong}
                 onClick={() => {
                   if (!finaleSong) return;
-                  setFinaleOpen(false);
+                  try { setFinaleOpen(false); } catch (_) {}
                   setPerformingVenue('katieparty');
+                  setPerformingSong({ name: finaleSong.songName, genre: finaleSong.genre, theme: finaleSong.theme });
                   setIsPerforming(true);
                   setFinaleInProgress(true);
                   setTarget(null);
                   setPos({ x: 50, y: 62 });
-                  // End performance after a brief ceremony
-                  setTimeout(() => { setIsPerforming(false); }, 6000);
+                  setActivity('singing');
+                  setStatus("Celebrating at Katie's Birthday...");
+                  try {
+                    if (performAudioRef.current) { try { performAudioRef.current.pause(); } catch (_) {} }
+                    const genreKey = (() => {
+                      switch (finaleSong.genre) {
+                        case 'Rock': return 'rock';
+                        case 'EDM': return 'edm';
+                        case 'Hip-Hop': return 'hiphop';
+                        case 'Jazz': return 'jazz';
+                        case 'Country': return 'country';
+                        case 'R&B': return 'randb';
+                        case 'Metal': return 'metal';
+                        case 'Folk': return 'folk';
+                        case 'Synthwave': return 'synthwave';
+                        case 'Wizmas Banger': return 'wizmas';
+                        case 'Pop': default: return null;
+                      }
+                    })();
+                    const primarySrc = genreKey ? `/sounds/fullsinging_${genreKey}.ogg` : '/sounds/fullsinging.ogg';
+                    const fallbackSrc = '/sounds/fullsinging.ogg';
+                    const audio = new Audio(primarySrc);
+                    let didFallback = false;
+                    audio.onended = () => {
+                      setIsPerforming(false);
+                      setActivity('idle');
+                      performAudioRef.current = null;
+                      setPerformingSong(null);
+                    };
+                    audio.onerror = () => {
+                      if (!didFallback) {
+                        didFallback = true;
+                        try { audio.src = fallbackSrc; audio.play().catch(() => {}); } catch (_) {}
+                      }
+                    };
+                    performAudioRef.current = audio;
+                    audio.play().catch(() => {
+                      // Fallback: ensure it still ends
+                      setTimeout(() => { try { setIsPerforming(false); } catch (_) {} }, 6000);
+                    });
+                  } catch (_) {
+                    // Final fallback if audio setup fails completely
+                    setTimeout(() => { try { setIsPerforming(false); } catch (_) {} }, 6000);
+                  }
                 }}
                 style={!finaleSong ? styles.primaryBtnDisabled : styles.primaryBtn}
               >
