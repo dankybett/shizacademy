@@ -1397,6 +1397,13 @@ function stationTarget(type) {
     const nth = type === "practice" ? practiceT + 1 : type === "write" ? writeT + 1 : performT + 1;
     const delta = +(base * diminishFactor(nth)).toFixed(3);
 
+    // If starting a performance/dance action, pause any Shizy‑Fi playback and clear HUD
+    if (type === 'perform') {
+      try { if (audioRef.current) { audioRef.current.pause(); } } catch (_) {}
+      setPlayingTrend(null);
+      setAudioTime({ current: 0, duration: 0 });
+    }
+
     // Apply immediate training gains per action
     if (type === "practice") {
       setVocals((v) => clamp(v + delta, 0, 10));
@@ -1778,6 +1785,14 @@ function stationTarget(type) {
     }
   }
 
+  // Pause and clear trend playback when a performance starts
+  useEffect(() => {
+    if (!isPerforming) return;
+    try { if (audioRef.current) { audioRef.current.pause(); } } catch (_) {}
+    setPlayingTrend(null);
+    setAudioTime({ current: 0, duration: 0 });
+  }, [isPerforming]);
+
   function playPreview() {
     let audio = audioRef.current;
     if (!audio) { audio = new Audio(); audioRef.current = audio; }
@@ -1792,7 +1807,8 @@ function stationTarget(type) {
     const audio = audioRef.current;
     if (audio && !audio.paused) {
       try { audio.pause(); } catch (_) {}
-      // Keep playingTrend set so the selection remains highlighted
+      // keep playingTrend to maintain chart highlight; HUD hides via paused state
+      // keep audioTime as-is so the scrubber reflects the paused position
     }
   }
 
@@ -3148,7 +3164,7 @@ function stationTarget(type) {
               {!playingTrend && !isPerforming && (
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
-              {playingTrend && (
+              {(playingTrend && audioRef.current && !audioRef.current.paused) && (
                 <div style={styles.hudListening} title={`${playingTrend.artist} - ${playingTrend.title}`}>
                   <span style={{ marginRight: 6, opacity: .9 }}></span>
                   <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} - {playingTrend.title}</b>
