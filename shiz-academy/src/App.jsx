@@ -83,6 +83,11 @@ function genEventSchedule(performerName, startTs) {
   push(6, 'festival', 'Local Festival Week', 'Crowds are buzzing', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2 });
   push(12, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
+  // Special: The Iron Overture (Metal Festival)
+  push(26, 'iron', 'The Iron Overture (Metal Festival)', 'Metal festival this week', 'Enter The Iron Overture this week?', 'choice', undefined, [
+    { label: 'Yes (costs 40)', effect: { cost: -40, ironLockMetal: true, ironGigLock: true, ironVenue: true } },
+    { label: 'Skip', effect: { } },
+  ]);
   push(24, 'openmic', 'Open Mic Marathon', 'Pick your focus', 'Choose between quick cash or fan hype.', 'choice', undefined, [
     { label: 'Take tips', effect: { grantMoney: 60 } },
     { label: 'Hype it (fans x1.2 this week)', effect: { fanMult: 1.2 } },
@@ -122,6 +127,10 @@ function mergeEffects(eventsForWeek) {
       if (e.effect.wizmas) eff.wizmas = true;
       if (typeof e.effect.wizmasFanMult === 'number') eff.wizmasFanMult = (eff.wizmasFanMult||1) * e.effect.wizmasFanMult;
       if (typeof e.effect.wizmasPayoutMult === 'number') eff.wizmasPayoutMult = (eff.wizmasPayoutMult||1) * e.effect.wizmasPayoutMult;
+      // The Iron Overture (festival) flags
+      if (e.effect.ironLockMetal) eff.ironLockMetal = true;
+      if (e.effect.ironGigLock) eff.ironGigLock = true;
+      if (e.effect.ironVenue) eff.ironVenue = true;
     }
   });
   return eff;
@@ -536,20 +545,31 @@ const VENUES = {
     rng: 4,
     desc: "Massive scale. All or nothing.",
   },
+  iron: {
+    name: "The Iron Overture",
+    icon: "",
+    cost: 0,
+    breakEven: 65,
+    payoutPerPoint: 1.3,
+    fanMult: 1.2,
+    rng: 2,
+    desc: "Special festival stage. Different backdrop; standard performance rules.",
+  },
 };
 
-const VENUE_BG = {
-  busking: '/art/venue1_busking.png',
-  ozdustball: '/art/venue2_ozdustball.png',
-  stadium: '/art/venue3_stadium.png',
-  katieparty: '/art/katieparty.png',
-};
+  const VENUE_BG = {
+    busking: '/art/venue1_busking.png',
+    ozdustball: '/art/venue2_ozdustball.png',
+    stadium: '/art/venue3_stadium.png',
+    katieparty: '/art/katieparty.png',
+    iron: '/art/venue_iron.png',
+  };
 
 const VENUE_FAN_REQ = { busking: 0, ozdustball: 50, stadium: 1000 };
 const MAX_GIGS_PER_WEEK = 3;
 
 // Friends summary constants
-const FRIENDS_ORDER = ['aureliagleam', 'griswald', 'luminaO', 'mcmunch'];
+const FRIENDS_ORDER = ['aureliagleam', 'griswald', 'luminaO', 'mcmunch', 'rivet'];
 const MAX_FRIEND_LEVEL = 5;
 
 function pickReview(grade) {
@@ -598,6 +618,7 @@ export default function App() {
   const [gigResultOpen, setGigResultOpen] = useState(false);
   const [gigResult, setGigResult] = useState(null); // {venue, money, fans}
   const [weekMode, setWeekMode] = useState(null); // 'song' | 'gig' | null
+  const [ironAccepted, setIronAccepted] = useState(false); // entered Iron Overture this run
   const [isGigPlayback, setIsGigPlayback] = useState(false); // true while a booked gig performance is playing
   const [progressOpen, setProgressOpen] = useState(false);
   const [roomWidth, setRoomWidth] = useState(520);
@@ -688,6 +709,23 @@ export default function App() {
           'Admired for her steady guidance and polished delivery, Aurelia views every stage as both responsibility and gift.',
       },
     },
+    rivet: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Rivet',
+        bullets: [
+          'Genre: Metal',
+          'Province: Winkie (Western Ranges)',
+          'Known For: Thunderous riffs & steadfast mentorship'
+        ],
+        summary:
+          'A mainstay of The Iron Overture, Rivet blends precision with power. ' +
+          'Despite the intensity on stage, off stage they are calm, observant, and unexpectedly encouraging. ' +
+          'They believe grit is forged by showing up when it counts.'
+      },
+    },
   });
   const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number, snapshot?:{ songName?, genre?, releaseWeek?, chartRank? } }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
@@ -742,6 +780,7 @@ export default function App() {
   const [currentPosterIdx, setCurrentPosterIdx] = useState(null); // number | null
   const [posterOpen, setPosterOpen] = useState(false);
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
+  const [deferredChoice, setDeferredChoice] = useState(null); // event to prompt after weekly info
   const [weeklyInfoShownWeek, setWeeklyInfoShownWeek] = useState(0);
   const [welcomeShown, setWelcomeShown] = useState(false);
 
@@ -937,9 +976,43 @@ export default function App() {
     } else if (aurNext === 5 && week >= 50) {
       enqueueFriendEvent('aureliagleam', 5, null);
     }
+
+    // Rivet: Metal-based trigger to LV3 after becoming friends (Top 5 Metal)
+    const rivLevel = friends?.rivet?.level || 0;
+    const rivNext = (rivLevel || 0) + 1;
+    const metalSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'metal');
+    const latestMetal = metalSongs.slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0] || null;
+    const metalTrends = (trendsByWeek && trendsByWeek[week]) || null;
+    const metalMe = metalTrends && metalTrends.find(it => it && it.isPlayer);
+    const metalRecent = (songHistory||[]).find(s => ((s.releaseWeek===week) || (s.releaseWeek===week-1)) && (s.genre||'').toLowerCase()==='metal');
+    const hasTop5Metal = !!(metalMe && metalRecent && metalMe.rank <= 5);
+    const alreadyQueuedL3 = (pendingFriendEvents||[]).some(ev => ev && ev.friendId==='rivet' && ev.targetLevel===3);
+    if (rivLevel >= 1 && rivLevel < 3 && !alreadyQueuedL3 && hasTop5Metal) {
+      const entry = metalRecent || latestMetal;
+      const rank = metalMe ? metalMe.rank : null;
+      const snap = entry ? { songName: entry.songName, genre: entry.genre, releaseWeek: entry.releaseWeek, chartRank: rank } : null;
+      enqueueFriendEvent('rivet', 3, snap);
+    }
   }
 
-  useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek]);
+  useEffect(() => { checkFriendCriteria(); }, [week, fans, songHistory, trendsByWeek, friends]);
+
+  // Safe carryover: if any pending friend events are from previous weeks, re-date them to the current week so they surface
+  useEffect(() => {
+    try {
+      setPendingFriendEvents(prev => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const next = prev.map(ev => {
+          if (ev && typeof ev.week === 'number' && ev.week < week) { changed = true; return { ...ev, week }; }
+          return ev;
+        });
+        if (!changed) return prev;
+        next.sort((a,b)=> (a.week - b.week) || (a.targetLevel - b.targetLevel));
+        return next;
+      });
+    } catch (_) {}
+  }, [week]);
   // Track milestone weeks when fans cross thresholds
   useEffect(() => {
     setFriendMilestones(prev => {
@@ -1520,6 +1593,7 @@ function stationTarget(type) {
       if (Array.isArray(s.pendingFriendEvents)) setPendingFriendEvents(s.pendingFriendEvents);
       if (typeof s.lastFriendProgressWeek === 'number') setLastFriendProgressWeek(s.lastFriendProgressWeek);
       if (s.friendMilestones && typeof s.friendMilestones === 'object') setFriendMilestones(s.friendMilestones);
+      if (typeof s.ironAccepted === 'boolean') setIronAccepted(s.ironAccepted);
       if (typeof s.lampUnlocked === 'boolean') setLampUnlocked(s.lampUnlocked);
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
@@ -1977,10 +2051,10 @@ function stationTarget(type) {
 
   function saveNow() {
     try {
-      const save = {
-        week,
-        money,
-        fans,
+    const save = {
+      week,
+      money,
+      fans,
         vocals,
         writing,
         stage,
@@ -2061,6 +2135,39 @@ function stationTarget(type) {
   }
 
   function performRelease(venueKey) {
+    // Enforce Iron Overture exclusivity during festival week
+    try {
+      if (activeEffects && activeEffects.ironVenue && venueKey !== 'iron') {
+        pushToast('Festival week: Perform at The Iron Overture.');
+        return;
+      }
+    } catch (_) {}
+    // If performing at Iron after acceptance, queue Rivet L1 for next week
+    try {
+      if (venueKey === 'iron' && ironAccepted) {
+        const alreadyQueuedL1 = (pendingFriendEvents||[]).some(ev => ev && ev.friendId==='rivet' && ev.targetLevel===1);
+        const alreadyAtL1 = (friends?.rivet?.level||0) >= 1;
+        if (!alreadyQueuedL1 && !alreadyAtL1) {
+          setPendingFriendEvents(prev => {
+            const next = [...(prev||[]), { friendId:'rivet', targetLevel:1, week: week+1, snapshot: null }];
+            next.sort((a,b)=> (a.week - b.week) || (a.targetLevel - b.targetLevel));
+            return next;
+          });
+        }
+      }
+    } catch (_) {}
+    // If already friends with Rivet (LV1+) and this performance is a risky pairing, queue LV2 this week
+    try {
+      const lv = (friends?.rivet?.level || 0);
+      const alreadyQueuedL2 = (pendingFriendEvents||[]).some(ev => ev && ev.friendId==='rivet' && ev.targetLevel===2);
+      if (lv >= 1 && lv < 2 && (compat < 0) && !alreadyQueuedL2) {
+        setPendingFriendEvents(prev => {
+          const next = [...(prev||[]), { friendId:'rivet', targetLevel:2, week: week+1, snapshot: { songName, genre, releaseWeek: week } }];
+          next.sort((a,b)=> (a.week - b.week) || (a.targetLevel - b.targetLevel));
+          return next;
+        });
+      }
+    } catch (_) {}
     const venue = VENUES[venueKey] ?? VENUES.busking;
     if (!canRelease) return;
 
@@ -2162,6 +2269,7 @@ function stationTarget(type) {
       fans,
       week,
       friendMilestones,
+      ironAccepted,
       seedTs,
     });
     // Training snapshot for Release Results: weekly gains and die faces before/after
@@ -2771,10 +2879,18 @@ function stationTarget(type) {
 
   // Genres available in the create-song modal (add seasonal Wizmas genre during event)
   const availableGenres = useMemo(() => {
-    const base = [...GENRES];
+    let base = [...GENRES];
     if (activeEffects && activeEffects.wizmas && !base.includes('Wizmas Banger')) base.push('Wizmas Banger');
+    if (activeEffects && activeEffects.ironLockMetal) base = ['Metal'];
     return base;
   }, [activeEffects]);
+
+  useEffect(() => {
+    // If Iron Overture locks genre, force-select Metal when planning (non-destructive for future weeks)
+    if (activeEffects && activeEffects.ironLockMetal && !conceptLocked && genre !== 'Metal') {
+      setGenre('Metal');
+    }
+  }, [activeEffects, conceptLocked]);
 
   // On week start: if event grants money immediately or requires choice, handle modal/auto-grant once
   useEffect(() => {
@@ -2789,13 +2905,29 @@ function stationTarget(type) {
     });
     // If any event has choices pending, show the first pending
     const pendingChoice = activeEvents.find(ev => ev.choices && !(eventsResolved[ev.id] && typeof eventsResolved[ev.id].choiceIndex === 'number'));
-    if (pendingChoice) {
+    const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
+    const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
+    if (pendingChoice && pendingChoice.key === 'iron') {
+      // Show weekly info first, then the Iron choice
+      setDeferredChoice(pendingChoice);
+      if (weeklyInfoShownWeek !== week && week > 1) {
+        if (!overlaysOpen) {
+          setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
+          setWeeklyInfoShownWeek(week);
+        } else {
+          setQueuedEventInfo({ events: toNotify, upcoming: upcomingNext, weekly: true, week });
+        }
+      } else {
+        // Weekly info already shown or not applicable; show choice immediately
+        setEventModal({ event: pendingChoice });
+        setDeferredChoice(null);
+      }
+    } else if (pendingChoice) {
+      // Other choices behave as before
       setEventModal({ event: pendingChoice });
     } else {
       // Weekly "This Week" modal: always show once per week after overlays clear (skip week 1, show welcome instead)
-      const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
-      const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-      const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
       if (weeklyInfoShownWeek !== week && week > 1) {
         if (!overlaysOpen) {
           setEventInfoModal({ events: toNotify, upcoming: upcomingNext, weekly: true });
@@ -3228,7 +3360,7 @@ function stationTarget(type) {
                     ...styles.performer,
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
-                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}`,
+                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
                   }}
                   title="Your performer"
                 >
@@ -3262,14 +3394,15 @@ function stationTarget(type) {
                           ? ' translate(-110px, 60px)'
                           : (performingVenue === 'katieparty'
                               ? ' translate(-135px, 22px)'
-                               : ` translate(${facingLeft ? '-85px' : '85px'}, 12px)`)),
+                               : ` translate(${facingLeft ? '-85px' : '85px'}, 12px)`)) +
+                        (performingVenue === 'iron' ? ' translate(0px, 50px)' : ''),
                       zIndex: 3,
                       pointerEvents: 'none'
                     }}
                     aria-hidden
                     title="Boombox"
                   >
-                    <img src={'/art/boombox.gif'} alt={'Boombox'} style={{ width: 96, height: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                    <img src={'/art/boombox.gif'} alt={'Boombox'} style={{ width: (performingVenue === 'iron' ? 48 : 96), height: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
                   </div>
                 )}
                 {DICE_MODE && rollFx.show && (
@@ -3415,7 +3548,7 @@ function stationTarget(type) {
                                   <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
                                     <div style={{ position:'relative' }}>
                                       <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
-                                      {(pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) && (
+                                      {(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) && (
                                         <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
                                       )}
                                     </div>
@@ -4080,7 +4213,7 @@ function stationTarget(type) {
                       style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
                       onError={(e)=>{ e.currentTarget.style.display='none'; }}
                     />
-                    {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                    {(pendingFriendEvents.some(ev=>ev && ev.week===week) && !myBubbleMessagesOpen) && (
                       <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
                     )}
                   </button>
@@ -4203,11 +4336,12 @@ function stationTarget(type) {
                       const fid = selectedFriendId;
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
-                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : '/art/friends/luminao_bust.png'));
+                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : (fid==='aureliagleam' ? '/art/friends/aureliagleam_bust.png' : (fid==='rivet' ? '/art/friends/rivet_bust.png' : '/art/friends/luminao_bust.png'))));
                       const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png'
                         : fid==='griswald' ? '/art/friends/griswald_profile.png'
                         : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
                         : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                        : fid==='rivet' ? '/art/friends/rivet_profile.png'
                         : '/art/friends/luminao_profile.png';
                       return (
                         <div style={{}}>
@@ -4265,7 +4399,7 @@ function stationTarget(type) {
                           style={{ display:'block', width:56, height:'auto', borderRadius:12, border:'1px solid rgba(54,46,70,.25)' }}
                           onError={(e)=>{ e.currentTarget.style.display='none'; }}
                         />
-                        {(pendingFriendEvents.length>0 && !myBubbleMessagesOpen) && (
+                        {(pendingFriendEvents.some(ev=>ev && ev.week===week) && !myBubbleMessagesOpen) && (
                           <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
                         )}
                       </button>
@@ -4457,8 +4591,8 @@ function stationTarget(type) {
                       </div>
                       )}
                       <div style={{ fontWeight:900, marginBottom:6, marginTop:4 }}>Messages</div>
-                      {(pendingFriendEvents && pendingFriendEvents.length>0 && lastFriendProgressWeek !== week) ? (
-                        (()=>{ const ev = pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
+                      {(pendingFriendEvents && pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) ? (
+                        (()=>{ const ev = (pendingFriendEvents.find(e=>e && e.week===week))||pendingFriendEvents[0]; const fid = ev.friendId || 'luminaO'; const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; const title = ev.targetLevel===1? 'Friend request' : 'New message'; return (
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:10 }}>
                             <div>
                               <div style={{ fontWeight:800 }}>{title}</div>
@@ -4467,7 +4601,13 @@ function stationTarget(type) {
                             <div style={{ display:'flex', gap:6 }}>
                                 <button style={styles.smallBtn} onClick={()=>{
                                   setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null, isWizmas: !!ev.wizmas });
-                                  setPendingFriendEvents(prev=> prev.slice(1));
+                                  setPendingFriendEvents(prev=>{
+                                    const idx = (prev||[]).findIndex(e => e && e.friendId===ev.friendId && e.targetLevel===ev.targetLevel && e.week===ev.week);
+                                    if (idx < 0) return prev;
+                                    const next = prev.slice();
+                                    next.splice(idx, 1);
+                                    return next;
+                                  });
                                   setLastFriendProgressWeek(week);
                                   setMyBubbleMessagesOpen(false);
                                   setSocialOpen(false);
@@ -4519,34 +4659,48 @@ function stationTarget(type) {
             </div>
           </div>
         )}
-        {eventModal && eventModal.event && (
-          <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div style={styles.title}>{eventModal.event.title}</div>
-              <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
-              {eventModal.event.choices && (
-                <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
-                  {eventModal.event.choices.map((ch, idx) => (
-                    <button key={idx} style={styles.secondaryBtn} onClick={() => {
-                      // Apply immediate effect (grant/fanMult only matters this week, handled via activeEffects once stored)
-                      if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
-                      setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
-                      setEventModal(null);
-                    }}>
-                      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                        <span>{ch.label}</span>
-                        {(ch.effect && typeof ch.effect.grantMoney === 'number') && (
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                            +{ch.effect.grantMoney}
-                            <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} />
-                            <span>now</span>
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
+              {eventModal && eventModal.event && (
+                <div style={styles.overlayClear} onClick={() => setEventModal(null)}>
+                  <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+                    <div style={styles.title}>{eventModal.event.title}</div>
+                    <div style={{ ...styles.sub, marginTop: 6 }}>{eventModal.event.details}</div>
+                    {eventModal.event.choices && (
+                      <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop: 10 }}>
+                        {eventModal.event.choices.map((ch, idx) => {
+                          const cost = ch.effect && typeof ch.effect.cost === 'number' ? ch.effect.cost : 0;
+                          const needsMoney = cost < 0;
+                          const disabled = needsMoney && money < Math.abs(cost);
+                          return (
+                            <button key={idx} disabled={disabled} style={disabled ? styles.primaryBtnDisabled : styles.secondaryBtn} onClick={() => {
+                              if (disabled) return;
+                              // Apply immediate effects (grantMoney/cost applied now; multipliers/flags merged via activeEffects)
+                              if (ch.effect && typeof ch.effect.grantMoney === 'number') setMoney(m=>m+ch.effect.grantMoney);
+                              if (needsMoney) setMoney(m => m + cost);
+                              // If entering Iron Overture, trigger new friend introduction at Level 1
+                              if ((eventModal.event && eventModal.event.key === 'iron') && ch.effect && ch.effect.ironLockMetal) {
+                                try {
+                                  // Defer introduction to after Iron performance (scheduled next week there)
+                                  setIronAccepted(true);
+                                } catch (_) {}
+                              }
+                              setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
+                              setEventModal(null);
+                            }}>
+                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                                <span>{ch.label}</span>
+                                {(ch.effect && typeof ch.effect.grantMoney === 'number') && (
+                                  <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                    +{ch.effect.grantMoney}
+                                    <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} />
+                                    <span>now</span>
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
               {!eventModal.event.choices && (
                 <button onClick={() => setEventModal(null)} style={{ ...styles.primaryBtn, marginTop: 14 }}>Okay</button>
               )}
@@ -4612,7 +4766,7 @@ function stationTarget(type) {
                   </div>
                 );
               })()}
-              {pendingFriendEvents.length>0 && lastFriendProgressWeek !== week && (
+              {pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week && (
                 <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,.15)' }}>
                   <div style={{ fontWeight: 800, marginBottom: 4 }}>Social</div>
                   {(() => { const ev = pendingFriendEvents[0]; const isFirst = ev && ev.targetLevel === 1; const fid = ev && (ev.friendId || 'luminaO'); const meta = (friends && friends[fid] && friends[fid].bio) ? friends[fid].bio : { title: fid }; const name = meta.title || fid; return (
@@ -4630,6 +4784,14 @@ function stationTarget(type) {
                   return copy;
                 });
                 setEventInfoModal(null);
+                // If Iron Overture choice was deferred, show it now
+                try {
+                  if (deferredChoice && deferredChoice.key === 'iron' && !(eventsResolved[deferredChoice.id] && typeof eventsResolved[deferredChoice.id].choiceIndex === 'number')) {
+                    setEventModal({ event: deferredChoice });
+                  }
+                } finally {
+                  setDeferredChoice(null);
+                }
               }} style={{ ...styles.primaryBtn, marginTop: 12 }}>OK</button>
             </div>
           </div>
@@ -5130,7 +5292,7 @@ function stationTarget(type) {
               )}
               <button
                 disabled={weekMode === 'song'}
-                onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } setCalendarOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
+                onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } if (activeEffects && activeEffects.ironGigLock){ pushToast('Iron Overture week: Gig booking disabled.'); return; } setCalendarOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
                 style={{ ...styles.secondaryBtn, marginTop: 10 }}
               >
                 Book Gig (uses this week)
@@ -5291,7 +5453,13 @@ function stationTarget(type) {
                   <div style={styles.title}>Choose Venue & Perform</div>
                   <div style={{ ...styles.sub, marginTop: 6 }}>Pick a venue for your finished song.</div>
                   <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                    {Object.entries(VENUES).filter(([key]) => key !== 'stadium').map(([key, v]) => {
+                    {Object.entries(VENUES)
+                      .filter(([key]) => key !== 'stadium')
+                      .filter(([key]) => {
+                        const ironOnly = !!(activeEffects && activeEffects.ironVenue);
+                        return ironOnly ? (key === 'iron') : (key !== 'iron');
+                      })
+                      .map(([key, v]) => {
                       // Simple textual forecast
                       let expected = 0;
                       if (DICE_MODE) {
@@ -5311,9 +5479,13 @@ function stationTarget(type) {
                       const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
                       const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
                       const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
-                      const locked = (fans < (VENUE_FAN_REQ[key] ?? 0));
+                      const ironOnly = !!(activeEffects && activeEffects.ironVenue);
+                      const lockedByIron = ironOnly && key !== 'iron';
+                      const locked = (fans < (VENUE_FAN_REQ[key] ?? 0)) || lockedByIron;
                       const isSwingy = (compat < 0);
-                      const reqText = VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null;
+                      const reqText = lockedByIron
+                        ? 'Festival week: The Iron Overture only'
+                        : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null);
                       return (
                         <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -5375,7 +5547,7 @@ function stationTarget(type) {
                 <div style={{ marginTop: 10 }}>
                   <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
-                    {Object.entries(VENUES).filter(([key]) => key !== 'stadium').map(([key, v]) => {
+                    {Object.entries(VENUES).filter(([key]) => key !== 'stadium' && key !== 'iron').map(([key, v]) => {
                       const expected = selectedGigSong.score;
                       const margin = expected - (v.breakEven ?? 0);
                       const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
