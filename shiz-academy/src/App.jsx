@@ -3306,7 +3306,7 @@ function stationTarget(type) {
               {!playingTrend && !isPerforming && (
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
-              {(playingTrend && audioRef.current && !audioRef.current.paused) && (
+              {(playingTrend && ((audioRef.current && !audioRef.current.paused) || (dancePreviewActiveRef.current))) && (
                 <div style={styles.hudListening} title={`${playingTrend.artist} - ${playingTrend.title}`}>
                   <span style={{ marginRight: 6, opacity: .9 }}></span>
                   <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} - {playingTrend.title}</b>
@@ -4252,7 +4252,7 @@ function stationTarget(type) {
                 {(() => {
                   const targetWeek = Math.max(1, week - 1);
                   const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
-                  const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                  const gain = (entry && Number.isFinite(entry.fansGain)) ? entry.fansGain : 0;
                   return (
                     <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                       <span style={{ opacity:.9 }}>Fans</span>
@@ -4438,7 +4438,7 @@ function stationTarget(type) {
                         {(() => {
                           const targetWeek = Math.max(1, week - 1);
                           const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
-                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          const gain = (entry && Number.isFinite(entry.fansGain)) ? entry.fansGain : 0;
                           return (
                             <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                               <span style={{ opacity:.9 }}>Fans</span>
@@ -4560,7 +4560,7 @@ function stationTarget(type) {
                         {(() => {
                           const targetWeek = Math.max(1, week - 1);
                           const entry = (songHistory||[]).find(s=> s.releaseWeek === targetWeek);
-                          const gain = entry && typeof entry.fansGain === 'number' ? entry.fansGain : 0;
+                          const gain = (entry && Number.isFinite(entry.fansGain)) ? entry.fansGain : 0;
                           return (
                             <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                               <span style={{ opacity:.9 }}>Fans</span>
@@ -5563,7 +5563,7 @@ function stationTarget(type) {
                   <div style={{ ...styles.sub, marginBottom: 6 }}>Selected: <b>{selectedGigSong.songName}</b> | Fixed score {selectedGigSong.score}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {Object.entries(VENUES).filter(([key]) => key !== 'stadium' && key !== 'iron').map(([key, v]) => {
-                      const expected = selectedGigSong.score;
+                          const expected = Number(selectedGigSong.score ?? 0);
                       const margin = expected - (v.breakEven ?? 0);
                       const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
                       const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
@@ -5596,13 +5596,14 @@ function stationTarget(type) {
                             onClick={() => {
                               // Consume week and set up performance playback like release flow
                               const vCfg = VENUES[key] ?? VENUES.busking;
-                              const score = selectedGigSong.score;
-                              const grade = selectedGigSong.grade;
+                              const score = Number(selectedGigSong.score ?? 0);
+                              const grade = gradeFromScore(score);
                               const fansGainByGrade = { S: 60, A: 40, B: 25, C: 12, D: 5 };
-                              const fanBonus = Math.floor(fans * 0.05);
+                              const fanBase = Number.isFinite(fans) ? fans : 0;
+                              const fanBonus = Math.floor(fanBase * 0.05);
                               const weeksSinceRelease = Math.max(0, week - (selectedGigSong.releaseWeek || week));
                               const freshness = Math.max(0.6, 1 - 0.08 * weeksSinceRelease);
-                              let fansGainLocal = Math.round((fansGainByGrade[grade] + fanBonus) * (vCfg.fanMult ?? 1) * freshness * (activeEffects?.fanMult || 1));
+                              let fansGainLocal = Math.round(((fansGainByGrade[grade] ?? 0) + fanBonus) * (vCfg.fanMult ?? 1) * freshness * (activeEffects?.fanMult || 1));
                               const marginLocal = score - (vCfg.breakEven ?? 0);
                               let gross = Math.max(0, marginLocal) * (vCfg.payoutPerPoint ?? 0) * freshness * (activeEffects?.payoutMult || 1);
                               let net = Math.floor(gross - (vCfg.cost ?? 0));
@@ -5612,7 +5613,7 @@ function stationTarget(type) {
                               // Apply gains up front (consistent with release flow)
                               setWeekMode('gig');
                               setMoney((m) => m + net);
-                              setFans((f) => f + fansGainLocal);
+                              setFans((f) => (Number.isFinite(f) ? f : 0) + (Number.isFinite(fansGainLocal) ? fansGainLocal : 0));
                               const boost = key === 'busking' ? 1.1 : 1.0;
                               const stageGain = 0.25 * boost;
                               const vocalsGain = 0.12 * boost;
