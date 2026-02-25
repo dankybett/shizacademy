@@ -811,6 +811,7 @@ export default function App() {
   const [polaroidUnlocked, setPolaroidUnlocked] = useState(false);
   const [polaroidOpen, setPolaroidOpen] = useState(false);
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
+  const [rivetFilterUnlocked, setRivetFilterUnlocked] = useState(false);
   // Wizmas Candle (desk cosmetic)
   const [candleUnlocked, setCandleUnlocked] = useState(false);
   // Mini ON AIR Sign (desk cosmetic)
@@ -1601,6 +1602,7 @@ function stationTarget(type) {
       if (typeof s.vinylUnlocked === 'boolean') setVinylUnlocked(s.vinylUnlocked);
       if (typeof s.spotlightSnapUnlocked === 'boolean') setSpotlightSnapUnlocked(s.spotlightSnapUnlocked);
       if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
+      if (typeof s.rivetFilterUnlocked === 'boolean') setRivetFilterUnlocked(s.rivetFilterUnlocked);
       if (Array.isArray(s.actions)) {
         const norm = s.actions.map((a) => {
           if (typeof a === "string") return { t: a, d: 0 };
@@ -1981,6 +1983,7 @@ function stationTarget(type) {
       spotlightSnapUnlocked,
       polaroidUnlocked,
       vinylUnlocked,
+      rivetFilterUnlocked,
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
@@ -2005,7 +2008,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -3266,6 +3269,13 @@ function stationTarget(type) {
                   {lightningOn && (<div style={styles.performLightning} />)}
                 </div>
               )}
+              {/* Performance cosmetic overlay: Iron Overture Filter (Metal only) */}
+              {isPerforming && performingSong && (performingSong.genre === 'Metal') && rivetFilterUnlocked && (
+                <div style={styles.performMonoOverlay}>
+                  <div style={styles.performMonoHighlights} />
+                  <div style={styles.performMonoVignette} />
+                </div>
+              )}
               {/* Performance cosmetic overlay: Snowfall (Busking venue during Wizmas) */}
               {isPerforming && performingVenue === 'busking' && (activeEffects?.wizmas) && (
                 <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex: 3 }}>
@@ -3314,6 +3324,9 @@ function stationTarget(type) {
                   )}
                   {(spotlightSnapUnlocked && (performingSong?.genre||genre) === 'Hip-Hop') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#ffd27a', marginTop: 2 }}>Spotlight Snap</div>
+                  )}
+                  {(rivetFilterUnlocked && (performingSong?.genre||genre) === 'Metal') && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#ddd', marginTop: 2 }}>Iron Overture Filter</div>
                   )}
                 </div>
               )}
@@ -3701,34 +3714,34 @@ function stationTarget(type) {
             friends={friends}
             setFriends={setFriends}
             setNudges={setNudges}
-          setBonusRolls={setBonusRolls}
-          setNextRollOverride={setNextRollOverride}
-          pushToast={pushToast}
-          setWriting={setWriting}
-          setVocals={setVocals}
-          spotlightSnapUnlocked={spotlightSnapUnlocked}
-          setSpotlightSnapUnlocked={setSpotlightSnapUnlocked}
-          vinylUnlocked={vinylUnlocked}
-          setVinylUnlocked={setVinylUnlocked}
-          rainfallUnlocked={rainfallUnlocked}
-          setRainfallUnlocked={setRainfallUnlocked}
-          polaroidUnlocked={polaroidUnlocked}
-          setPolaroidUnlocked={setPolaroidUnlocked}
-          candleUnlocked={candleUnlocked}
-          setCandleUnlocked={setCandleUnlocked}
-          setCandleVisible={setCandleVisible}
-          onairUnlocked={onairUnlocked}
-          setOnairUnlocked={setOnairUnlocked}
-          setOnairVisible={setOnairVisible}
-          fairylightsUnlocked={fairylightsUnlocked}
-          setFairylightsUnlocked={setFairylightsUnlocked}
-          setFairylightsVisible={setFairylightsVisible}
-          setLampVisible={setLampVisible}
-          unlockedPosters={unlockedPosters}
-          setUnlockedPosters={setUnlockedPosters}
-          currentPosterIdx={currentPosterIdx}
-          setCurrentPosterIdx={setCurrentPosterIdx}
-          lampGiftOpen={lampGiftOpen}
+            setBonusRolls={setBonusRolls}
+            setNextRollOverride={setNextRollOverride}
+            pushToast={pushToast}
+            setWriting={setWriting}
+            setVocals={setVocals}
+            spotlightSnapUnlocked={spotlightSnapUnlocked}
+            setSpotlightSnapUnlocked={setSpotlightSnapUnlocked}
+            vinylUnlocked={vinylUnlocked}
+            setVinylUnlocked={setVinylUnlocked}
+            rainfallUnlocked={rainfallUnlocked}
+            setRainfallUnlocked={setRainfallUnlocked}
+            polaroidUnlocked={polaroidUnlocked}
+            setPolaroidUnlocked={setPolaroidUnlocked}
+            candleUnlocked={candleUnlocked}
+            setCandleUnlocked={setCandleUnlocked}
+            setCandleVisible={setCandleVisible}
+            onairUnlocked={onairUnlocked}
+            setOnairUnlocked={setOnairUnlocked}
+            setOnairVisible={setOnairVisible}
+            fairylightsUnlocked={fairylightsUnlocked}
+            setFairylightsUnlocked={setFairylightsUnlocked}
+            setFairylightsVisible={setFairylightsVisible}
+            setLampVisible={setLampVisible}
+            unlockedPosters={unlockedPosters}
+            setUnlockedPosters={setUnlockedPosters}
+            currentPosterIdx={currentPosterIdx}
+            setCurrentPosterIdx={setCurrentPosterIdx}
+            lampGiftOpen={lampGiftOpen}
             setLampGiftOpen={setLampGiftOpen}
             lampUnlocked={lampUnlocked}
             setLampUnlocked={setLampUnlocked}
@@ -3736,6 +3749,8 @@ function stationTarget(type) {
             setMidnightHazeGiftOpen={setMidnightHazeGiftOpen}
             midnightHazeUnlocked={midnightHazeUnlocked}
             setMidnightHazeUnlocked={setMidnightHazeUnlocked}
+            rivetFilterUnlocked={rivetFilterUnlocked}
+            setRivetFilterUnlocked={setRivetFilterUnlocked}
             POSTERS={POSTERS}
           />
         )}
@@ -6675,6 +6690,12 @@ const styles = {
   performSpotlightOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 4 },
   performSpotlightDim: { position:'absolute', inset:0, background:'rgba(0,0,0,.75)', animation:'spotlightDim 6000ms ease-out 1', pointerEvents:'none' },
   performSpotlightCircle: { position:'absolute', width:320, height:240, borderRadius:999, background:'radial-gradient(ellipse at center, rgba(255,255,255,.95) 0%, rgba(255,255,255,.6) 35%, rgba(255,255,255,.12) 65%, rgba(255,255,255,0) 80%)', mixBlendMode:'screen', filter:'drop-shadow(0 0 22px rgba(255,255,255,.45))', transform:'translate(-50%,-50%)', animation:'spotlightPulse 900ms ease-out 1', pointerEvents:'none' },
+  // Rivet: Iron Overture Filter (stark monochrome)
+  performMonoOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 5, background:'rgba(0,0,0,0.001)', backdropFilter: 'grayscale(100%) contrast(1.5) brightness(1.05)', WebkitBackdropFilter: 'grayscale(100%) contrast(1.5) brightness(1.05)' },
+  // Gentle whites push in center
+  performMonoHighlights: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 58%)', mixBlendMode:'screen', pointerEvents:'none' },
+  // Subtle vignette to emphasize intensity
+  performMonoVignette: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,0) 52%, rgba(0,0,0,.18) 82%, rgba(0,0,0,.35) 100%)', mixBlendMode:'multiply', pointerEvents:'none' },
 
   // Wizmas: Snow overlays for Busking during Wizmas weeks
   performSnowBack: {
