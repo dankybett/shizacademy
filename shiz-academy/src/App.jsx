@@ -614,6 +614,7 @@ export default function App() {
   const [venueOpen, setVenueOpen] = useState(false);
   const [finishedReady, setFinishedReady] = useState(false);
   const [gigOpen, setGigOpen] = useState(false);
+  const [venueTab, setVenueTab] = useState('venues'); // 'venues' | 'cosmetics'
   const [selectedGigSong, setSelectedGigSong] = useState(null);
   const [gigResultOpen, setGigResultOpen] = useState(false);
   const [gigResult, setGigResult] = useState(null); // {venue, money, fans}
@@ -798,12 +799,15 @@ export default function App() {
   const [lampGiftOpen, setLampGiftOpen] = useState(false);
   // Performance cosmetics (e.g., Midnight Haze Lighting, Rainfall Lighting)
   const [midnightHazeUnlocked, setMidnightHazeUnlocked] = useState(false);
+  const [midnightHazeEnabled, setMidnightHazeEnabled] = useState(true);
   const [midnightHazeGiftOpen, setMidnightHazeGiftOpen] = useState(false);
   const [rainfallUnlocked, setRainfallUnlocked] = useState(false);
+  const [rainfallEnabled, setRainfallEnabled] = useState(true);
   const [rainfallGiftOpen, setRainfallGiftOpen] = useState(false);
   const [lightningOn, setLightningOn] = useState(false);
   // MC Munch Spotlight Snap cosmetic
   const [spotlightSnapUnlocked, setSpotlightSnapUnlocked] = useState(false);
+  const [spotlightSnapEnabled, setSpotlightSnapEnabled] = useState(true);
   const [spotlightActive, setSpotlightActive] = useState(false);
   const [spotlightDurMs, setSpotlightDurMs] = useState(6000);
   const spotlightTimerRef = useRef(null);
@@ -812,6 +816,7 @@ export default function App() {
   const [polaroidOpen, setPolaroidOpen] = useState(false);
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
   const [rivetFilterUnlocked, setRivetFilterUnlocked] = useState(false);
+  const [rivetFilterEnabled, setRivetFilterEnabled] = useState(true);
   // Wizmas Candle (desk cosmetic)
   const [candleUnlocked, setCandleUnlocked] = useState(false);
   // Mini ON AIR Sign (desk cosmetic)
@@ -1598,11 +1603,15 @@ function stationTarget(type) {
       if (typeof s.lampUnlocked === 'boolean') setLampUnlocked(s.lampUnlocked);
       if (typeof s.lampOn === 'boolean') setLampOn(s.lampOn);
       if (typeof s.midnightHazeUnlocked === 'boolean') setMidnightHazeUnlocked(s.midnightHazeUnlocked);
+      if (typeof s.midnightHazeEnabled === 'boolean') setMidnightHazeEnabled(s.midnightHazeEnabled); else setMidnightHazeEnabled(!!s.midnightHazeUnlocked);
       if (typeof s.rainfallUnlocked === 'boolean') setRainfallUnlocked(s.rainfallUnlocked);
+      if (typeof s.rainfallEnabled === 'boolean') setRainfallEnabled(s.rainfallEnabled); else setRainfallEnabled(!!s.rainfallUnlocked);
       if (typeof s.vinylUnlocked === 'boolean') setVinylUnlocked(s.vinylUnlocked);
       if (typeof s.spotlightSnapUnlocked === 'boolean') setSpotlightSnapUnlocked(s.spotlightSnapUnlocked);
+      if (typeof s.spotlightSnapEnabled === 'boolean') setSpotlightSnapEnabled(s.spotlightSnapEnabled); else setSpotlightSnapEnabled(!!s.spotlightSnapUnlocked);
       if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
       if (typeof s.rivetFilterUnlocked === 'boolean') setRivetFilterUnlocked(s.rivetFilterUnlocked);
+      if (typeof s.rivetFilterEnabled === 'boolean') setRivetFilterEnabled(s.rivetFilterEnabled); else setRivetFilterEnabled(!!s.rivetFilterUnlocked);
       if (Array.isArray(s.actions)) {
         const norm = s.actions.map((a) => {
           if (typeof a === "string") return { t: a, d: 0 };
@@ -1979,11 +1988,15 @@ function stationTarget(type) {
       lampUnlocked,
       lampOn,
       midnightHazeUnlocked,
+      midnightHazeEnabled,
       rainfallUnlocked,
+      rainfallEnabled,
       spotlightSnapUnlocked,
+      spotlightSnapEnabled,
       polaroidUnlocked,
       vinylUnlocked,
       rivetFilterUnlocked,
+      rivetFilterEnabled,
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
@@ -1995,6 +2008,10 @@ function stationTarget(type) {
       candleVisible,
       onairVisible,
       fairylightsVisible,
+      midnightHazeEnabled,
+      rainfallEnabled,
+      spotlightSnapEnabled,
+      rivetFilterEnabled,
       wizmasGift,
       unlockedPosters,
       currentPosterIdx,
@@ -2008,7 +2025,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, rainfallUnlocked, spotlightSnapUnlocked, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, rainfallUnlocked, rainfallEnabled, spotlightSnapUnlocked, spotlightSnapEnabled, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -3253,14 +3270,14 @@ function stationTarget(type) {
                 <div style={styles.neonOverlay} />
               )}
               {/* Performance cosmetic overlay: Midnight Haze (Synthwave only) */}
-              {isPerforming && performingSong && (performingSong.genre === 'Synthwave') && midnightHazeUnlocked && (
+              {isPerforming && performingSong && (performingSong.genre === 'Synthwave') && midnightHazeUnlocked && midnightHazeEnabled && (
                 <div style={styles.performHazeOverlay}>
                   <div style={styles.performHazeShimmer} />
                 </div>
               )}
 
               {/* Performance cosmetic overlay: Rainfall Lighting (Rock only) */}
-              {isPerforming && performingSong && (performingSong.genre === 'Rock') && rainfallUnlocked && (
+              {isPerforming && performingSong && (performingSong.genre === 'Rock') && rainfallUnlocked && rainfallEnabled && (
                 <div style={styles.performRainOverlay}>
                   <div style={styles.performRainMute} />
                   <div style={styles.performRainDropsBack} />
@@ -3270,7 +3287,7 @@ function stationTarget(type) {
                 </div>
               )}
               {/* Performance cosmetic overlay: Iron Overture Filter (Metal only) */}
-              {isPerforming && performingSong && (performingSong.genre === 'Metal') && rivetFilterUnlocked && (
+              {isPerforming && performingSong && (performingSong.genre === 'Metal') && rivetFilterUnlocked && rivetFilterEnabled && (
                 <div style={styles.performMonoOverlay}>
                   <div style={styles.performMonoHighlights} />
                   <div style={styles.performMonoVignette} />
@@ -3285,7 +3302,7 @@ function stationTarget(type) {
                 </div>
               )}
               {/* Performance cosmetic overlay: Spotlight Snap (Hip-Hop only, brief at start) */}
-              {isPerforming && performingSong && (performingSong.genre === 'Hip-Hop') && spotlightSnapUnlocked && spotlightActive && (
+              {isPerforming && performingSong && (performingSong.genre === 'Hip-Hop') && spotlightSnapUnlocked && spotlightSnapEnabled && spotlightActive && (
                 <div style={styles.performSpotlightOverlay}>
                   <div style={{ ...styles.performSpotlightDim, animationDuration: `${spotlightDurMs}ms` }} />
                   <div style={{
@@ -3316,16 +3333,16 @@ function stationTarget(type) {
                 <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
                   <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
                   <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
-                  {(rainfallUnlocked && (performingSong?.genre||genre) === 'Rock') && (
+                  {(rainfallUnlocked && rainfallEnabled && (performingSong?.genre||genre) === 'Rock') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#9ec9ff', marginTop: 2 }}>Rainfall Stage Lighting</div>
                   )}
-                  {(midnightHazeUnlocked && (performingSong?.genre||genre) === 'Synthwave') && (
+                  {(midnightHazeUnlocked && midnightHazeEnabled && (performingSong?.genre||genre) === 'Synthwave') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#caa7ff', marginTop: 2 }}>Midnight Haze Lighting</div>
                   )}
-                  {(spotlightSnapUnlocked && (performingSong?.genre||genre) === 'Hip-Hop') && (
+                  {(spotlightSnapUnlocked && spotlightSnapEnabled && (performingSong?.genre||genre) === 'Hip-Hop') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#ffd27a', marginTop: 2 }}>Spotlight Snap</div>
                   )}
-                  {(rivetFilterUnlocked && (performingSong?.genre||genre) === 'Metal') && (
+                  {(rivetFilterUnlocked && rivetFilterEnabled && (performingSong?.genre||genre) === 'Metal') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#ddd', marginTop: 2 }}>Iron Overture Filter</div>
                   )}
                 </div>
@@ -5464,72 +5481,129 @@ function stationTarget(type) {
           <div style={styles.overlayClear} onClick={() => setVenueOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '8%', justifyContent: 'flex-start' }}>
-                  <div style={styles.title}>Choose Venue & Perform</div>
-                  <div style={{ ...styles.sub, marginTop: 6 }}>Pick a venue for your finished song.</div>
-                  <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                    {Object.entries(VENUES)
-                      .filter(([key]) => key !== 'stadium')
-                      .filter(([key]) => {
-                        const ironOnly = !!(activeEffects && activeEffects.ironVenue);
-                        return ironOnly ? (key === 'iron') : (key !== 'iron');
-                      })
-                      .map(([key, v]) => {
-                      // Simple textual forecast
-                      let expected = 0;
-                      if (DICE_MODE) {
-                        const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
-                        const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
-                        const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
-                        expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*92 + computePairBonus(genre, theme, false), 0, 100));
-                      } else {
-                        const triadE = actions.reduce((acc,a)=> a.t==='gig'? acc : acc + (a.m||0)+(a.l||0)+(a.p||0), 0);
-                        const baseE = triadE * 5;
-                        const earlyF = Math.min(1, 0.75 + (week - 1) * 0.05);
-                        expected = Math.round(
-                          clamp(baseE * earlyF + computePairBonus(genre, theme, false), 0, 100)
-                        );
-                      }
-                      const margin = expected - (v.breakEven ?? 0);
-                      const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
-                      const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
-                      const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
-                      const ironOnly = !!(activeEffects && activeEffects.ironVenue);
-                      const lockedByIron = ironOnly && key !== 'iron';
-                      const locked = (fans < (VENUE_FAN_REQ[key] ?? 0)) || lockedByIron;
-                      const isSwingy = (compat < 0);
-                      const reqText = lockedByIron
-                        ? 'Festival week: The Iron Overture only'
-                        : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null);
-                      return (
-                        <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ fontWeight: 700 }}>
-                              {v.name}
-                            </div>
-                            <div style={{ ...styles.sub, display:'inline-flex', alignItems:'center', gap:4 }}>
-                              Cost:
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                                {v.cost}
-                                <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
-                              </span>
-                            </div>
-                          </div>
-                          <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
-                          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
-                            <div>Turnout: <b>{turnout}</b></div>
-                            <div>Risk: <b>{risk}</b></div>
-                            <div>Fans: <b>{fansPot}</b></div>
-                            {isSwingy && <div style={{ color: 'rgba(255,220,140,.95)' }}>Swingy</div>}
-                            {locked && reqText && <div style={{ color: 'rgba(255,120,120,.9)' }}>{reqText}</div>}
-                          </div>
-                          <button disabled={locked} onClick={() => performRelease(key)} style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}>
-                            Perform here
-                          </button>
-                        </div>
-                      );
-                    })}
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, justifyContent: 'flex-start' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={styles.title}>Choose Venue & Perform</div>
+                    <button title="Performance Cosmetics" onClick={() => setVenueTab(venueTab==='cosmetics' ? 'venues' : 'cosmetics')} style={{ ...styles.smallBtn, padding:'6px 10px' }}>{venueTab==='cosmetics' ? 'Back' : 'Cosmetics'}</button>
                   </div>
+                  {venueTab === 'venues' ? (
+                    <>
+                      <div style={{ ...styles.sub, marginTop: 6 }}>Pick a venue for your finished song.</div>
+                      <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                        {Object.entries(VENUES)
+                          .filter(([key]) => key !== 'stadium')
+                          .filter(([key]) => {
+                            const ironOnly = !!(activeEffects && activeEffects.ironVenue);
+                            return ironOnly ? (key === 'iron') : (key !== 'iron');
+                          })
+                          .map(([key, v]) => {
+                          // Simple textual forecast
+                          let expected = 0;
+                          if (DICE_MODE) {
+                            const s = rollBest.sing ? ((rollBest.sing.faces + 1 - rollBest.sing.value) / rollBest.sing.faces) : 0;
+                            const w = rollBest.write ? ((rollBest.write.faces + 1 - rollBest.write.value) / rollBest.write.faces) : 0;
+                            const p = rollBest.perform ? ((rollBest.perform.faces + 1 - rollBest.perform.value) / rollBest.perform.faces) : 0;
+                            expected = Math.round(clamp((0.34*s+0.33*w+0.33*p)*92 + computePairBonus(genre, theme, false), 0, 100));
+                          } else {
+                            const triadE = actions.reduce((acc,a)=> a.t==='gig'? acc : acc + (a.m||0)+(a.l||0)+(a.p||0), 0);
+                            const baseE = triadE * 5;
+                            const earlyF = Math.min(1, 0.75 + (week - 1) * 0.05);
+                            expected = Math.round(
+                              clamp(baseE * earlyF + computePairBonus(genre, theme, false), 0, 100)
+                            );
+                          }
+                          const margin = expected - (v.breakEven ?? 0);
+                          const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
+                          const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
+                          const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
+                          const ironOnly = !!(activeEffects && activeEffects.ironVenue);
+                          const lockedByIron = ironOnly && key !== 'iron';
+                          const locked = (fans < (VENUE_FAN_REQ[key] ?? 0)) || lockedByIron;
+                          const isSwingy = (compat < 0);
+                          const reqText = lockedByIron
+                            ? 'Festival week: The Iron Overture only'
+                            : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null);
+                          return (
+                            <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ fontWeight: 700 }}>
+                                  {v.name}
+                                </div>
+                                <div style={{ ...styles.sub, display:'inline-flex', alignItems:'center', gap:4 }}>
+                                  Cost:
+                                  <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                                    {v.cost}
+                                    <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:14, height:14, objectFit:'contain' }} />
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ ...styles.sub, marginTop: 6 }}>{v.desc}</div>
+                              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12, opacity: .9 }}>
+                                <div>Turnout: <b>{turnout}</b></div>
+                                <div>Risk: <b>{risk}</b></div>
+                                <div>Fans: <b>{fansPot}</b></div>
+                                {isSwingy && <div style={{ color: 'rgba(255,220,140,.95)' }}>Swingy</div>}
+                                {locked && reqText && <div style={{ color: 'rgba(255,120,120,.9)' }}>{reqText}</div>}
+                              </div>
+                              <button disabled={locked} onClick={() => performRelease(key)} style={{ ...(locked ? styles.primaryBtnDisabled : styles.primaryBtn), marginTop: 8 }}>
+                                Perform here
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={styles.sub}>My Performance Cosmetics</div>
+                      <div style={{ marginTop: 8, display:'grid', gap:8 }}>
+                        {/* Midnight Haze */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{midnightHazeUnlocked ? 'Midnight Haze Lighting' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Synthwave only</div>
+                          </div>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <input type="checkbox" disabled={!midnightHazeUnlocked} checked={!!midnightHazeEnabled && midnightHazeUnlocked} onChange={(e)=> setMidnightHazeEnabled(!!e.target.checked)} />
+                            <span>{midnightHazeUnlocked ? (midnightHazeEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                          </label>
+                        </div>
+                        {/* Rainfall Lighting */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{rainfallUnlocked ? 'Rainfall Stage Lighting' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Rock only</div>
+                          </div>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <input type="checkbox" disabled={!rainfallUnlocked} checked={!!rainfallEnabled && rainfallUnlocked} onChange={(e)=> setRainfallEnabled(!!e.target.checked)} />
+                            <span>{rainfallUnlocked ? (rainfallEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                          </label>
+                        </div>
+                        {/* Spotlight Snap */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{spotlightSnapUnlocked ? 'Spotlight Snap' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Hip-Hop only</div>
+                          </div>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <input type="checkbox" disabled={!spotlightSnapUnlocked} checked={!!spotlightSnapEnabled && spotlightSnapUnlocked} onChange={(e)=> setSpotlightSnapEnabled(!!e.target.checked)} />
+                            <span>{spotlightSnapUnlocked ? (spotlightSnapEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                          </label>
+                        </div>
+                        {/* Iron Overture Filter */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{rivetFilterUnlocked ? 'Iron Overture Filter' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Metal only</div>
+                          </div>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <input type="checkbox" disabled={!rivetFilterUnlocked} checked={!!rivetFilterEnabled && rivetFilterUnlocked} onChange={(e)=> setRivetFilterEnabled(!!e.target.checked)} />
+                            <span>{rivetFilterUnlocked ? (rivetFilterEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
