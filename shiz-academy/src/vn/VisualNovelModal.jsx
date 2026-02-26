@@ -20,6 +20,9 @@ export default function VisualNovelModal({
   pushToast,
   setWriting,
   setVocals,
+  // Pink Bubbles (Aurelia)
+  pinkBubblesUnlocked,
+  setPinkBubblesUnlocked,
   spotlightSnapUnlocked,
   setSpotlightSnapUnlocked,
   vinylUnlocked,
@@ -170,27 +173,7 @@ export default function VisualNovelModal({
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, grisGiftOpen, friends, setFriends, setWriting, pushToast]);
 
 
-  // Aurelia LV3: grant +1 Extra d12 roll on gift line and mark claimed
-  useEffect(() => {
-    try {
-      if (!open) return;
-      const fid = friendModal.friendId || 'luminaO';
-      if (fid !== 'aureliagleam') return;
-      if ((friendModal.targetLevel||0) !== 3) return;
-      const i = friendModal.idx || 0;
-      const line = lines[i];
-      const alreadyClaimed = !!(friends?.aureliagleam?.rewardsClaimed?.[3]);
-      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('gift received') && !alreadyClaimed) {
-        if (typeof setBonusRolls === 'function') setBonusRolls(r => (r||0) + 1);
-        if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
-        setFriends(prev => ({
-          ...prev,
-          aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } }
-        }));
-        pushToast('Aurelia gift: Extra d12 roll (+1) - next roll uses d12');
-      }
-    } catch { /* ignore */ }
-  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, friends, setFriends, setBonusRolls, setNextRollOverride, pushToast]);
+  // Aurelia LV3 handled below (Pink Bubbles cosmetic unlock)
 
   // Aurelia LV4: grant +1 Extra d6 roll on gift line and mark claimed
   useEffect(() => {
@@ -278,6 +261,22 @@ export default function VisualNovelModal({
       }
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, munchGiftOpen, friends, setFriends, setVocals, pushToast]);
+
+  // Aurelia LV3: unlock Pink Bubbles (performance cosmetic for Pop)
+  useEffect(() => {
+    try {
+      if (!open) return;
+      const fid = friendModal.friendId || 'luminaO';
+      if (fid !== 'aureliagleam') return;
+      if ((friendModal.targetLevel||0) !== 3) return;
+      const i = friendModal.idx || 0;
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('pink bubbles performance effect') && !pinkBubblesUnlocked) {
+        if (typeof setPinkBubblesUnlocked === 'function') setPinkBubblesUnlocked(true);
+        pushToast('Aurelia gift: Pink Bubbles unlocked');
+      }
+    } catch { /* ignore */ }
+  }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, pinkBubblesUnlocked, setPinkBubblesUnlocked, pushToast]);
 
   // Griswald LV4: unlock Rainfall Stage Lighting on gift line
   useEffect(() => {

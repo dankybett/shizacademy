@@ -817,6 +817,10 @@ export default function App() {
   const [vinylUnlocked, setVinylUnlocked] = useState(false);
   const [rivetFilterUnlocked, setRivetFilterUnlocked] = useState(false);
   const [rivetFilterEnabled, setRivetFilterEnabled] = useState(true);
+  // Pink Bubbles (Aurelia Gleam, Pop only)
+  const [pinkBubblesUnlocked, setPinkBubblesUnlocked] = useState(false);
+  const [pinkBubblesEnabled, setPinkBubblesEnabled] = useState(true);
+  const [bubbleSeeds, setBubbleSeeds] = useState([]);
   // Wizmas Candle (desk cosmetic)
   const [candleUnlocked, setCandleUnlocked] = useState(false);
   // Mini ON AIR Sign (desk cosmetic)
@@ -1612,6 +1616,8 @@ function stationTarget(type) {
       if (typeof s.polaroidUnlocked === 'boolean') setPolaroidUnlocked(s.polaroidUnlocked);
       if (typeof s.rivetFilterUnlocked === 'boolean') setRivetFilterUnlocked(s.rivetFilterUnlocked);
       if (typeof s.rivetFilterEnabled === 'boolean') setRivetFilterEnabled(s.rivetFilterEnabled); else setRivetFilterEnabled(!!s.rivetFilterUnlocked);
+      if (typeof s.pinkBubblesUnlocked === 'boolean') setPinkBubblesUnlocked(s.pinkBubblesUnlocked);
+      if (typeof s.pinkBubblesEnabled === 'boolean') setPinkBubblesEnabled(s.pinkBubblesEnabled); else setPinkBubblesEnabled(!!s.pinkBubblesUnlocked);
       if (Array.isArray(s.actions)) {
         const norm = s.actions.map((a) => {
           if (typeof a === "string") return { t: a, d: 0 };
@@ -1997,6 +2003,8 @@ function stationTarget(type) {
       vinylUnlocked,
       rivetFilterUnlocked,
       rivetFilterEnabled,
+      pinkBubblesUnlocked,
+      pinkBubblesEnabled,
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
@@ -2025,7 +2033,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, rainfallUnlocked, rainfallEnabled, spotlightSnapUnlocked, spotlightSnapEnabled, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, rainfallUnlocked, rainfallEnabled, spotlightSnapUnlocked, spotlightSnapEnabled, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, pinkBubblesUnlocked, pinkBubblesEnabled, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -2068,6 +2076,33 @@ function stationTarget(type) {
     spotlightTimerRef.current = setTimeout(() => setSpotlightActive(false), dur);
     return () => { if (spotlightTimerRef.current) { clearTimeout(spotlightTimerRef.current); spotlightTimerRef.current = null; } };
   }, [isPerforming, performingSong, spotlightSnapUnlocked]);
+
+  // Generate DOM bubble seeds when Pink Bubbles is active during Pop performances
+  useEffect(() => {
+    const active = !!(isPerforming && performingSong && (performingSong.genre === 'Pop') && pinkBubblesUnlocked && pinkBubblesEnabled);
+    if (!active) { setBubbleSeeds([]); return; }
+    const N = 54;
+    const seeds = Array.from({ length: N }, () => {
+      const size = 12 + Math.floor(Math.random() * 26); // 12..38px
+      const left = 5 + Math.random() * 90; // %
+      const duration = 14 + Math.random() * 18; // 14..32s
+      // Some bubbles start mid-screen by adjusting their track top position
+      const band = Math.random();
+      let topPct = 100; // default: start from bottom
+      if (band < 0.25) topPct = 70 + Math.random() * 10; // lower-mid (70-80%)
+      else if (band < 0.40) topPct = 50 + Math.random() * 10; // mid (50-60%)
+      // Seed many bubbles mid-cycle so some are visible immediately
+      const delay = (topPct < 100)
+        ? (-0.6 + Math.random() * 1.2) // around now for mid-screen starters
+        : ((Math.random() < 0.75)
+            ? (-Math.random() * duration * 0.8)
+            : (Math.random() * 1.2));
+      const amp = 14 + Math.random() * 32; // 14..46px horizontal sway
+      const blur = Math.random() < 0.33 ? 0.6 : (Math.random() < 0.5 ? 0.3 : 0); // vary depth
+      return { size, left, delay, duration, amp, blur, topPct };
+    });
+    setBubbleSeeds(seeds);
+  }, [isPerforming, performingSong, pinkBubblesUnlocked, pinkBubblesEnabled]);
 
   function saveNow() {
     try {
@@ -3036,7 +3071,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -3293,6 +3328,34 @@ function stationTarget(type) {
                   <div style={styles.performMonoVignette} />
                 </div>
               )}
+              {/* Performance cosmetic overlay: Pink Bubbles (Pop only) */}
+              {isPerforming && performingSong && (performingSong.genre === 'Pop') && pinkBubblesUnlocked && pinkBubblesEnabled && (
+                <div style={styles.performBubblesOverlay}>
+                  {bubbleSeeds.map((b, i) => (
+                    <div
+                      key={`pb${i}`}
+                      style={{
+                        ...styles.performBubble,
+                        left: `${b.left}%`,
+                        top: `${b.topPct || 100}%`,
+                        '--dur': `${b.duration}s`,
+                        '--delay': `${b.delay}s`,
+                        '--amp': `${b.amp}px`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          ...styles.performBubbleInner,
+                          width: b.size,
+                          height: b.size,
+                          filter: `blur(${b.blur}px) drop-shadow(0 0 10px rgba(255,180,210,.35))`,
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <div style={styles.performBubblesSheen} />
+                </div>
+              )}
               {/* Performance cosmetic overlay: Snowfall (Busking venue during Wizmas) */}
               {isPerforming && performingVenue === 'busking' && (activeEffects?.wizmas) && (
                 <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex: 3 }}>
@@ -3344,6 +3407,9 @@ function stationTarget(type) {
                   )}
                   {(rivetFilterUnlocked && rivetFilterEnabled && (performingSong?.genre||genre) === 'Metal') && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#ddd', marginTop: 2 }}>Iron Overture Filter</div>
+                  )}
+                  {(pinkBubblesUnlocked && pinkBubblesEnabled && (performingSong?.genre||genre) === 'Pop') && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#ffb3d9', marginTop: 2 }}>Pink Bubbles</div>
                   )}
                 </div>
               )}
@@ -3736,6 +3802,8 @@ function stationTarget(type) {
             pushToast={pushToast}
             setWriting={setWriting}
             setVocals={setVocals}
+            pinkBubblesUnlocked={pinkBubblesUnlocked}
+            setPinkBubblesUnlocked={setPinkBubblesUnlocked}
             spotlightSnapUnlocked={spotlightSnapUnlocked}
             setSpotlightSnapUnlocked={setSpotlightSnapUnlocked}
             vinylUnlocked={vinylUnlocked}
@@ -5583,11 +5651,22 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{spotlightSnapUnlocked ? 'Spotlight Snap' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Hip-Hop only</div>
-                          </div>
+                      <div style={{ ...styles.sub }}>Hip-Hop only</div>
+                        </div>
                           <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                             <input type="checkbox" disabled={!spotlightSnapUnlocked} checked={!!spotlightSnapEnabled && spotlightSnapUnlocked} onChange={(e)=> setSpotlightSnapEnabled(!!e.target.checked)} />
                             <span>{spotlightSnapUnlocked ? (spotlightSnapEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                          </label>
+                        </div>
+                        {/* Pink Bubbles */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{pinkBubblesUnlocked ? 'Pink Bubbles' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Pop only</div>
+                          </div>
+                          <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <input type="checkbox" disabled={!pinkBubblesUnlocked} checked={!!pinkBubblesEnabled && pinkBubblesUnlocked} onChange={(e)=> setPinkBubblesEnabled(!!e.target.checked)} />
+                            <span>{pinkBubblesUnlocked ? (pinkBubblesEnabled ? 'On' : 'Off') : 'Locked'}</span>
                           </label>
                         </div>
                         {/* Iron Overture Filter */}
@@ -6771,6 +6850,50 @@ const styles = {
   performMonoHighlights: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 58%)', mixBlendMode:'screen', pointerEvents:'none' },
   // Subtle vignette to emphasize intensity
   performMonoVignette: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,0) 52%, rgba(0,0,0,.18) 82%, rgba(0,0,0,.35) 100%)', mixBlendMode:'multiply', pointerEvents:'none' },
+  // Pink Bubbles (Pop): layered parallax bubbles + sheen (more visible)
+  performBubblesOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 6, overflow:'hidden' },
+  performBubble: { position:'absolute', top:'100%', height:'100%', pointerEvents:'none', animation: 'bubbleRiseDom var(--dur) linear var(--delay) infinite', willChange:'transform, opacity' },
+  performBubbleInner: { position:'absolute', bottom:0, left:0, display:'block', borderRadius:999, background:'radial-gradient(circle at 35% 30%, rgba(255,240,250,.95) 0%, rgba(255,190,220,.65) 45%, rgba(255,155,210,.35) 70%, rgba(255,155,210,0) 100%)', mixBlendMode:'screen', animation: 'bubbleSwayDom calc(var(--dur) * .6) ease-in-out var(--delay) infinite alternate' },
+  performBubblesBack: {
+    position:'absolute', inset:0, opacity:.55, mixBlendMode:'screen',
+    backgroundImage:
+      'radial-gradient(circle at 20% 85%, rgba(255,170,210,.40) 0px, rgba(255,170,210,.40) 8px, rgba(255,170,210,0) 14px), '+
+      'radial-gradient(circle at 70% 95%, rgba(255,170,210,.36) 0px, rgba(255,170,210,.36) 7px, rgba(255,170,210,0) 14px), '+
+      'radial-gradient(circle at 45% 105%, rgba(255,170,210,.34) 0px, rgba(255,170,210,.34) 6px, rgba(255,170,210,0) 14px)'
+    ,
+    backgroundRepeat:'repeat',
+    backgroundSize:'110px 220px, 140px 240px, 130px 260px',
+    backgroundPosition:'0 160%, 0 180%, 0 200%',
+    animation:'bubbleRiseSlow 28s linear infinite'
+  },
+  performBubblesMid: {
+    position:'absolute', inset:0, opacity:.70, mixBlendMode:'screen',
+    backgroundImage:
+      'radial-gradient(circle at 10% 95%, rgba(255,160,205,.48) 0px, rgba(255,160,205,.48) 11px, rgba(255,160,205,0) 20px), '+
+      'radial-gradient(circle at 82% 102%, rgba(255,160,205,.44) 0px, rgba(255,160,205,.44) 10px, rgba(255,160,205,0) 20px), '+
+      'radial-gradient(circle at 52% 112%, rgba(255,160,205,.40) 0px, rgba(255,160,205,.40) 9px, rgba(255,160,205,0) 20px)'
+    ,
+    backgroundRepeat:'repeat',
+    backgroundSize:'130px 220px, 160px 260px, 150px 300px',
+    backgroundPosition:'0 170%, 0 190%, 0 210%',
+    animation:'bubbleRiseMid 20s linear infinite'
+  },
+  performBubblesFront: {
+    position:'absolute', inset:0, opacity:.85, mixBlendMode:'screen',
+    backgroundImage:
+      'radial-gradient(circle at 30% 98%, rgba(255,155,210,.58) 0px, rgba(255,155,210,.58) 14px, rgba(255,155,210,0) 26px), '+
+      'radial-gradient(circle at 92% 108%, rgba(255,155,210,.52) 0px, rgba(255,155,210,.52) 13px, rgba(255,155,210,0) 26px)'
+    ,
+    backgroundRepeat:'repeat',
+    backgroundSize:'150px 220px, 190px 300px',
+    backgroundPosition:'0 180%, 0 210%',
+    animation:'bubbleRiseFast 14s linear infinite'
+  },
+  performBubblesSheen: {
+    position:'absolute', inset:0, pointerEvents:'none', mixBlendMode:'screen',
+    background:'linear-gradient(180deg, rgba(255,200,230,.14) 0%, rgba(255,200,230,0) 30%, rgba(255,200,230,.10) 60%, rgba(255,200,230,0) 100%)',
+    opacity:.8
+  },
 
   // Wizmas: Snow overlays for Busking during Wizmas weeks
   performSnowBack: {
@@ -7157,6 +7280,8 @@ function TriadBarChart({ actions, vocals, writing, stage, totalDays }) {
     </div>
   );
 }
+
+
 
 
 
