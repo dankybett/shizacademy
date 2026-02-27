@@ -5601,7 +5601,7 @@ function stationTarget(type) {
                         <div style={{ fontWeight: 800, opacity: .95 }}>No Poster</div>
                       </button>
                       {/* List rows: unlocked posters */}
-                      {unlockedPosters.map((idx) => (
+                      {[...(unlockedPosters||[])].sort((a,b)=>a-b).map((idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentPosterIdx(idx)}
