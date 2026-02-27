@@ -17,6 +17,20 @@ const SHOW_PILLOW_HOTSPOT_DEBUG = false;
 // Temporary: keep legacy inline VN renderer disabled after extraction
 
 const GENRES = ["Pop", "Rock", "EDM", "Hip-Hop", "Jazz", "Country", "R&B", "Metal", "Folk", "Synthwave"];
+// Display labels for genres (UI only). Logic continues to use the internal keys above.
+const GENRE_LABELS = {
+  Pop: 'Radiant Pop',
+  Rock: 'Bramble Grunge',
+  EDM: 'Spellstep',
+  'Hip-Hop': 'Munchkin Beat',
+  Jazz: 'Lantern Jazz',
+  Country: 'Yellowbrick Folk',
+  'R&B': 'Silk & Soul',
+  Metal: 'Clockwork Metal',
+  Folk: 'Hearthsong',
+  Synthwave: 'Emeraldwave',
+};
+const genreLabel = (g) => GENRE_LABELS[g] || g;
 const THEMES = [
   "Love",
   "Heartbreak",
@@ -3106,7 +3120,7 @@ function stationTarget(type) {
                       onClick={() => setGenre(g)}
                       style={g === genre ? styles.btnOn : styles.btnOff}
                     >
-                      {g}
+                      {genreLabel(g)}
                     </button>
                   ))}
                 </div>
@@ -3409,9 +3423,9 @@ function stationTarget(type) {
                 </div>
               )}
               {isPerforming && (
-                <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
+                <div style={styles.hudPerforming} title={`${(performingSong?.name || songName || 'Your Song')} - ${genreLabel(performingSong?.genre || genre)} / ${(performingSong?.theme || theme)}`}>
                   <div style={{ fontWeight: 800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 240 }}>{performingSong?.name || songName || 'Your Song'}</div>
-                  <div style={{ fontSize: 12, opacity: .9 }}>{performingSong?.genre || genre} / {performingSong?.theme || theme}</div>
+                  <div style={{ fontSize: 12, opacity: .9 }}>{genreLabel(performingSong?.genre || genre)} / {performingSong?.theme || theme}</div>
                   {(rainfallUnlocked && rainfallEnabled && (((performingSong?.genre||genre) === 'Rock') || rainfallAllGenres)) && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#9ec9ff', marginTop: 2 }}>Rainfall Stage Lighting</div>
                   )}
@@ -3885,7 +3899,7 @@ function stationTarget(type) {
               {conceptLocked && (
                 <div style={{ marginTop: 10 }}>
                   <div style={{ ...styles.sub, fontSize: 14 }}>
-                    Pairing: <b>{genre}</b> + <b>{theme}</b>
+                    Pairing: <b>{genreLabel(genre)}</b> + <b>{theme}</b>
                   </div>
                   <div style={{ marginTop: 6, fontWeight: 800, color: compat>0 ? '#64d49a' : compat<0 ? '#e37a7a' : '#e1b768' }}>
                     {compat>0 ? 'great combination' : compat<0 ? 'risky combination' : 'okay combination'}
@@ -4059,7 +4073,7 @@ function stationTarget(type) {
               <div style={{ ...styles.label, marginTop: 10 }}>Genre</div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <select value={genre} onChange={(e)=>setGenre(e.target.value)} style={{ ...styles.input, width:'auto', minWidth: 180, padding:'6px 10px', background:'white', color:'black' }}>
-                  {availableGenres.map(g => (<option key={g} value={g}>{g}</option>))}
+                  {availableGenres.map(g => (<option key={g} value={g}>{genreLabel(g)}</option>))}
                 </select>
               </div>
 
@@ -5657,7 +5671,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{midnightHazeUnlocked ? 'Midnight Haze Lighting' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Synthwave only (default)</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('Synthwave')} only (default)</div>
                           </div>
                           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                             <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -5674,7 +5688,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{rainfallUnlocked ? 'Rainfall Stage Lighting' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Rock only (default)</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('Rock')} only (default)</div>
                           </div>
                           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                             <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -5691,7 +5705,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{spotlightSnapUnlocked ? 'Spotlight Snap' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Hip-Hop only (default)</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('Hip-Hop')} only (default)</div>
                         </div>
                           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                             <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -5708,7 +5722,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{pinkBubblesUnlocked ? 'Pink Bubbles' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Pop only (default)</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('Pop')} only (default)</div>
                           </div>
                           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                             <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -5725,7 +5739,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
                             <div style={{ fontWeight:800 }}>{rivetFilterUnlocked ? 'Iron Overture Filter' : '???'}</div>
-                            <div style={{ ...styles.sub }}>Metal only (default)</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('Metal')} only (default)</div>
                           </div>
                           <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                             <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -6048,7 +6062,7 @@ function stationTarget(type) {
                           return (B.best||-Infinity) - (A.best||-Infinity);
                         })[0] : null;
                         return (
-                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref || '-'}</b></div>
+                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref ? genreLabel(pref) : '-'}</b></div>
                         );
                       })()}
                       {/* Friends summary */}
@@ -6172,7 +6186,7 @@ function stationTarget(type) {
                           return (B.best||-Infinity) - (A.best||-Infinity);
                         })[0] : null;
                         return (
-                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref || '-'}</b></div>
+                          <div style={{ ...styles.statRow, marginTop: 10 }}><span>Preferred Genre</span><b>{pref ? genreLabel(pref) : '-'}</b></div>
                         );
                       })()}
                       <div style={{ ...styles.statRow, marginTop: 10 }}><span>Total Fans</span><b>{fans}</b></div>
