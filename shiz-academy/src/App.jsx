@@ -45,9 +45,28 @@ const THEMES = [
 ];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-// Posters available in public assets
+// Posters available in public assets (ordered). Filenames include spaces; keep exact paths.
 const POSTERS = [
-  ...Array.from({ length: 20 }, (_, i) => `/art/posters/poster${i+1}.png`),
+  '/art/posters/1.Its Munch Time.png',
+  '/art/posters/2.Straw Hat Swing.png',
+  '/art/posters/3.Tinman and the Oil Cans.png',
+  '/art/posters/4.Defying Gravity.png',
+  "/art/posters/5.Dorothy and the Ruby Slippers.png",
+  '/art/posters/6.The Munchkin Guild Chorus.png',
+  "/art/posters/7. Emerald City Ochestra.png",
+  "/art/posters/8. Toto's Barking Bity Orchestra.png",
+  '/art/posters/9. The Flying Monkey Pilots.png',
+  "/art/posters/10. Boq's Broken Hearts.png",
+  "/art/posters/11. The Emerald City Shades.png",
+  '/art/posters/12. Scarecrow Stomp.png',
+  '/art/posters/13. Wicked Wheels.png',
+  "/art/posters/14. Candle's Wick-ed Jazz.png",
+  '/art/posters/15. The Nome King.png',
+  '/art/posters/16. Deadly Desert Dwellers.png',
+  '/art/posters/17. Mombi.png',
+  '/art/posters/18. Silent Strummers.png',
+  '/art/posters/19. Vinkus Vipers.png',
+  '/art/posters/20. Spellbound Symphony.png',
   '/art/posters/luminaposter.png',
 ];
 // Seasonal Wizmas NPC tracks (appear in charts during Wizmas weeks only)
@@ -5071,7 +5090,7 @@ function stationTarget(type) {
                         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, justifyContent:'space-between', flex:1 }}>
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, fontWeight:700 }}>Mystery Poster</div>
                           <div style={styles.shopImageBox}>
-                            <img src="/art/posters/poster1.png" alt="poster" style={{ width:36, height:36, objectFit:'cover', borderRadius:6 }} />
+                            <div style={{ width:36, height:36, borderRadius:6, background:'rgba(255,255,255,.1)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800 }}>?</div>
                           </div>
                           {(() => { const disc = activeEffects?.shopDiscount || 1; const priceP = Math.max(1, Math.ceil(30 * disc)); const disabled = money < priceP; return (
                             <button
@@ -5567,15 +5586,34 @@ function stationTarget(type) {
                   {(!unlockedPosters || unlockedPosters.length === 0) ? (
                     <div style={{ ...styles.sub, marginTop: 8 }}>No posters unlocked yet. Buy a Mystery Poster from the shop!</div>
                   ) : (
-                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 8 }}>
-                      <button key="none" onClick={() => setCurrentPosterIdx(null)} style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.04)', border:'1px dashed rgba(255,255,255,.25)', borderRadius: 10, padding: 6, cursor: 'pointer' }}>
-                        <div style={{ width: 80, height: 80, borderRadius: 8, background:'rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'center', color:'rgba(255,255,255,.7)', fontWeight:800, fontSize:12 }}>No Poster</div>
-                        <div style={{ fontSize: 12, opacity: .9, fontWeight: 700 }}>None</div>
+                    <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                      {/* List row: None */}
+                      <button
+                        key="none"
+                        onClick={() => setCurrentPosterIdx(null)}
+                        style={{
+                          display:'flex', alignItems:'center', gap:10,
+                          background:'rgba(255,255,255,.04)',
+                          border: currentPosterIdx == null ? '2px solid rgba(255,255,255,.6)' : '1px dashed rgba(255,255,255,.25)',
+                          borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign:'left'
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, opacity: .95 }}>No Poster</div>
                       </button>
+                      {/* List rows: unlocked posters */}
                       {unlockedPosters.map((idx) => (
-                        <button key={idx} onClick={() => setCurrentPosterIdx(idx)} style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.2)', borderRadius: 10, padding: 6, cursor: 'pointer' }}>
-                          <img src={POSTERS[idx]} alt={`Poster ${idx+1}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.3))' }} />
-                          <div style={{ fontSize: 12, opacity: .9, fontWeight: 700 }}>{idx+1}</div>
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentPosterIdx(idx)}
+                          style={{
+                            display:'flex', alignItems:'center', gap:10,
+                            background:'rgba(255,255,255,.06)',
+                            border: currentPosterIdx === idx ? '2px solid rgba(255,255,255,.6)' : '1px solid rgba(255,255,255,.2)',
+                            borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign:'left'
+                          }}
+                        >
+                          <div style={{ fontWeight: 800 }}>{((POSTERS[idx]||'').split('/').pop()||'').replace(/\.png$/i,'')}</div>
+                          <div style={{ ...styles.sub, marginLeft: 6 }}>Click to display</div>
                         </button>
                       ))}
                     </div>
