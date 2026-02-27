@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadSave, writeSave, hasSave as hasExistingSave, clearSavedGame } from './persistence';
 import VisualNovelModal from './vn/VisualNovelModal.jsx';
+import OzPedia from './OzPedia.jsx';
+import GliMillonaire from './GliMillonaire.jsx';
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -673,6 +675,14 @@ export default function App() {
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [myBubbleFriendsOpen, setMyBubbleFriendsOpen] = useState(false);
+  // OzPedia and Gli‑millonaire apps
+  const [ozPediaOpen, setOzPediaOpen] = useState(false);
+  const [gliOpen, setGliOpen] = useState(false);
+  const [unlockedLore, setUnlockedLore] = useState([]); // array of string IDs
+  const handleUnlockLore = (id) => {
+    const s = String(id);
+    setUnlockedLore((prev) => (prev.includes(s) ? prev : [...prev, s]));
+  };
   // Friends / Visual Novel system
   const [friends, setFriends] = useState({
     luminaO: {
@@ -1782,12 +1792,12 @@ function stationTarget(type) {
 
   useEffect(() => {
     if (!finalePending) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || friendModal.open;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || friendModal.open || ozPediaOpen || gliOpen;
     if (!overlaysOpen) {
       setFinalePending(false);
       setEndYearReady(true);
     }
-  }, [finalePending, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal]);
+  }, [finalePending, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal, ozPediaOpen, gliOpen]);
 
   // When party performance ends, show final options modal
   useEffect(() => {
@@ -3010,7 +3020,7 @@ function stationTarget(type) {
     const pendingChoice = activeEvents.find(ev => ev.choices && !(eventsResolved[ev.id] && typeof eventsResolved[ev.id].choiceIndex === 'number'));
     const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
     const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen;
     if (pendingChoice && pendingChoice.key === 'iron') {
       // Show weekly info first, then the Iron choice
       setDeferredChoice(pendingChoice);
@@ -3045,7 +3055,7 @@ function stationTarget(type) {
   // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
     if (!queuedEventInfo) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
     const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
@@ -3054,7 +3064,7 @@ function stationTarget(type) {
       if (typeof queuedEventInfo.week === 'number') setWeeklyInfoShownWeek(queuedEventInfo.week);
     }
     setQueuedEventInfo(null);
-  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal, eventsResolved]);
+  }, [queuedEventInfo, isPerforming, releaseOpen, venueOpen, menuOpen, statsOpen, financeOpen, socialOpen, myMusicOpen, calendarOpen, shopOpen, gigOpen, gigResultOpen, historyOpen, eventModal, eventInfoModal, eventsResolved, ozPediaOpen, gliOpen]);
 
   // Ensure fan comments exist for this week's release once MyBubble opens
   useEffect(() => {
@@ -3688,47 +3698,81 @@ function stationTarget(type) {
                       <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_desktop.png')" }}>
                         <div className="hide-scrollbar" style={{ ...styles.mirrorInner, left:'8%', right:'8%', display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
-                            <div style={{ ...styles.desktopIcons, marginLeft: 12, top: 6 }}>
-                              <div style={styles.desktopColumn}>
-                                <div style={styles.desktopIconWrap}>
-                                  <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
-                                    <div style={{ position:'relative' }}>
-                                      <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
-                                      {(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) && (
-                                        <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
-                                      )}
-                                    </div>
-                                  </button>
-                                  <div style={styles.desktopIconLabel}>myBubble</div>
-                                </div>
-                                <div style={styles.desktopIconWrap}>
-                                  <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
-                                    <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
-                                  </button>
-                                  <div style={styles.desktopIconLabel}>Settings</div>
-                                </div>
+                          <div style={{ ...styles.desktopIcons, marginLeft: 12, top: 6 }}>
+                            <div style={styles.desktopColumn}>
+                              <div style={styles.desktopIconWrap}>
+                                <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
+                                  <div style={{ position:'relative' }}>
+                                    <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
+                                    {(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) && (
+                                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
+                                    )}
+                                  </div>
+                                </button>
+                                <div style={styles.desktopIconLabel}>myBubble</div>
                               </div>
                               <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
-                                  <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
+                                <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
+                                  <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
                                 </button>
-                                <div style={styles.desktopIconLabel}>Shizy-FI</div>
+                                <div style={styles.desktopIconLabel}>Settings</div>
                               </div>
                               <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
-                                  <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
+                                <button style={styles.desktopIcon} title="Oz‑pedia" onClick={() => setOzPediaOpen(true)}>
+                                  <span role="img" aria-label="Oz‑pedia" style={{ fontSize: 44, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }}>📚</span>
                                 </button>
-                                <div style={styles.desktopIconLabel}>Calendar</div>
-                              </div>
-                              <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
-                                  <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
-                                </button>
-                                <div style={styles.desktopIconLabel}>Am-Oz-on</div>
+                                <div style={styles.desktopIconLabel}>Oz-pedia</div>
                               </div>
                             </div>
+                            <div style={styles.desktopIconWrap}>
+                              <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
+                                <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
+                              </button>
+                              <div style={styles.desktopIconLabel}>Shizy-FI</div>
+                            </div>
+                            <div style={styles.desktopIconWrap}>
+                              <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
+                                <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
+                              </button>
+                              <div style={styles.desktopIconLabel}>Calendar</div>
+                            </div>
+                            <div style={styles.desktopIconWrap}>
+                              <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
+                                <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
+                              </button>
+                              <div style={styles.desktopIconLabel}>Am-Oz-on</div>
+                            </div>
+                            <div style={styles.desktopIconWrap}>
+                              <button style={styles.desktopIcon} title="Gli‑millonaire" onClick={() => setGliOpen(true)}>
+                                <span role="img" aria-label="Gli‑millonaire" style={{ fontSize: 44, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }}>❓</span>
+                              </button>
+                              <div style={styles.desktopIconLabel}>Gli-millonaire</div>
+                            </div>
+                          </div>
                             <div style={styles.desktopScanlinesOverlay} />
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {ozPediaOpen && (
+                  <div style={styles.overlayClear} onClick={() => setOzPediaOpen(false)}>
+                    <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+                      <div style={styles.mirrorFrame}>
+                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
+                          <OzPedia unlockedLoreIds={unlockedLore} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {gliOpen && (
+                  <div style={styles.overlayClear} onClick={() => setGliOpen(false)}>
+                    <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+                      <div style={styles.mirrorFrame}>
+                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
+                          <GliMillonaire onWin={handleUnlockLore} />
                         </div>
                       </div>
                     </div>
