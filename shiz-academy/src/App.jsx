@@ -3971,6 +3971,25 @@ function stationTarget(type) {
                     <button onClick={() => { setMoney(m=>m+100); pushToast('Money +£100 (debug)'); }} style={styles.secondaryBtn}>Add £100 (debug)</button>
                     <button onClick={() => {
                       try {
+                        // Unlock all friend items
+                        if (typeof setLampUnlocked === 'function') setLampUnlocked(true);
+                        if (typeof setFairylightsUnlocked === 'function') setFairylightsUnlocked(true);
+                        if (typeof setPolaroidUnlocked === 'function') setPolaroidUnlocked(true);
+                        if (typeof setCandleUnlocked === 'function') setCandleUnlocked(true);
+                        if (typeof setVinylUnlocked === 'function') setVinylUnlocked(true);
+                        if (typeof setOnairUnlocked === 'function') setOnairUnlocked(true);
+                        // Make them visible
+                        if (typeof setLampVisible === 'function') setLampVisible(true);
+                        if (typeof setFairylightsVisible === 'function') setFairylightsVisible(true);
+                        if (typeof setPolaroidVisible === 'function') setPolaroidVisible(true);
+                        if (typeof setCandleVisible === 'function') setCandleVisible(true);
+                        if (typeof setVinylVisible === 'function') setVinylVisible(true);
+                        if (typeof setOnairVisible === 'function') setOnairVisible(true);
+                        pushToast('All friend items unlocked (debug)');
+                      } catch(_) {}
+                    }} style={styles.secondaryBtn}>Unlock all friend items (debug)</button>
+                    <button onClick={() => {
+                      try {
                         setMidnightHazeUnlocked(true); setMidnightHazeEnabled(true);
                         setRainfallUnlocked(true); setRainfallEnabled(true);
                         setSpotlightSnapUnlocked(true); setSpotlightSnapEnabled(true);
