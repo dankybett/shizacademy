@@ -1,0 +1,10 @@
+{
+  "appId": "shiz.academy",
+  "appName": "Shiz Academy",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
+
