@@ -4185,7 +4185,7 @@ function stationTarget(type) {
                                   <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
                                   <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
                                     {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
-                                      <button style={styles.smallBtn} onClick={() => {
+                                      <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                         try {
                                           const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
                                           playTrendItem(item);
@@ -4193,7 +4193,7 @@ function stationTarget(type) {
                                         } catch(_){}
                                       }}>{isPlaying ? 'Stop' : 'Play'}</button>
                                     ); })()}
-                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : { ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                       if (s.liked) return;
                                       setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
                                       pushToast(`You liked ${s.artist}'s track ?" it may chart higher next week.`);
@@ -4384,7 +4384,7 @@ function stationTarget(type) {
                     <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                       <span style={{ opacity:.9 }}>Fans</span>
                       <span>{fans}</span>
-                      <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                      <span style={{ marginLeft:6, color: gain > 0 ? '#4ec38a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
                     </div>
                   );
                 })()}
@@ -4449,7 +4449,7 @@ function stationTarget(type) {
                 <div style={{ marginTop: 10 }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                     <div style={{ fontWeight:900 }}>{selectedFriendId ? 'Friend' : 'Friends'}</div>
-                    <button style={styles.smallBtn} onClick={()=> { setSelectedFriendId(null); setShowFriendsList(false); }}>Back to MyBubble</button>
+                    <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={()=> { setSelectedFriendId(null); setShowFriendsList(false); }}>Back to MyBubble</button>
                   </div>
                   {selectedFriendId == null && (
                     <>
@@ -4570,7 +4570,7 @@ function stationTarget(type) {
                             <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                               <span style={{ opacity:.9 }}>Fans</span>
                               <span>{fans}</span>
-                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#4ec38a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
                             </div>
                           );
                         })()}
@@ -4692,7 +4692,7 @@ function stationTarget(type) {
                             <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:999, border:'2px solid rgba(54,46,70,.25)', background:'rgba(255,255,255,.12)', fontWeight:800 }}>
                               <span style={{ opacity:.9 }}>Fans</span>
                               <span>{fans}</span>
-                              <span style={{ marginLeft:6, color: gain > 0 ? '#64d49a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
+                              <span style={{ marginLeft:6, color: gain > 0 ? '#4ec38a' : 'rgba(255,255,255,.85)' }}>+{gain}</span>
                             </div>
                           );
                         })()}
@@ -4711,7 +4711,7 @@ function stationTarget(type) {
                                   <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
                                   <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
                                     {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
-                                      <button style={styles.smallBtn} onClick={() => {
+                                      <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                         try {
                                           const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
                                           playTrendItem(item);
@@ -4719,7 +4719,7 @@ function stationTarget(type) {
                                         } catch(_){}
                                       }}>{isPlaying ? 'Stop' : 'Play'}</button>
                                     ); })()}
-                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : { ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                       if (s.liked) return;
                                       setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
                                       pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
@@ -4741,7 +4741,7 @@ function stationTarget(type) {
                               <div style={{ ...styles.sub }}>from {name}</div>
                             </div>
                             <div style={{ display:'flex', gap:6 }}>
-                                <button style={styles.smallBtn} onClick={()=>{
+                                <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={()=>{
                                   setFriendModal({ open:true, friendId: ev.friendId, targetLevel: ev.targetLevel, idx:0, snapshot: ev.snapshot||null, isWizmas: !!ev.wizmas });
                                   setPendingFriendEvents(prev=>{
                                     const idx = (prev||[]).findIndex(e => e && e.friendId===ev.friendId && e.targetLevel===ev.targetLevel && e.week===ev.week);
@@ -4754,7 +4754,7 @@ function stationTarget(type) {
                                   setMyBubbleMessagesOpen(false);
                                   setSocialOpen(false);
                                 }}>Open</button>
-                              <button style={styles.smallBtn} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
+                              <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={()=>{ /* Later: keep in queue */ }}>Later</button>
                             </div>
                           </div>
                         ); })()
@@ -4774,7 +4774,7 @@ function stationTarget(type) {
                                   <div style={{ fontWeight:800 }}>{s.artist} - {s.title}</div>
                                   <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
                                     {(() => { const isPlaying = !!(playingTrend && playingTrend.id === `${s.artist}__${s.title}`); return (
-                                      <button style={styles.smallBtn} onClick={() => {
+                                      <button style={{ ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                         try {
                                           const item = { artist: s.artist, title: s.title, audioSources: [s.audioSrc] };
                                           playTrendItem(item);
@@ -4782,7 +4782,7 @@ function stationTarget(type) {
                                         } catch(_){}
                                       }}>{isPlaying ? 'Stop' : 'Play'}</button>
                                     ); })()}
-                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : styles.smallBtn} onClick={() => {
+                                    <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : { ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                       if (s.liked) return;
                                       setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
                                       pushToast(`You liked ${s.artist}'s track - it may chart higher next week.`);
