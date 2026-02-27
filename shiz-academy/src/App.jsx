@@ -3919,6 +3919,17 @@ function stationTarget(type) {
                   <>
                     <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
                     <button onClick={() => { setMoney(m=>m+100); pushToast('Money +£100 (debug)'); }} style={styles.secondaryBtn}>Add £100 (debug)</button>
+                    <button onClick={() => {
+                      try {
+                        setMidnightHazeUnlocked(true); setMidnightHazeEnabled(true);
+                        setRainfallUnlocked(true); setRainfallEnabled(true);
+                        setSpotlightSnapUnlocked(true); setSpotlightSnapEnabled(true);
+                        setRivetFilterUnlocked(true); setRivetFilterEnabled(true);
+                        if (typeof setPinkBubblesUnlocked === 'function') setPinkBubblesUnlocked(true);
+                        if (typeof setPinkBubblesEnabled === 'function') setPinkBubblesEnabled(true);
+                        pushToast('All performance cosmetics unlocked (debug)');
+                      } catch(_) {}
+                    }} style={styles.secondaryBtn}>Unlock all performance cosmetics (debug)</button>
                     <button onClick={() => { setDebugUnlocked(false); pushToast('Debug locked'); }} style={styles.secondaryBtn}>Lock debug</button>
                   </>
                 )}
