@@ -3769,11 +3769,21 @@ function stationTarget(type) {
                 )}
                 {gliOpen && (
                   <div style={styles.overlayClear} onClick={() => setGliOpen(false)}>
-                    <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
-                      <div style={styles.mirrorFrame}>
-                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
-                          <GliMillonaire onWin={handleUnlockLore} />
-                        </div>
+                    {/* VN-style wide frameless container */}
+                    <div
+                      style={{
+                        width: '100%',
+                        maxWidth: 860,
+                        background: 'linear-gradient(180deg, rgba(16,22,33,0.92) 0%, rgba(11,15,20,0.92) 100%)',
+                        borderRadius: 16,
+                        padding: 12,
+                        border: '1px solid #253041',
+                        boxShadow: '0 10px 30px rgba(0,0,0,.35)',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="hide-scrollbar" style={{ width: '100%', maxHeight: '80vh', overflow: 'auto' }}>
+                        <GliMillonaire onWin={handleUnlockLore} />
                       </div>
                     </div>
                   </div>
