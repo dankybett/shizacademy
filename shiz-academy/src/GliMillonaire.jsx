@@ -229,7 +229,7 @@ const MONEY_LADDER = [
               <span style={{ opacity: 0.95 }}>{question ? question.question : 'Loading question...'}</span>
             </div>
           </div>
-          <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center" }}>
+          <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center", marginBottom: -6 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: '100%', maxWidth: 620 }}>
               {(question?.options || []).map((opt, idx) => {
                 const isLeft = idx % 2 === 0;
