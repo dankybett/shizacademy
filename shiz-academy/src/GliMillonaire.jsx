@@ -25,6 +25,8 @@ const MONEY_LADDER = [
   const [winnings, setWinnings] = useState(0);
   const [pulseStep, setPulseStep] = useState(null);
   const pulseTimerRef = useRef(null);
+  const correctSfxRef = useRef(null);
+  const wrongSfxRef = useRef(null);
 
   const triggerSafetyPulse = (idx) => {
     try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {}
@@ -33,8 +35,22 @@ const MONEY_LADDER = [
   };
 
   useEffect(() => {
-    return () => { try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {} };
+    // Preload SFX
+    try {
+      correctSfxRef.current = new Audio('/sounds/quiz/correct.mp3');
+      wrongSfxRef.current = new Audio('/sounds/quiz/wrong.mp3');
+      if (correctSfxRef.current) correctSfxRef.current.volume = 0.9;
+      if (wrongSfxRef.current) wrongSfxRef.current.volume = 0.9;
+    } catch {}
+    return () => {
+      try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {}
+      try { if (correctSfxRef.current) { correctSfxRef.current.pause(); correctSfxRef.current = null; } } catch {}
+      try { if (wrongSfxRef.current) { wrongSfxRef.current.pause(); wrongSfxRef.current = null; } } catch {}
+    };
   }, []);
+
+  const playCorrect = () => { try { const a = correctSfxRef.current; if (a) { a.currentTime = 0; a.play().catch(()=>{}); } } catch {} };
+  const playWrong = () => { try { const a = wrongSfxRef.current; if (a) { a.currentTime = 0; a.play().catch(()=>{}); } } catch {} };
 
   const stepDifficulty = useMemo(() => {
     if (currentStep <= 4) return 1;
@@ -76,6 +92,7 @@ const MONEY_LADDER = [
       try { onWin(question.requiredLoreId); } catch {}
       setPhase('feedback');
       setHostText(hostMessages.Correct);
+      playCorrect();
       const isFinal = currentStep >= MONEY_LADDER.length - 1;
       setPendingCelebrate(isFinal);
       setPendingAdvance(!isFinal);
@@ -83,6 +100,7 @@ const MONEY_LADDER = [
     } else {
       setPhase('feedback');
       setHostText(hostMessages.Wrong);
+      playWrong();
       setPendingAdvance(false);
       setPendingCelebrate(false);
       setPendingWrong(true);
@@ -155,6 +173,8 @@ const MONEY_LADDER = [
     setPendingWrong(false);
     setPressedIdx(null);
     setHoveredIdx(null);
+    try { if (correctSfxRef.current) { correctSfxRef.current.pause(); correctSfxRef.current.currentTime = 0; } } catch {}
+    try { if (wrongSfxRef.current) { wrongSfxRef.current.pause(); wrongSfxRef.current.currentTime = 0; } } catch {}
     loadQuestion();
   };
 
