@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import quizData from "../data/quizData.js";
 import hostMessages from "../data/hostMessages.js";
 
@@ -23,6 +23,18 @@ const MONEY_LADDER = [
   const [pendingWrong, setPendingWrong] = useState(false);
   const [guaranteed, setGuaranteed] = useState(0);
   const [winnings, setWinnings] = useState(0);
+  const [pulseStep, setPulseStep] = useState(null);
+  const pulseTimerRef = useRef(null);
+
+  const triggerSafetyPulse = (idx) => {
+    try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {}
+    setPulseStep(idx);
+    pulseTimerRef.current = setTimeout(() => setPulseStep(null), 1200);
+  };
+
+  useEffect(() => {
+    return () => { try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {} };
+  }, []);
 
   const stepDifficulty = useMemo(() => {
     if (currentStep <= 4) return 1;
@@ -112,6 +124,16 @@ const MONEY_LADDER = [
           setHostText(hostMessages.FinalQuestion);
           setPhase('host');
           setCurrentStep(next);
+        } else if (next === 4) {
+          setHostText(hostMessages.Safety1k);
+          setPhase('host');
+          setCurrentStep(next);
+          triggerSafetyPulse(4);
+        } else if (next === 9) {
+          setHostText(hostMessages.Safety32k);
+          setPhase('host');
+          setCurrentStep(next);
+          triggerSafetyPulse(9);
         } else {
           setCurrentStep(next);
           setPhase('qa');
@@ -386,6 +408,7 @@ const MONEY_LADDER = [
                   const amt = MONEY_LADDER[step];
                   const active = step === currentStep;
                   const safety = (step === 4 || step === 9); // 1,000 and 32,000
+                  const pulsing = step === pulseStep;
                   return (
                     <div
                       key={step}
@@ -401,6 +424,7 @@ const MONEY_LADDER = [
                         fontWeight: active ? 800 : 600,
                         fontSize: 12,
                         marginLeft: -6,
+                        boxShadow: pulsing ? '0 0 0 2px rgba(20,184,166,0.5), 0 0 14px rgba(20,184,166,0.35)' : 'none',
                       }}
                       title={`Step ${step + 1}`}
                     >
