@@ -132,7 +132,7 @@ const MONEY_LADDER = [
 
   const usedQuestionIdsRef = useRef(new Set());
   const MUSIC_STEPS = useMemo(() => new Set([4, 9, 14]), []); // 0-based: questions 5, 10, 15
-  const MUSIC_CLIP_DUR = 2; // seconds
+  const MUSIC_CLIP_DUR = 1.5; // seconds
 
   const makeMusicQuestion = (song, songList) => {
     const distractors = [];
@@ -579,10 +579,10 @@ const MONEY_LADDER = [
                   cursor: 'pointer', fontWeight: 800
                 }}
                 disabled={musicPlaying}
-                aria-label="Play 2-second clip"
-                title="Play 2-second clip"
+                aria-label="Play 1.5-second clip"
+                title="Play 1.5-second clip"
               >
-                {musicPlaying ? 'Playing…' : 'Play 2s Clip'}
+                {musicPlaying ? 'Playing…' : 'Play 1.5s Clip'}
               </button>
             </div>
           )}

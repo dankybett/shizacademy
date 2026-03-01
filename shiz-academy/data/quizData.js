@@ -673,6 +673,205 @@ const quizData = [
     requiredLoreId: 'L-VINKUS-34',
     difficulty: 3,
   },
+  // Music in Oz (L-MUSIC-36) questions
+  {
+    id: 'Q-MUSIC-36-1',
+    question:
+      "While pregnant with Elphaba, Melena heard a internal, wordless 'dream music' and believes it is a sign that her baby will be what?",
+    options: ['A Kumbric Witch', 'A domingon player', "A 'singing child'", 'A unionist minister'],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-2',
+    question: 'What object did Frex carve for Melena to practice her musical scales on?',
+    options: ['A wooden flute', 'A tuneless mock keyboard', 'A harp', 'A domingon'],
+    correctAnswer: 1,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 3,
+  },
+  {
+    id: 'Q-MUSIC-36-3',
+    question:
+      'When the senior boys from Three Queens College dance in public wearing nothing but their cotton drawers, what kind of musician do they hire to accompany them?',
+    options: ['A White Bear violinist', 'An elfin flautist', 'A Clockwork drummer', 'A Dwarf trumpet player'],
+    correctAnswer: 0,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 3,
+  },
+  {
+    id: 'Q-MUSIC-36-4',
+    question:
+      'What song do the cast and audience sing together at the end of the pleasure faith meeting attended by the Amas?',
+    options: [
+      'One Truth, One Truth Alone',
+      'What Is Oz Without Ozma',
+      "Lurline's Lullaby",
+      "What We Don't Allow in the Public Halls (In Fact Is for Sale in the Cheaper Stalls)",
+    ],
+    correctAnswer: 3,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 3,
+  },
+  {
+    id: 'Q-MUSIC-36-5',
+    question:
+      'How did Doctor Dillamond vocalize his excitement when he makes a breakthrough in his biological research?',
+    options: [
+      'He hummed a tuneless dirge',
+      'He sang his findings as sweeping arias and recitatives',
+      'He whistled a complicated Vinkus folk tune',
+      'He would chant a traditional unionist hymn',
+    ],
+    correctAnswer: 1,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-6',
+    question: 'What was the subject of the impromptu song Elphaba invented and sang at the pub?',
+    options: [
+      'The history of the Emerald City',
+      'The drought in Munchkinland',
+      'Longing and otherness',
+      'The legend of the Kumbric Witch',
+    ],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-7',
+    question:
+      "After Elphaba's beautiful performance at the pub, what kind of song did Fiyero offer to sing?",
+    options: ['A munchkin ballad', 'A Vinkus hunting chant', 'Baa Baa Red Sheep', 'Happy Birthday'],
+    correctAnswer: 1,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 1,
+  },
+  {
+    id: 'Q-MUSIC-36-8',
+    question:
+      'At the secretive Philosophy Club, a chanteuse in a feather boa performed a send-up of which song?',
+    options: [
+      'What Is Oz Without Ozma',
+      'One Truth, One Truth Alone',
+      'The Emerald City March',
+      "What We Don't Allow in the Public Halls",
+    ],
+    correctAnswer: 0,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 3,
+  },
+  {
+    id: 'Q-MUSIC-36-9',
+    question:
+      'What kind of musician was playing in the unionist chapel when Fiyero went looking for a portrait of Saint Glinda?',
+    options: ['A cellist', 'A trumpeter', 'A lyre player', 'A domingon player'],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-10',
+    question:
+      "During her childhood, what was the only type of music Elphaba's father approved of her singing?",
+    options: ['Operatic arias', 'Folk ballads', 'Lullabies', 'Hymns'],
+    correctAnswer: 3,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-11',
+    question:
+      'Who was the singer performing at the Oz Festival of Song and Sentiment on the day the Wizard arrived in his balloon?',
+    options: ['Sillipede', 'Madame Morrible', 'Lady Glinda', 'Melena Thropp'],
+    correctAnswer: 0,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-12',
+    question:
+      'In the story Sarima told her children, how do the captive foxlings manage to outwit the Witch?',
+    options: [
+      'They play a magic flute',
+      'They sing a lullaby to make her sleep',
+      'They whistle for the moon',
+      'They answer her riddles in rhyme',
+    ],
+    correctAnswer: 1,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-13',
+    question:
+      'What is the name of the double-necked stringed instrument played by the Quadling girl Candle?',
+    options: ['A harpsiclavier', 'A zither', 'A domingon', 'A lute'],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-14',
+    question:
+      'What object did Candle attach to her domingon to repair it and restore its beautiful acoustics?',
+    options: ['An oakhair root', 'A sliver of green glass', 'A Red Pfenix feather', 'A strand of unicorn hair'],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-15',
+    question:
+      'How did Candle use her music to medically assist the comatose Liir?',
+    options: [
+      'Played loud marches to shock him awake',
+      'Sang unionist hymns to save his soul',
+      'Played different musical phrases to regulate his respiration',
+      'Used her domingon to cast a Kumbric healing spell',
+    ],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 2,
+  },
+  {
+    id: 'Q-MUSIC-36-16',
+    question: 'What is the title of the catchy unionist anthem?',
+    options: [
+      "The Unnamed God's Glory",
+      'One Truth, One Truth Alone',
+      "Lurline's Light",
+      'The Emerald City March',
+    ],
+    correctAnswer: 1,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 3,
+  },
+  {
+    id: 'Q-MUSIC-36-17',
+    question: 'According to the famous Oz musical lesson what must you do to "grow a song"?',
+    options: ['Plant a note', 'Listen to the wind', 'Find a quiet place', 'Water the roots'],
+    correctAnswer: 0,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 1,
+  },
+  {
+    id: 'Q-MUSIC-36-18',
+    question:
+      'When do the people of Oz commonly claim is a necessary prerequisite for singing?',
+    options: [
+      'Singing makes you forget your sorrows',
+      'Songs are the memories of the earth',
+      'No one can sing unless they can remember',
+      'Memory is a song without words',
+    ],
+    correctAnswer: 2,
+    requiredLoreId: 'L-MUSIC-36',
+    difficulty: 1,
+  },
 ];
 
 export default quizData;

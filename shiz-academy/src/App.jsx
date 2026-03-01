@@ -686,7 +686,7 @@ export default function App() {
   };
   // Auto-unlock core region entries when OzPedia opens for the first time
   const REGION_LORE_IDS = useMemo(() => (
-    ['L-EMERALD-30','L-GILIKIN-31','L-MUNCH-32','L-QUADLING-33','L-VINKUS-34','L-GLIKKUS-35']
+    ['L-EMERALD-30','L-GILIKIN-31','L-MUNCH-32','L-QUADLING-33','L-VINKUS-34','L-GLIKKUS-35','L-MUSIC-36']
   ), []);
   const [regionsGranted, setRegionsGranted] = useState(false);
   useEffect(() => {

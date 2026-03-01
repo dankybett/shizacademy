@@ -27,6 +27,7 @@ function OzPedia({ unlockedLoreIds = [] }) {
     QUADLING: "Quadling Country",
     VINKUS: "The Vinkus (Winkie Country)",
     GLIKKUS: "The Glikkus",
+    MUSIC: "Music of Oz",
     SOUTH: "The South",
     NORTH: "The North",
     DRIVE: "Phosphor-Drive",
@@ -85,6 +86,9 @@ function OzPedia({ unlockedLoreIds = [] }) {
     }
   }, [unlockedEntries, filteredEntries, selectedId]);
 
+  const [view, setView] = useState('categories'); // 'categories' | 'group'
+  const [selectedGroupKey, setSelectedGroupKey] = useState(null);
+
   if (!unlockedEntries.length) {
     return (
       <div
@@ -107,8 +111,6 @@ function OzPedia({ unlockedLoreIds = [] }) {
   }
 
   const selected = unlockedEntries.find((e) => e.id === selectedId) || null;
-  const [view, setView] = useState('categories'); // 'categories' | 'group'
-  const [selectedGroupKey, setSelectedGroupKey] = useState(null);
 
   const renderContent = (text) => {
     if (!text) return null;
