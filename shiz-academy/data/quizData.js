@@ -607,7 +607,7 @@ const quizData = [
   {
     id: 'Q-VINKUS-34-5',
     question:
-      "In L. Frank Baum's The Wonderful Wizard of Oz, what signature color dominates the landscape, castles, and clothing of Winkie Country?",
+      "What signature color dominates the landscape, castles, and clothing of Winkie Country?",
     options: ['Red', 'Blue', 'Yellow', 'Green'],
     correctAnswer: 2,
     requiredLoreId: 'L-VINKUS-34',

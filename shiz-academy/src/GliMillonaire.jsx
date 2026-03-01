@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import quizData from "../data/quizData.js";
+import songs from "../data/songs.js";
 import hostMessages from "../data/hostMessages.js";
 
 const MONEY_LADDER = [
@@ -31,6 +32,9 @@ const MONEY_LADDER = [
   const wrongSfxRef = useRef(null);
   const openingThemeRef = useRef(null);
   const openingFadeRef = useRef(null);
+  const musicAudioRef = useRef(null);
+  const musicStopTimerRef = useRef(null);
+  const [musicPlaying, setMusicPlaying] = useState(false);
   const startSfxRef = useRef(null);
 
   const triggerSafetyPulse = (idx) => {
@@ -127,17 +131,76 @@ const MONEY_LADDER = [
   }, [currentStep]);
 
   const usedQuestionIdsRef = useRef(new Set());
+  const MUSIC_STEPS = useMemo(() => new Set([4, 9, 14]), []); // 0-based: questions 5, 10, 15
+  const MUSIC_CLIP_DUR = 2; // seconds
+
+  const makeMusicQuestion = (song, songList) => {
+    const distractors = [];
+    const others = songList.filter((x) => x.id !== song.id);
+    // shuffle others lightweight
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
+    }
+    for (let i = 0; i < others.length && distractors.length < 3; i++) {
+      if (!distractors.find((d) => d.title === others[i].title)) distractors.push(others[i]);
+    }
+    const titles = [song.title, ...distractors.map((d) => d.title)];
+    // shuffle titles + compute correct index
+    const indexed = titles.map((t, i) => ({ t, i }));
+    for (let i = indexed.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+    }
+    const options = indexed.map((x) => x.t);
+    const correctAnswer = options.findIndex((t) => t === song.title);
+
+    const dur = MUSIC_CLIP_DUR;
+    const baseStart = typeof song.clipStart === 'number' ? song.clipStart : 0;
+    const winStart = typeof song.clipWindowStart === 'number' ? song.clipWindowStart : Math.max(0, baseStart - 5);
+    const winEnd = typeof song.clipWindowEnd === 'number' ? song.clipWindowEnd : baseStart + 10;
+    const span = Math.max(0, (winEnd - winStart) - dur);
+    const clipStart = winStart + (span > 0 ? Math.random() * span : 0);
+
+    return {
+      id: `MUSIC-${song.id}`,
+      type: 'music',
+      question: 'Name this song',
+      options,
+      correctAnswer,
+      songSrc: song.src,
+      clipStart,
+      clipDur: dur,
+      difficulty: song.difficulty || 1,
+    };
+  };
 
   const loadQuestion = () => {
-    const pool = quizData.filter((q) => q.difficulty === stepDifficulty);
-    if (!pool.length) {
+    const isMusicStep = MUSIC_STEPS.has(currentStep);
+    let basePool;
+    if (isMusicStep) {
+      const songPool = songs.filter((s) => (s.difficulty || 1) === stepDifficulty);
+      if (!songPool.length) {
+        basePool = [];
+      } else {
+        // choose a song not yet used
+        const unusedSongs = songPool.filter((s) => !usedQuestionIdsRef.current.has(`MUSIC-${s.id}`));
+        const srcSongs = unusedSongs.length ? unusedSongs : songPool;
+        const songPick = srcSongs[Math.floor(Math.random() * srcSongs.length)];
+        const q = makeMusicQuestion(songPick, songs);
+        basePool = [q];
+      }
+    } else {
+      basePool = quizData.filter((q) => q.difficulty === stepDifficulty);
+    }
+    if (!basePool.length) {
       setQuestion(null);
       return;
     }
-    const unused = pool.filter((q) => !usedQuestionIdsRef.current.has(q.id));
-    const src = unused.length ? unused : pool;
+    const unused = basePool.filter((q) => !usedQuestionIdsRef.current.has(q.id));
+    const src = unused.length ? unused : basePool;
     let pick = src[Math.floor(Math.random() * src.length)];
-    if (pool.length > 1 && pick?.id === lastQuestionId) {
+    if (src.length > 1 && pick?.id === lastQuestionId) {
       // try once more to avoid immediate repeat
       const idx = src.indexOf(pick);
       pick = src[(idx + 1) % src.length];
@@ -169,6 +232,46 @@ const MONEY_LADDER = [
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started]);
+
+  // Manage music question audio lifecycle
+  useEffect(() => {
+    // Cleanup any pending timers on question change
+    try { if (musicStopTimerRef.current) { clearTimeout(musicStopTimerRef.current); musicStopTimerRef.current = null; } } catch {}
+    setMusicPlaying(false);
+    try { if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; } } catch {}
+    if (question && question.type === 'music') {
+      try {
+        const a = new Audio(question.songSrc);
+        a.preload = 'auto';
+        musicAudioRef.current = a;
+      } catch {}
+    }
+    return () => {
+      try { if (musicStopTimerRef.current) { clearTimeout(musicStopTimerRef.current); musicStopTimerRef.current = null; } } catch {}
+      try { if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; } } catch {}
+      setMusicPlaying(false);
+    };
+  }, [question]);
+
+  const playMusicClip = () => {
+    if (!question || question.type !== 'music') return;
+    try { if (musicStopTimerRef.current) { clearTimeout(musicStopTimerRef.current); musicStopTimerRef.current = null; } } catch {}
+    try {
+      const a = musicAudioRef.current;
+      if (!a) return;
+      a.currentTime = Math.max(0, question.clipStart || 0);
+      setMusicPlaying(true);
+      a.play().catch(() => { setMusicPlaying(false); });
+      const dur = Math.max(0.1, question.clipDur || 3);
+      musicStopTimerRef.current = setTimeout(() => {
+        try { a.pause(); } catch {}
+        setMusicPlaying(false);
+        musicStopTimerRef.current = null;
+      }, dur * 1000);
+    } catch {
+      setMusicPlaying(false);
+    }
+  };
 
   const handleAnswer = (selectedIdx) => {
     if (!question) return;
@@ -466,6 +569,23 @@ const MONEY_LADDER = [
               )}
             </div>
           </div>
+          {phase === 'qa' && question?.type === 'music' && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+              <button
+                onClick={playMusicClip}
+                style={{
+                  padding: '8px 12px', borderRadius: 8,
+                  border: '1px solid #4f46e5', background: musicPlaying ? '#142037' : '#1b2340', color: '#e5e7eb',
+                  cursor: 'pointer', fontWeight: 800
+                }}
+                disabled={musicPlaying}
+                aria-label="Play 2-second clip"
+                title="Play 2-second clip"
+              >
+                {musicPlaying ? 'Playing…' : 'Play 2s Clip'}
+              </button>
+            </div>
+          )}
           {phase === 'qa' && (
             <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center", marginBottom: -6 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: '100%', maxWidth: 620 }}>
