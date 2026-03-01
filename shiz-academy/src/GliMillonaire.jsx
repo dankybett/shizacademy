@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import quizData from "../data/quizData.js";
+import hostMessages from "../data/hostMessages.js";
 
 const MONEY_LADDER = [
   100, 200, 300, 500, 1000,
@@ -12,9 +13,16 @@ const MONEY_LADDER = [
     const [gameOver, setGameOver] = useState(false);
     const [celebrate, setCelebrate] = useState(false);
     const [question, setQuestion] = useState(null);
-    const [lastQuestionId, setLastQuestionId] = useState(null);
-    const [pressedIdx, setPressedIdx] = useState(null);
-    const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [lastQuestionId, setLastQuestionId] = useState(null);
+  const [pressedIdx, setPressedIdx] = useState(null);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [phase, setPhase] = useState('host'); // 'host' | 'qa' | 'feedback'
+  const [hostText, setHostText] = useState(hostMessages.Intro);
+  const [pendingAdvance, setPendingAdvance] = useState(false);
+  const [pendingCelebrate, setPendingCelebrate] = useState(false);
+  const [pendingWrong, setPendingWrong] = useState(false);
+  const [guaranteed, setGuaranteed] = useState(0);
+  const [winnings, setWinnings] = useState(0);
 
   const stepDifficulty = useMemo(() => {
     if (currentStep <= 4) return 1;
@@ -45,25 +53,27 @@ const MONEY_LADDER = [
   useEffect(() => {
     // initial load
     loadQuestion();
+    setPhase('host');
+    setHostText(hostMessages.Intro);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAnswer = (selectedIdx) => {
     if (!question) return;
     if (selectedIdx === question.correctAnswer) {
-      try {
-        onWin(question.requiredLoreId);
-      } catch (e) {
-        // consumer handles side-effects
-      }
+      try { onWin(question.requiredLoreId); } catch {}
+      setPhase('feedback');
+      setHostText(hostMessages.Correct);
       const isFinal = currentStep >= MONEY_LADDER.length - 1;
-      if (isFinal) {
-        setCelebrate(true);
-      } else {
-        setCurrentStep((s) => s + 1);
-      }
+      setPendingCelebrate(isFinal);
+      setPendingAdvance(!isFinal);
+      setPendingWrong(false);
     } else {
-      setGameOver(true);
+      setPhase('feedback');
+      setHostText(hostMessages.Wrong);
+      setPendingAdvance(false);
+      setPendingCelebrate(false);
+      setPendingWrong(true);
     }
   };
 
@@ -75,10 +85,54 @@ const MONEY_LADDER = [
     }, 150);
   };
 
+  const handleHostAdvance = () => {
+    if (phase === 'host') {
+      setPhase('qa');
+      return;
+    }
+    if (phase === 'feedback') {
+      if (pendingWrong) {
+        setPendingWrong(false);
+        setWinnings(guaranteed || 0);
+        setGameOver(true);
+        return;
+      }
+      if (pendingCelebrate) {
+        setPendingCelebrate(false);
+        setCelebrate(true);
+        return;
+      }
+      if (pendingAdvance) {
+        const next = currentStep + 1;
+        const lastIdx = MONEY_LADDER.length - 1;
+        setPendingAdvance(false);
+        if (currentStep === 4) setGuaranteed(MONEY_LADDER[4]);
+        if (currentStep === 9) setGuaranteed(MONEY_LADDER[9]);
+        if (next === lastIdx) {
+          setHostText(hostMessages.FinalQuestion);
+          setPhase('host');
+          setCurrentStep(next);
+        } else {
+          setCurrentStep(next);
+          setPhase('qa');
+        }
+      }
+    }
+  };
+
   const handleTryAgain = () => {
     setGameOver(false);
     setCelebrate(false);
     setCurrentStep(0);
+    setGuaranteed(0);
+    setWinnings(0);
+    setPhase('host');
+    setHostText(hostMessages.Intro);
+    setPendingAdvance(false);
+    setPendingCelebrate(false);
+    setPendingWrong(false);
+    setPressedIdx(null);
+    setHoveredIdx(null);
     loadQuestion();
   };
 
@@ -158,6 +212,7 @@ const MONEY_LADDER = [
         }}
       >
         <div style={{ fontSize: 28, color: "#ef4444" }}>Game Over</div>
+        <div style={{ opacity: 0.9 }}>You won {Number(winnings||0).toLocaleString()} glims.</div>
         <button
           onClick={handleTryAgain}
           style={{
@@ -224,14 +279,26 @@ const MONEY_LADDER = [
                 width: '100%',
                 maxWidth: 620,
               }}
+              onClick={handleHostAdvance}
             >
-              <span style={{ color: "#fbbf24", fontWeight: 900 }}>Q:</span>
-              <span style={{ opacity: 0.95 }}>{question ? question.question : 'Loading question...'}</span>
+              {phase === 'qa' ? (
+                <>
+                  <span style={{ color: "#fbbf24", fontWeight: 900 }}>Q:</span>
+                  <span style={{ opacity: 0.95 }}>{question ? question.question : 'Loading question...'}</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ color: "#93c5fd", fontWeight: 900 }}>Host:</span>
+                  <span style={{ opacity: 0.95 }}>{hostText}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.7 }}>(tap to continue)</span>
+                </>
+              )}
             </div>
           </div>
-          <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center", marginBottom: -6 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: '100%', maxWidth: 620 }}>
-              {(question?.options || []).map((opt, idx) => {
+          {phase === 'qa' && (
+            <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center", marginBottom: -6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: '100%', maxWidth: 620 }}>
+                {(question?.options || []).map((opt, idx) => {
                 const isLeft = idx % 2 === 0;
                 const isHovered = hoveredIdx === idx;
                 const isPressed = pressedIdx === idx;
@@ -269,8 +336,9 @@ const MONEY_LADDER = [
                   </button>
                 );
               })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <aside style={{ width: 170, borderLeft: "1px solid #253041", paddingLeft: 12, paddingTop: 8, paddingBottom: 8, background: "rgba(15,21,34,0.9)", borderRadius: 8 }}>
           <div style={{ fontWeight: 800, fontSize: 12, letterSpacing: 0.6, marginBottom: 6, opacity: 0.8, textAlign: 'center' }}>Glim-illionaire Ladder</div>
@@ -317,6 +385,7 @@ const MONEY_LADDER = [
                   const step = row.i;
                   const amt = MONEY_LADDER[step];
                   const active = step === currentStep;
+                  const safety = (step === 4 || step === 9); // 1,000 and 32,000
                   return (
                     <div
                       key={step}
@@ -326,8 +395,8 @@ const MONEY_LADDER = [
                         alignItems: "center",
                         padding: "6px 8px",
                         borderRadius: 6,
-                        border: "1px solid " + (active ? "#f59e0b" : "#253041"),
-                        background: active ? "rgba(245, 158, 11, 0.15)" : "#0f1522",
+                        border: "1px solid " + (active ? "#f59e0b" : safety ? "#14b8a6" : "#253041"),
+                        background: active ? "rgba(245, 158, 11, 0.15)" : safety ? "rgba(20,184,166,0.12)" : "#0f1522",
                         color: active ? "#fde68a" : "#cbd5e1",
                         fontWeight: active ? 800 : 600,
                         fontSize: 12,
@@ -336,7 +405,12 @@ const MONEY_LADDER = [
                       title={`Step ${step + 1}`}
                     >
                       <span style={{ opacity: 0.9 }}>{step + 1}</span>
-                      <span style={{ fontVariantNumeric: "tabular-nums" }}>{amt.toLocaleString()}</span>
+                      <span style={{ display:'inline-flex', alignItems:'center' }}>
+                        <span style={{ fontVariantNumeric: "tabular-nums" }}>{amt.toLocaleString()}</span>
+                        {safety && (
+                          <span style={{ marginLeft: 6, fontSize: 10, color: active ? '#fde68a' : '#5eead4', fontWeight: 800 }}>SAFE</span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}
