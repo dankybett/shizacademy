@@ -207,6 +207,19 @@ const MONEY_LADDER = [
       const idx = src.indexOf(pick);
       pick = src[(idx + 1) % src.length];
     }
+    // Shuffle options for text questions while preserving correctAnswer
+    if (!(pick && pick.type === 'music') && Array.isArray(pick?.options) && typeof pick.correctAnswer === 'number') {
+      try {
+        const indexed = pick.options.map((t, i) => ({ t, i }));
+        for (let i = indexed.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+        }
+        const newOptions = indexed.map((x) => x.t);
+        const newCorrect = indexed.findIndex((x) => x.i === pick.correctAnswer);
+        pick = { ...pick, options: newOptions, correctAnswer: newCorrect };
+      } catch {}
+    }
     setQuestion(pick);
     setLastQuestionId(pick?.id || null);
     try { if (pick?.id != null) usedQuestionIdsRef.current.add(pick.id); } catch {}
