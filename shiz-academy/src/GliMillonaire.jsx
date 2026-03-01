@@ -542,7 +542,7 @@ const MONEY_LADDER = [
       }}
     >
       {/* Header removed per request */}
-      <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+      <div style={{ display: "flex", gap: 16, alignItems: "stretch", minHeight: 260 }}>
         <div
           style={{
             flex: 1,
@@ -557,6 +557,7 @@ const MONEY_LADDER = [
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             position: 'relative',
+            minHeight: 260,
           }}
         >
           <div style={{ transform: "scale(0.75)", transformOrigin: "center top", display: "flex", justifyContent: "center" }}>
