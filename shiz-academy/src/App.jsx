@@ -684,6 +684,21 @@ export default function App() {
     const s = String(id);
     setUnlockedLore((prev) => (prev.includes(s) ? prev : [...prev, s]));
   };
+  // Auto-unlock core region entries when OzPedia opens for the first time
+  const REGION_LORE_IDS = useMemo(() => (
+    ['L-EMERALD-30','L-GILIKIN-31','L-MUNCH-32','L-QUADLING-33','L-VINKUS-34','L-GLIKKUS-35']
+  ), []);
+  const [regionsGranted, setRegionsGranted] = useState(false);
+  useEffect(() => {
+    if (ozPediaOpen && !regionsGranted) {
+      setUnlockedLore((prev) => {
+        const merged = new Set(prev);
+        REGION_LORE_IDS.forEach(id => merged.add(id));
+        return Array.from(merged);
+      });
+      setRegionsGranted(true);
+    }
+  }, [ozPediaOpen, regionsGranted, REGION_LORE_IDS]);
   // Friends / Visual Novel system
   const [friends, setFriends] = useState({
     luminaO: {

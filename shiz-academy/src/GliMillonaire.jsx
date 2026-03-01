@@ -126,19 +126,25 @@ const MONEY_LADDER = [
     return 3; // steps 10-14
   }, [currentStep]);
 
+  const usedQuestionIdsRef = useRef(new Set());
+
   const loadQuestion = () => {
     const pool = quizData.filter((q) => q.difficulty === stepDifficulty);
     if (!pool.length) {
       setQuestion(null);
       return;
     }
-    let pick = pool[Math.floor(Math.random() * pool.length)];
+    const unused = pool.filter((q) => !usedQuestionIdsRef.current.has(q.id));
+    const src = unused.length ? unused : pool;
+    let pick = src[Math.floor(Math.random() * src.length)];
     if (pool.length > 1 && pick?.id === lastQuestionId) {
       // try once more to avoid immediate repeat
-      pick = pool[(pool.indexOf(pick) + 1) % pool.length];
+      const idx = src.indexOf(pick);
+      pick = src[(idx + 1) % src.length];
     }
     setQuestion(pick);
     setLastQuestionId(pick?.id || null);
+    try { if (pick?.id != null) usedQuestionIdsRef.current.add(pick.id); } catch {}
   };
 
   useEffect(() => {
@@ -151,6 +157,9 @@ const MONEY_LADDER = [
     if (started) {
       // fade out theme and proceed
       stopOpeningTheme(true);
+      // reset per-round question usage
+      try { usedQuestionIdsRef.current = new Set(); } catch {}
+      setLastQuestionId(null);
       loadQuestion();
       setPhase('host');
       setHostText(hostMessages.Intro);
@@ -253,6 +262,7 @@ const MONEY_LADDER = [
     setPendingWrong(false);
     setPressedIdx(null);
     setHoveredIdx(null);
+    try { usedQuestionIdsRef.current = new Set(); } catch {}
     try { if (correctSfxRef.current) { correctSfxRef.current.pause(); correctSfxRef.current.currentTime = 0; } } catch {}
     try { if (wrongSfxRef.current) { wrongSfxRef.current.pause(); wrongSfxRef.current.currentTime = 0; } } catch {}
     loadQuestion();

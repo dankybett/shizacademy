@@ -198,6 +198,215 @@ const loreData = [
       'When a myBubble profile is deleted, it doesnt disappear. It undergoes the "Soap-Suds Protocol," where the data is turned into actual rain that falls over the Gillikin North, watering the Purple Pines.',
     isUnlocked: false,
   },
+  // Regions of Oz
+  {
+    id: 'L-EMERALD-30',
+    title: 'Region: The Emerald City',
+    content: `
+Located at the exact geographical center of the Land of Oz, at the terminus of the Yellow Brick Road, the Emerald City serves as the nation's capital and the primary seat of government. It is a city of profound contrasts, blending architectural wonder with complex social layering and a carefully maintained public image.
+
+The Aesthetic and the Great Deception
+The city is encircled by a high, thick green wall and accessed via a massive gate studded with glittering emeralds. To any visitor or resident, the interior appears as a monochrome marvel: the streets are paved with green marble, houses are constructed of green glass, and even the natural sunlight takes on a verdant hue. The populace typically dresses in green, handles green currency, and consumes goodsfrom popcorn to lemonadethat match the city's signature color.
+
+However, this uniform appearance is a matter of strict civic regulation rather than natural law. Upon entry, the Guardian of the Gates requires all individuals to wear locked green spectacles, ostensibly to protect their eyes from the "blinding glory" of the city. In reality, while the city is undeniably opulent and rich in precious metals, the pervasive greenness is an optical illusion maintained by these mandatory glasses—a historical tactic used by the state to enhance the city's prestige.
+
+Architecture and Urban Expansion
+The Emerald City is an imposing metropolis that rises sharply from the flat plains of central Oz. Its layout is defined by grand public squares, reflecting pools, and towering obelisks. At its heart sits the Palace, a massive complex featuring stepped-back domes, minarets, green marble buttresses, and gold-scaled canopies.
+
+As the city evolved into a bureaucratic powerhouse, it underwent a massive architectural boom. This expansion resulted in a dense maze of boulevards, promenades, and canals. Today, the skyline is dominated by bloated government structures, most notably the high-ranking administrative hubs:
+
+The Ministry of Comfort
+
+The Ministry of the Home Guard
+
+The Ministry of Artistic License
+
+The Ministry of Sincerity
+
+Social Stratification and the Underbelly
+Wealth in the capital is starkly divided. The elite reside in fashionable, heavily fortified districts such as Goldhaven and Mennipin Square, characterized by extreme luxury. Conversely, a vast population of impoverished citizens, refugees, and orphans exists in the shadows of the "Dirt Boulevard," living in makeshift camps and abandoned warehouses.
+
+The city maintains order through a heavy security presence, including the Gale Force and the Home Guard. These forces enforce strict social codes, which have notably resulted in the systematic removal of sentient Animals from the city limits, driving them into hiding or state-run captivity.
+
+Southstairs
+Beneath the glamour of the Palace lies the citys most formidable facility: Southstairs. Constructed into a massive natural geological cavity beneath the streets, Southstairs is a vast, inescapable underground prison. A labyrinth of stone cells and stagnant waterways, it serves as the final destination for political dissidents, talking Animals, and those the government wishes to permanently disappear from the surface world.`,
+    isUnlocked: false,
+  },
+  {
+    id: 'L-GILIKIN-31',
+    title: 'Region: Gilikin (The North)',
+    content: `The Gillikin region, situated in the northern reaches of Oz, is the nations primary hub for industry, higher education, and high society. It is a land of sharp contrasts, where ancient, mystical landscapes meet a rapidly modernizing, industrial economy.
+
+Geography and Rural Estates
+While Gillikin is defined by its urban power, its countryside remains a patchwork of rolling hills and historical landmarks. The Pertha Hills are the heart of the rural north, characterized by:
+
+Agricultural Wealth: Lush dairy farms and "dripping dells" that provide the region's produce.
+
+Ancient Heritage: Secluded fox haunts and ancient pagan temples dedicated to the Fairy Queen, Lurline.
+
+The Glikkus: To the northeast, the rugged Glikkus mountain range serves as a vital economic engine due to its lucrative emerald mines, though the area remains a point of territorial dispute with neighboring Munchkinland.
+
+In recent years, the landscape has shifted as a sophisticated railway system has made the countryside more accessible. Wealthy merchants and industrial titans from the cities have begun purchasing old family farms, transforming them into sprawling, private country estates.
+
+Shiz: The Industrial and Academic Heart
+The crown jewel of the north is the city of Shiz. It serves as the intellectual capital of the continent, anchored by Shiz University. Originally founded as a unionist monastery, the university has evolved into a prestigious secular institution that draws the brightest minds from across the nation.
+
+The economy of Shiz is a massive "money factory" driven by:
+
+Banking & Exchange: Centralized financial districts that dictate the nation's trade.
+
+Industrialization: A shift toward a war-alert economy has filled the city with massive factories and merchant hubs.
+
+Environmental Impact: This rapid growth has come at a cost; the city's iconic historic bluestone architecture has been significantly weathered by industrial pollution, earning it the local nickname "grimestone."
+
+The Gillikinese People
+The inhabitants of Gillikin are renowned for their sharp intellect and high social standingqualities often summarized by the local proverb describing them as "sharp as knives." This region is historically significant as the ancestral home of the Ozma royal line.
+
+Physical traits common to the region include:
+
+A distinctive broad band of forehead.
+
+Slightly gapped front teeth.
+
+A signature "frenzy" of curly blond hair.
+
+Temperamentally, the Gillikinese are known for their sophistication but are also characterized by quick, volatile shifts in mood, with a noted tendency toward sudden flashes of anger.`,
+    isUnlocked: false,
+  },
+  {
+    id: 'L-MUNCH-32',
+    title: 'Region: Munchkinland (The East)',
+    content: `Munchkinland, situated in the eastern section of Oz and bordered by a vast, impassable desert, is the nation's primary agricultural powerhouse. Often referred to as the "breadbasket of Oz," its identity is defined by its rich soil, traditional blue-hued aesthetics, and a history of fierce political independence.
+
+Geography and the "Breadbasket"
+The region's economy and lifestyle are dictated by its diverse geography, ranging from prosperous heartlands to harsh borderlands:
+
+The Farming Heartland: The majority of the province consists of lush, rolling plains and vast fields of grain. These high-yield dairy and vegetable farms are the lifeblood of the national food supply.
+
+Nest Hardings: This prestigious district serves as the seat of the regional aristocracy. It is home to Colwen Grounds, the ancestral estate of the Eminent Thropp, the hereditary ruler of the province.
+
+The Wend Hardings: In stark contrast to the heartland, this southern mountainous district is a desolate and poverty-stricken outback. Centered around Lake Illswater and the hamlet of Rush Margins, life here is defined by subsistence fishing and extreme vulnerability to drought.
+
+Center Munch: A historically significant hamlet located along the Eastern reach of the Yellow Brick Road.
+
+Architecture and Culture
+Munchkinland is famous for its strict adherence to a specific aesthetic palette and unique architectural style.
+
+The Blue Tradition: Blue is the favored color of the province. Houses are traditionally round with large, blue-painted domed roofs, set behind matching blue fences.
+
+The People: While there is a range of heights among the upper classes, the general populace is often shorter in stature than those in the north or the capital. The traditional dress includes blue garments and round, pointed hats adorned with small, tinkling bells. In the capital, Munchkinlander women are often noted for their "understated and quiet" manner of dress.
+
+Political History and Sovereignty
+Munchkinlands history is marked by periods of foreign occupation followed by intense revolutionary fervor.
+
+The Occupation
+For years, the province suffered under external despots who forced the citizenry into labor. Under the subsequent administration of the Wizard, the region faced heavy taxation and a restrictive military presence. This led to local unrest, including the symbolic tearing up of sections of the Yellow Brick Road by local militias.
+
+The Free State
+Following a period of civil unrest, the Eminent Thropp (Nessarose) rallied the farming guilds and successfully led a revolution. Munchkinland formally seceded from the Emerald City's jurisdiction, establishing itself as the independent Free State of Munchkinland. This new state was governed as a strict theocracy, emphasizing local traditions over imperial law.
+
+Current Instability
+The sudden death of the Eminent Thropp—caused by a freak atmospheric event—has left the Free State in a precarious position. Without a clear hereditary successor, the region currently faces internal leadership chaos and the looming threat of re-annexation by the Emerald City's standing armies.`,
+    isUnlocked: false,
+  },
+  {
+    id: 'L-QUADLING-33',
+    title: 'Region: Quadling Country (The South)',
+    content: `Situated in the southern reaches of Oz, the Quadling Country is a land of stark geographic and social contrasts. While long celebrated for its vibrant red landscapes and agricultural potential, the region has more recently become defined by industrial exploitation and a struggle for survival in its treacherous wetlands.
+
+Geography and the "Red Aesthetic"
+The Quadling Country is traditionally defined by its rich, crimson-tinted soil. In the more stable areas, this results in an idyllic landscape of ripening grain, well-paved roads, and clear brooks. Following the provincial custom of Oz, red is the signature color: it is used for houses, fences, and bridges.
+
+However, moving deeper into the province, the terrain shifts into a vast "wasteland of mud and frogs." These marshy badlands are fever-ridden and difficult to navigate, yet they possess a unique ecosystem that sustains the local population through the harvesting of snails, murkweed, and "vegetable pearls."
+
+Unique Architecture and Urban Centers
+The challenging geography has forced the development of specialized architectural styles:
+
+The Ovvels: In these marshy settlements, residents live in "suppletree" cabanasdwellings built directly into the rubbery branches of trees suspended over flooded, salty groves.
+
+Qhoyre: The provincial capital is a city literally built on a bog. Half of its streets are actually canals, requiring a lifestyle dictated by the ebb and flow of the water.
+
+Glindas Castle: In contrast to the bogs, a grand southern castle serves as the traditional seat of regional power, though its influence has often struggled to reach the impoverished interior.
+
+The Quadling People and Social Standing
+The native Quadlings are known for their ruddy, sunset-red skin and generally shorter, sturdier builds. Despite their deep history and the mineral wealth of their land, they often find themselves at the bottom of the national social ladder.
+
+Tradition: Historically, they are described as a good-natured, industrious people who favor entirely red clothing.
+
+Systemic Hardship: In the modern era, the population has faced severe prejudice from the more industrial northern provinces. This has resulted in many Quadlings being displaced from their ancestral lands into makeshift settlements or labor camps.
+
+Economic Exploitation and Conflict
+The true value of the Quadling Country to the central government lies beneath the mud. The region sits atop the world's largest deposits of blood-red rubies.
+
+During the expansionist era of the Emerald City's administration, military engineers were deployed to drain the southern badlands and initiate massive strip-mining operations. This industrial invasion led to a catastrophic collapse of the local environment and sparked violent resistance.
+
+A notable turning point in the region's history occurred in Qhoyre, where a tax revolt led by locals was met with overwhelming force. The central government retaliated by deploying flying attack units that virtually annihilated the settlement, a move that remains a point of deep bitterness for the southern survivors.`,
+    isUnlocked: false,
+  },
+  {
+    id: 'L-VINKUS-34',
+    title: 'Region: The Vinkus (Winkie Country)',
+    content: `The Western territory of Oz, known locally as the Vinkus (though sometimes referred to by the outdated and often derogatory term "Winkie Country"), is the nations vast and untamed frontier. Separated from the central plains by a formidable mountain range, it is a region of fierce tribal independence, hidden resources, and a reputation for legendary craftsmanship.
+
+Geography: The Wild West
+To the uninitiated in the Emerald City, the West is often dismissed as a dry, unpopulated wasteland. However, the Vinkus is geographically diverse and rumored to sit atop massive subterranean lakes capable of watering the entire continent. Key landmarks include:
+
+The Great Kells: A towering, icy mountain range that serves as the natural barrier between the West and the rest of Oz. Perched high on these slopes is Kiamo Ko, a stone castle stronghold that originally functioned as a waterworks headquarters.
+
+Kumbricia's Pass: A fertile, densely forested gorge that provides the primary route through the central Kells.
+
+The Thousand Year Grasslands: Beyond the mountains lies a sweeping prairie that resembles a green ocean, stretching toward the horizon.
+
+The Vinkus River: An icy, shallow waterway fed by high-altitude mountain cascades.
+
+A Land of Independent Tribes
+Unlike the unified provincial governments of the North and East, the Vinkus is home to several fiercely independent nomadic cultures. The region is traditionally associated with the color yellow, which appears in local flora and the historical dress of the populace.
+
+Tribe — Habitat — Characteristics
+
+The Arjiki — The Great Kells — Mountain-dwelling shepherds who rule from Kiamo Ko; known for blue diamond-patterned skin tattoos.
+
+The Scrow — Grasslands — A horse-riding culture living in massive, concentric tent cities; governed by a hereditary monarchy.
+
+The Yunamata — Forested Slopes — Secretive, fleet-footed warriors with leathery skin who reside in elaborate tree nests.
+
+History of Conflict and Liberation
+The history of the West is marked by a long period of dark occupation followed by a cultural renaissance.
+
+The Age of Shadows
+For years, the disparate tribes of the Vinkus were forcibly unified under the tyrannical rule of a powerful sorceress (The Wicked Witch of the West). Using a private aerial militia, she enslaved the local population—known then as the "Winkies"—and forced them into labor. During this era, the people were noted for their extreme timidity, a psychological byproduct of generations of oppression.
+
+The Great Restoration
+Following the accidental death of their occupier, the people of the Vinkus reclaimed their sovereignty. This era revealed the true talent of the Westerners: they are the most skilled tinsmiths and goldsmiths in the world. Their artisan guilds are famous for their ability to repair and maintain complex machinery, including the sophisticated clockwork and metalwork found in the capital.
+
+Today, the region is transitioning from a colonized territory back into a patchwork of proud, independent tribal lands, though it remains a mysterious and often dangerous frontier for travelers from the East.`,
+    isUnlocked: false,
+  },
+  {
+    id: 'L-GLIKKUS-35',
+    title: 'Region: The Glikkus',
+    content: `The Glikkus, a rugged and strategically vital territory in the northeast of Oz, serves as the mountainous buffer between the industrial North and the agricultural East. It is a region defined by extreme verticality, immense mineral wealth, and persistent geopolitical tension.
+
+Geography and the Vertical Economy
+The Glikkus is famous for its steep, unfenced precipices and treacherous mountain passes. This challenging terrain has led to unique agricultural and engineering solutions:
+
+The Glikkus Canals: A feat of mountain engineering, these canals provide essential transit through the rugged highlands, facilitating the movement of goods between the northern and eastern borders.
+
+High-Altitude Ranching: Local farmers import hardy livestock from Munchkinland. Due to the impossibility of fencing thousands of miles of sheer cliff edges, the region employs "common witches" to place protective charms on the cattle, preventing them from wandering over the ledges—a practice considered far more cost-effective than traditional masonry or timber fencing.
+
+The Emerald Mines: The economic heart of the region. These subterranean networks are worked by specialized dwarven mining guilds and produce the world-renowned Glikkus emeralds.
+
+Historical Significance: The Source of the Capital's Glow
+The Glikkus holds a unique place in national history. During the reign of the conqueror known as Ozma the Warrior, the region was annexed specifically for its mineral output. The vast quantities of emeralds currently decorating the walls and gates of the Emerald City were originally commandeered from the Glikkus mines to satisfy the crown's demand for opulence.
+
+Political Tension and Border Disputes
+The exact sovereignty of the Glikkus is a long-standing point of contention between Gillikin and Munchkinland. Both provinces claim the territory due to its lucrative mining revenue and the strategic value of its canal system.
+
+In recent years, the political climate has shifted from a mere border dispute to a movement for total autonomy. Following Munchkinland’s successful secession from the Emerald City's jurisdiction, the Glikkus has emerged as a likely candidate for the next independent state.
+
+Diplomatic records indicate that Glikkus ambassadors have engaged in high-level, clandestine negotiations with the leadership in Munchkinland. These talks are centered on a mutual defense pact, suggesting that the "Emerald Mountains" may soon seek to break away from central imperial control entirely to form a new northern coalition.`,
+    isUnlocked: false,
+  },
 ];
 
 export default loreData;

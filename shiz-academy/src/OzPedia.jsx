@@ -22,6 +22,11 @@ function OzPedia({ unlockedLoreIds = [] }) {
 
   const CATEGORY_LABELS = {
     MUNCH: "Munchkinland",
+    EMERALD: "The Emerald City",
+    GILIKIN: "Gilikin",
+    QUADLING: "Quadling Country",
+    VINKUS: "The Vinkus (Winkie Country)",
+    GLIKKUS: "The Glikkus",
     SOUTH: "The South",
     NORTH: "The North",
     DRIVE: "Phosphor-Drive",
@@ -102,124 +107,141 @@ function OzPedia({ unlockedLoreIds = [] }) {
   }
 
   const selected = unlockedEntries.find((e) => e.id === selectedId) || null;
+  const [view, setView] = useState('categories'); // 'categories' | 'group'
+  const [selectedGroupKey, setSelectedGroupKey] = useState(null);
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: "0",
-        width: "100%",
-        minHeight: "300px",
-        border: "1px solid #253041",
-        borderRadius: 8,
-        overflow: "hidden",
-        background: "#0b0f14",
-        color: "#e2e8f0",
-      }}
-    >
-      <aside
-        style={{
-          width: 260,
-          background: "#101621",
-          borderRight: "1px solid #253041",
-          overflowY: "auto",
-          padding: "0.5rem 0.25rem",
-        }}
-      >
-        <div style={{ padding: "6px 8px" }}>
+  const renderContent = (text) => {
+    if (!text) return null;
+    const lines = String(text).split(/\r?\n/);
+    const out = [];
+    let buf = [];
+    let listBuf = [];
+    const flushParagraph = () => {
+      if (buf.length) {
+        out.push(
+          <p key={out.length} style={{ margin: '0 0 0.75rem 0' }}>
+            {buf.join(' ')}
+          </p>
+        );
+        buf = [];
+      }
+    };
+    const flushList = () => {
+      if (listBuf.length) {
+        out.push(
+          <ul key={'ul-' + out.length} style={{ margin: '0 0 0.75rem 1.1rem' }}>
+            {listBuf.map((li, i) => (
+              <li key={i} style={{ marginBottom: 4 }}>{li}</li>
+            ))}
+          </ul>
+        );
+        listBuf = [];
+      }
+    };
+
+    const isMinistry = (s) => /^The\s+Ministry\s+of\s+/.test(s.trim());
+    const isBullet = (s) => /^[-•]\s+/.test(s.trim());
+
+    lines.forEach((raw) => {
+      const line = raw.trim();
+      if (!line) {
+        flushParagraph();
+        flushList();
+        return;
+      }
+      if (isMinistry(line)) {
+        flushParagraph();
+        listBuf.push(line);
+        return;
+      }
+      if (isBullet(line)) {
+        flushParagraph();
+        listBuf.push(line.replace(/^[-•]\s+/,'').trim());
+        return;
+      }
+      // normal text: accumulate
+      buf.push(line);
+    });
+    flushParagraph();
+    flushList();
+    return out;
+  };
+
+  // New single-column UI: categories list -> group view with Back
+  const containerStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    minHeight: '300px',
+    border: '1px solid #253041',
+    borderRadius: 8,
+    overflow: 'hidden',
+    background: '#0b0f14',
+    color: '#e2e8f0',
+  };
+
+  if (view === 'categories') {
+    return (
+      <div style={containerStyle}>
+        <div style={{ padding: '0.75rem', borderBottom: '1px solid #253041', background: '#101621' }}>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search..."
             style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid #253041",
-              background: "#0f1522",
-              color: "#cbd5e1",
-              outline: "none",
+              width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8,
+              border: '1px solid #253041', background: '#0f1522', color: '#cbd5e1', outline: 'none'
             }}
           />
         </div>
-        {groups.map((g) => (
-          <div key={g.key}>
-            <div style={{
-              padding: "6px 10px",
-              margin: "6px 6px 2px 6px",
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: 0.5,
-              opacity: 0.8,
-              color: "#9fb3c8",
-              textTransform: "uppercase",
-            }}>
-              {g.label}
-            </div>
-            {g.entries.map((entry) => {
-              const active = entry.id === selectedId;
-              return (
-                <button
-                  key={entry.id}
-                  onClick={() => setSelectedId(entry.id)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "0.6rem 0.75rem",
-                    margin: "0.25rem 0.25rem",
-                    borderRadius: 6,
-                    border: "1px solid " + (active ? "#4f46e5" : "#253041"),
-                    background: active ? "#1b2340" : "#0f1522",
-                    color: active ? "#e5e7eb" : "#cbd5e1",
-                    cursor: "pointer",
-                  }}
-                >
-                  {entry.title}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </aside>
-      <main
-        style={{
-          flex: 1,
-          padding: "1rem 1.25rem",
-          overflowY: "auto",
-          lineHeight: 1.6,
-          background: "#0b0f14",
-        }}
-      >
-        {selected ? (
-          <div>
-            <h2 style={{ margin: 0, marginBottom: "0.5rem", fontSize: 22 }}>
-              {selected.title}
-            </h2>
-            <div
+        <div className="hide-scrollbar" style={{ padding: '0.5rem', overflowY: 'auto' }}>
+          {groups.map((g) => (
+            <button
+              key={g.key}
+              onClick={() => { setSelectedGroupKey(g.key); setView('group'); }}
               style={{
-                opacity: 0.8,
-                whiteSpace: "pre-wrap",
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', textAlign: 'left', padding: '0.8rem 0.9rem', margin: '0.4rem 0.25rem',
+                borderRadius: 8, border: '1px solid #253041', background: '#0f1522', color: '#cbd5e1', cursor: 'pointer'
               }}
             >
-              {selected.content}
+              <span style={{ fontWeight: 800 }}>{g.label}</span>
+              <span style={{ fontSize: 12, opacity: 0.75 }}>{g.entries.length}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Group detail view
+  const group = groups.find((gg) => gg.key === selectedGroupKey) || null;
+  return (
+    <div style={containerStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.75rem 0.75rem', borderBottom: '1px solid #253041', background: '#101621' }}>
+        <button
+          onClick={() => setView('categories')}
+          style={{ border: '1px solid #253041', background: '#0f1522', color: '#e5e7eb', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+        >
+          Back
+        </button>
+        <div style={{ fontWeight: 900, marginLeft: 6 }}>{group ? group.label : 'Lore'}</div>
+      </div>
+      <div className="hide-scrollbar" style={{ padding: '0.9rem 1rem', overflowY: 'auto', lineHeight: 1.6 }}>
+        {group ? (
+          group.entries.map((entry) => (
+            <div key={entry.id} style={{ marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, marginBottom: '0.35rem', fontSize: 18 }}>{entry.title}</h3>
+              <div style={{ opacity: 0.9 }}>
+                {renderContent(entry.content)}
+              </div>
             </div>
-            <div style={{ marginTop: 10, borderTop: "1px solid #253041", paddingTop: 6, display: "flex", justifyContent: "flex-end" }}>
-              <span style={{ fontSize: 12, opacity: 0.75 }}>
-                Word Count: {(() => {
-                  const text = selected.content || "";
-                  const words = text.trim().length ? text.trim().split(/\s+/) : [];
-                  return words.length;
-                })()}
-              </span>
-            </div>
-          </div>
+          ))
         ) : (
-          <div style={{ opacity: 0.8 }}>Select a lore entry to read.</div>
+          <div style={{ opacity: 0.8 }}>No entries.</div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
