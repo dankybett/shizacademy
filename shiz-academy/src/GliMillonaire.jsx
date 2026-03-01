@@ -27,6 +27,8 @@ const MONEY_LADDER = [
     const [pulseStep, setPulseStep] = useState(null);
     const [started, setStarted] = useState(false);
     const [playedIntroContinue, setPlayedIntroContinue] = useState(false);
+    const [lifelineUsed, setLifelineUsed] = useState(false); // 50:50 used once per round
+    const [eliminatedIdx, setEliminatedIdx] = useState([]); // removed options for current question
   const pulseTimerRef = useRef(null);
   const correctSfxRef = useRef(null);
   const wrongSfxRef = useRef(null);
@@ -223,6 +225,7 @@ const MONEY_LADDER = [
       // reset per-round question usage
       try { usedQuestionIdsRef.current = new Set(); } catch {}
       setLastQuestionId(null);
+      setLifelineUsed(false);
       loadQuestion();
       setPhase('host');
       setHostText(hostMessages.Intro);
@@ -239,6 +242,7 @@ const MONEY_LADDER = [
     try { if (musicStopTimerRef.current) { clearTimeout(musicStopTimerRef.current); musicStopTimerRef.current = null; } } catch {}
     setMusicPlaying(false);
     try { if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; } } catch {}
+    setEliminatedIdx([]);
     if (question && question.type === 'music') {
       try {
         const a = new Audio(question.songSrc);
@@ -271,6 +275,21 @@ const MONEY_LADDER = [
     } catch {
       setMusicPlaying(false);
     }
+  };
+
+  const useFiftyFifty = () => {
+    if (!question || !Array.isArray(question.options)) return;
+    if (lifelineUsed || eliminatedIdx.length) return;
+    const total = question.options.length;
+    if (typeof question.correctAnswer !== 'number' || total < 3) return;
+    const incorrect = [];
+    for (let i = 0; i < total; i++) if (i !== question.correctAnswer) incorrect.push(i);
+    for (let i = incorrect.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [incorrect[i], incorrect[j]] = [incorrect[j], incorrect[i]];
+    }
+    setEliminatedIdx(incorrect.slice(0, 2));
+    setLifelineUsed(true);
   };
 
   const handleAnswer = (selectedIdx) => {
@@ -360,6 +379,8 @@ const MONEY_LADDER = [
     setPhase('host');
     setHostText(hostMessages.Intro);
     setPlayedIntroContinue(false);
+    setLifelineUsed(false);
+    setEliminatedIdx([]);
     setPendingAdvance(false);
     setPendingCelebrate(false);
     setPendingWrong(false);
@@ -535,6 +556,7 @@ const MONEY_LADDER = [
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
+            position: 'relative',
           }}
         >
           <div style={{ transform: "scale(0.75)", transformOrigin: "center top", display: "flex", justifyContent: "center" }}>
@@ -587,9 +609,28 @@ const MONEY_LADDER = [
             </div>
           )}
           {phase === 'qa' && (
+            <button
+              onClick={useFiftyFifty}
+              style={{
+                position: 'absolute', top: 8, right: 8,
+                padding: '6px 10px', borderRadius: 8,
+                border: '1px solid #14b8a6', background: lifelineUsed ? 'rgba(20,184,166,0.15)' : '#0f1f1b', color: lifelineUsed ? '#9ddbd3' : '#c7fff5',
+                cursor: lifelineUsed ? 'not-allowed' : 'pointer', fontWeight: 900
+              }}
+              disabled={lifelineUsed || (question?.options?.length ?? 0) < 4}
+              title={lifelineUsed ? '50:50 used' : 'Remove two incorrect answers'}
+              aria-label="Use 50:50 lifeline"
+            >
+              50:50
+            </button>
+          )}
+          {phase === 'qa' && (
             <div style={{ transform: "scale(0.75)", transformOrigin: "center bottom", display: "flex", justifyContent: "center", marginBottom: -6 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, width: '100%', maxWidth: 620 }}>
                 {(question?.options || []).map((opt, idx) => {
+                if (eliminatedIdx.includes(idx)) {
+                  return (<div key={idx} style={{ visibility: 'hidden' }}>x</div>);
+                }
                 const isLeft = idx % 2 === 0;
                 const isHovered = hoveredIdx === idx;
                 const isPressed = pressedIdx === idx;
