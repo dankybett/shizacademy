@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { loadSave, writeSave, hasSave as hasExistingSave, clearSavedGame } from './persistence';
 import VisualNovelModal from './vn/VisualNovelModal.jsx';
 import OzPedia from './OzPedia.jsx';
 import GliMillonaire from './GliMillonaire.jsx';
+import ComputerDesktop from './components/ComputerDesktop.jsx';
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -523,7 +524,7 @@ function buildFeedback({ vocals, writing, stage, practiceT, writeT, performT, co
       const hit20 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit20Week : null;
       const hit50 = friendMilestones && friendMilestones.luminaO ? friendMilestones.luminaO.hit50Week : null;
       const cands = [];
-      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â someone might notice.");
+      if ((lum.level||0) < 1) cands.push("Try performing a Synthwave track ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â someone might notice.");
       if ((lum.level||0) < 2 && fans >= 20 && hit20 != null && latestSynthWeek <= hit20) cands.push("After 20 fans, a Synthwave performance could spark a new connection.");
       if ((lum.level||0) < 3 && fans >= 50 && hit50 != null && latestSynthWeek <= hit50) cands.push("With 50+ fans, another Synthwave performance might open a door.");
       if ((lum.level||0) < 4) cands.push("Pushing a Synthwave into the Global Top 5 can attract attention.");
@@ -675,7 +676,7 @@ export default function App() {
   const [myMusicOpen, setMyMusicOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [myBubbleFriendsOpen, setMyBubbleFriendsOpen] = useState(false);
-  // OzPedia and Gli‑millonaire apps
+  // OzPedia and Gliâ€‘millonaire apps
   const [ozPediaOpen, setOzPediaOpen] = useState(false);
   const [gliOpen, setGliOpen] = useState(false);
   const [unlockedLore, setUnlockedLore] = useState([]); // array of string IDs
@@ -1528,7 +1529,7 @@ function stationTarget(type) {
     const nth = type === "practice" ? practiceT + 1 : type === "write" ? writeT + 1 : performT + 1;
     const delta = +(base * diminishFactor(nth)).toFixed(3);
 
-    // If starting a performance/dance action, pause any Shizy‑Fi playback and clear HUD
+    // If starting a performance/dance action, pause any Shizyâ€‘Fi playback and clear HUD
     if (type === 'perform') {
       try { if (audioRef.current) { audioRef.current.pause(); } } catch (_) {}
       setPlayingTrend(null);
@@ -3698,58 +3699,30 @@ function stationTarget(type) {
                       <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_desktop.png')" }}>
                         <div className="hide-scrollbar" style={{ ...styles.mirrorInner, left:'8%', right:'8%', display:'flex', alignItems:'stretch', justifyContent:'center' }}>
                           <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:12, overflow:'hidden' }}>
-                          <div style={{ ...styles.desktopIcons, marginLeft: 12, top: 6 }}>
-                            <div style={styles.desktopColumn}>
-                              <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="MyBubble" onClick={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}>
-                                  <div style={{ position:'relative' }}>
-                                    <img src="/art/mybubbleicon.png" alt="MyBubble" style={styles.desktopIconImg} />
-                                    {(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) && (
-                                      <div style={{ position:'absolute', right:-2, top:-2, width:14, height:14, borderRadius:99, background:'#e65b7a', border:'1px solid rgba(0,0,0,.4)' }} />
-                                    )}
-                                  </div>
-                                </button>
-                                <div style={styles.desktopIconLabel}>myBubble</div>
-                              </div>
-                              <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="Settings" onClick={() => setMenuOpen(true)}>
-                                  <img src="/art/settingicon.png" alt="Settings" style={styles.desktopIconImg} />
-                                </button>
-                                <div style={styles.desktopIconLabel}>Settings</div>
-                              </div>
-                              <div style={styles.desktopIconWrap}>
-                                <button style={styles.desktopIcon} title="Oz‑pedia" onClick={() => setOzPediaOpen(true)}>
-                                  <span role="img" aria-label="Oz‑pedia" style={{ fontSize: 44, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }}>📚</span>
-                                </button>
-                                <div style={styles.desktopIconLabel}>Oz-pedia</div>
-                              </div>
-                            </div>
-                            <div style={styles.desktopIconWrap}>
-                              <button style={styles.desktopIcon} title="My Music" onClick={() => setMyMusicOpen(true)}>
-                                <img src="/art/shizyfiicon.png" alt="My Music" style={styles.desktopIconImg} />
-                              </button>
-                              <div style={styles.desktopIconLabel}>Shizy-FI</div>
-                            </div>
-                            <div style={styles.desktopIconWrap}>
-                              <button style={styles.desktopIcon} title="Calendar" onClick={() => setCalendarOpen(true)}>
-                                <img src="/art/calendaricon.png" alt="Calendar" style={styles.desktopIconImg} />
-                              </button>
-                              <div style={styles.desktopIconLabel}>Calendar</div>
-                            </div>
-                            <div style={styles.desktopIconWrap}>
-                              <button style={styles.desktopIcon} title="Shop" onClick={() => setShopOpen(true)}>
-                                <img src="/art/shopicon.png" alt="Shop" style={styles.desktopIconImg} />
-                              </button>
-                              <div style={styles.desktopIconLabel}>Am-Oz-on</div>
-                            </div>
-                            <div style={styles.desktopIconWrap}>
-                              <button style={styles.desktopIcon} title="Gli‑millonaire" onClick={() => setGliOpen(true)}>
-                                <span role="img" aria-label="Gli‑millonaire" style={{ fontSize: 44, filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }}>❓</span>
-                              </button>
-                              <div style={styles.desktopIconLabel}>Gli-millonaire</div>
-                            </div>
-                          </div>
-                            <div style={styles.desktopScanlinesOverlay} />
+                            <ComputerDesktop
+                              styles={styles}
+                              onOpenMyBubble={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}
+                              onOpenSettings={() => setMenuOpen(true)}
+                              onOpenOzPedia={() => setOzPediaOpen(true)}
+                              onOpenMyMusic={() => setMyMusicOpen(true)}
+                              onOpenCalendar={() => setCalendarOpen(true)}
+                              onOpenShop={() => setShopOpen(true)}
+                              onOpenGli={() => setGliOpen(true)}
+                              showMyBubbleBadge={(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week)}
+                              icons={[
+                                // Row 1
+                                { key: 'mybubble', label: 'myBubble', title: 'MyBubble', src: '/art/mybubbleicon.png', onClick: () => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }, badge: (pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) },
+                                { key: 'music', label: 'Shizy-FI', title: 'My Music', src: '/art/shizyfiicon.png', onClick: () => setMyMusicOpen(true) },
+                                { key: 'calendar', label: 'Calendar', title: 'Calendar', src: '/art/calendaricon.png', onClick: () => setCalendarOpen(true) },
+                                { key: 'shop', label: 'Am-Oz-on', title: 'Shop', src: '/art/shopicon.png', onClick: () => setShopOpen(true) },
+                                // Row 2
+                                { key: 'gli', label: 'Gli-millonaire', title: 'Gli-millonaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) },
+                                { key: 'ozpedia', label: 'Oz-pedia', title: 'Oz-pedia', src: '/art/wikiicon.png', onClick: () => setOzPediaOpen(true) },
+                                { key: 'settings', label: 'Settings', title: 'Settings', src: '/art/settingicon.png', onClick: () => setMenuOpen(true) },
+                              ]}
+                            />
+
+                            {/* scanlines handled inside ComputerDesktop */}
                           </div>
                         </div>
                       </div>
@@ -3776,7 +3749,7 @@ function stationTarget(type) {
                         maxWidth: 860,
                         background: 'linear-gradient(180deg, rgba(16,22,33,0.92) 0%, rgba(11,15,20,0.92) 100%)',
                         borderRadius: 16,
-                        padding: 12,
+                        padding: 0,
                         border: '1px solid #253041',
                         boxShadow: '0 10px 30px rgba(0,0,0,.35)',
                       }}
@@ -4022,7 +3995,7 @@ function stationTarget(type) {
                 {debugUnlocked && (
                   <>
                     <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
-                    <button onClick={() => { setMoney(m=>m+100); pushToast('Money +£100 (debug)'); }} style={styles.secondaryBtn}>Add £100 (debug)</button>
+                    <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Â£100 (debug)</button>
                     <button onClick={() => {
                       try {
                         // Unlock all friend items
@@ -4814,7 +4787,7 @@ function stationTarget(type) {
                                     <button style={s.liked? { ...styles.smallBtn, background:'#64d49a', borderColor:'#64d49a', color:'#0f1524' } : { ...styles.smallBtn, color:'#362e46', borderColor:'rgba(54,46,70,.25)' }} onClick={() => {
                                       if (s.liked) return;
                                       setSharedSongs(arr => arr.map(x => x.id===s.id ? { ...x, liked:true } : x));
-                                      pushToast(`You liked ${s.artist}'s track — it may chart higher next week.`);
+                                      pushToast(`You liked ${s.artist}'s track â€” it may chart higher next week.`);
                                     }}>Like</button>
                                   </div>
                                 </div>
@@ -5094,7 +5067,7 @@ function stationTarget(type) {
                     <div style={{ display:'flex', justifyContent:'center', marginTop: 8, marginBottom: 10 }}>
                       <div style={styles.shopSearchBar}>
                         <span style={{ opacity: 0.6 }}>Search</span>
-                        <span style={{ opacity: 0.85 }}>🔍</span>
+                        <span style={{ opacity: 0.85 }}>ðŸ”</span>
                       </div>
                     </div>
                     
@@ -5586,7 +5559,7 @@ function stationTarget(type) {
                                 <img src={badge} alt={`d${a.vocals||'-'}`} style={styles.dieBadge} />
                                 Sing
                               </span>
-                              <b>+{Number(g.vocals||0).toFixed(2)}{changed? ` (d${b.vocals||'-'} → d${a.vocals||'-'})` : ''}</b>
+                              <b>+{Number(g.vocals||0).toFixed(2)}{changed? ` (d${b.vocals||'-'} â†’ d${a.vocals||'-'})` : ''}</b>
                             </div>
                           ); })()}
                           {(() => { const g = lastResult.trainingGains || {}; const b = lastResult.diceBefore||{}; const a = lastResult.diceAfter||{}; const changed = b.writing!==a.writing; const badge = a.writing===20? '/art/d20badge.png' : a.writing===12? '/art/d12badge.png' : '/art/d6badge.png'; return (
@@ -5595,7 +5568,7 @@ function stationTarget(type) {
                                 <img src={badge} alt={`d${a.writing||'-'}`} style={styles.dieBadge} />
                                 Write
                               </span>
-                              <b>+{Number(g.writing||0).toFixed(2)}{changed? ` (d${b.writing||'-'} → d${a.writing||'-'})` : ''}</b>
+                              <b>+{Number(g.writing||0).toFixed(2)}{changed? ` (d${b.writing||'-'} â†’ d${a.writing||'-'})` : ''}</b>
                             </div>
                           ); })()}
                           {(() => { const g = lastResult.trainingGains || {}; const b = lastResult.diceBefore||{}; const a = lastResult.diceAfter||{}; const changed = b.stage!==a.stage; const badge = a.stage===20? '/art/d20badge.png' : a.stage===12? '/art/d12badge.png' : '/art/d6badge.png'; return (
@@ -5604,7 +5577,7 @@ function stationTarget(type) {
                                 <img src={badge} alt={`d${a.stage||'-'}`} style={styles.dieBadge} />
                                 Dance
                               </span>
-                              <b>+{Number(g.stage||0).toFixed(2)}{changed? ` (d${b.stage||'-'} → d${a.stage||'-'})` : ''}</b>
+                              <b>+{Number(g.stage||0).toFixed(2)}{changed? ` (d${b.stage||'-'} â†’ d${a.stage||'-'})` : ''}</b>
                             </div>
                           ); })()}
                         </div>
@@ -7264,11 +7237,6 @@ const styles = {
     fontSize: 14,
     zIndex: 3,
     cursor: 'pointer',
-  },
-  desktopColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10,
   },
   desktopIconWrap: {
     display: 'flex',

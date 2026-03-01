@@ -13,20 +13,25 @@ const MONEY_LADDER = [
     const [gameOver, setGameOver] = useState(false);
     const [celebrate, setCelebrate] = useState(false);
     const [question, setQuestion] = useState(null);
-  const [lastQuestionId, setLastQuestionId] = useState(null);
-  const [pressedIdx, setPressedIdx] = useState(null);
-  const [hoveredIdx, setHoveredIdx] = useState(null);
-  const [phase, setPhase] = useState('host'); // 'host' | 'qa' | 'feedback'
-  const [hostText, setHostText] = useState(hostMessages.Intro);
-  const [pendingAdvance, setPendingAdvance] = useState(false);
-  const [pendingCelebrate, setPendingCelebrate] = useState(false);
-  const [pendingWrong, setPendingWrong] = useState(false);
-  const [guaranteed, setGuaranteed] = useState(0);
-  const [winnings, setWinnings] = useState(0);
-  const [pulseStep, setPulseStep] = useState(null);
+    const [lastQuestionId, setLastQuestionId] = useState(null);
+    const [pressedIdx, setPressedIdx] = useState(null);
+    const [hoveredIdx, setHoveredIdx] = useState(null);
+    const [phase, setPhase] = useState('host'); // 'host' | 'qa' | 'feedback'
+    const [hostText, setHostText] = useState(hostMessages.Intro);
+    const [pendingAdvance, setPendingAdvance] = useState(false);
+    const [pendingCelebrate, setPendingCelebrate] = useState(false);
+    const [pendingWrong, setPendingWrong] = useState(false);
+    const [guaranteed, setGuaranteed] = useState(0);
+    const [winnings, setWinnings] = useState(0);
+    const [pulseStep, setPulseStep] = useState(null);
+    const [started, setStarted] = useState(false);
+    const [playedIntroContinue, setPlayedIntroContinue] = useState(false);
   const pulseTimerRef = useRef(null);
   const correctSfxRef = useRef(null);
   const wrongSfxRef = useRef(null);
+  const openingThemeRef = useRef(null);
+  const openingFadeRef = useRef(null);
+  const startSfxRef = useRef(null);
 
   const triggerSafetyPulse = (idx) => {
     try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {}
@@ -41,16 +46,79 @@ const MONEY_LADDER = [
       wrongSfxRef.current = new Audio('/sounds/quiz/wrong.mp3');
       if (correctSfxRef.current) correctSfxRef.current.volume = 0.9;
       if (wrongSfxRef.current) wrongSfxRef.current.volume = 0.9;
+      startSfxRef.current = new Audio('/sounds/quiz/startsound.mp3');
+      if (startSfxRef.current) startSfxRef.current.volume = 1.0;
     } catch {}
     return () => {
       try { if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current); } catch {}
       try { if (correctSfxRef.current) { correctSfxRef.current.pause(); correctSfxRef.current = null; } } catch {}
       try { if (wrongSfxRef.current) { wrongSfxRef.current.pause(); wrongSfxRef.current = null; } } catch {}
+      // ensure opening theme stops on unmount (no fade needed during teardown)
+      try {
+        if (openingFadeRef.current) { clearInterval(openingFadeRef.current); openingFadeRef.current = null; }
+        if (openingThemeRef.current) { openingThemeRef.current.pause(); openingThemeRef.current = null; }
+      } catch {}
+      try { if (startSfxRef.current) { startSfxRef.current.pause(); startSfxRef.current = null; } } catch {}
     };
   }, []);
 
   const playCorrect = () => { try { const a = correctSfxRef.current; if (a) { a.currentTime = 0; a.play().catch(()=>{}); } } catch {} };
   const playWrong = () => { try { const a = wrongSfxRef.current; if (a) { a.currentTime = 0; a.play().catch(()=>{}); } } catch {} };
+  const playStartSound = () => { try { const a = startSfxRef.current; if (a) { a.currentTime = 0; a.play().catch(()=>{}); } } catch {} };
+
+  const startOpeningTheme = () => {
+    try {
+      if (openingThemeRef.current) return; // already created
+      const a = new Audio('/sounds/quiz/openingtheme.mp3');
+      a.loop = true;
+      a.volume = 0;
+      openingThemeRef.current = a;
+      a.play().catch(() => {});
+      let v = 0;
+      const target = 0.7;
+      if (openingFadeRef.current) { clearInterval(openingFadeRef.current); }
+      openingFadeRef.current = setInterval(() => {
+        try {
+          v = Math.min(target, v + 0.07);
+          if (openingThemeRef.current) openingThemeRef.current.volume = v;
+          if (v >= target) {
+            clearInterval(openingFadeRef.current);
+            openingFadeRef.current = null;
+          }
+        } catch {
+          clearInterval(openingFadeRef.current);
+          openingFadeRef.current = null;
+        }
+      }, 50);
+    } catch {}
+  };
+
+  const stopOpeningTheme = (fade = true) => {
+    try {
+      const a = openingThemeRef.current;
+      if (!a) return;
+      if (openingFadeRef.current) { clearInterval(openingFadeRef.current); openingFadeRef.current = null; }
+      if (!fade) {
+        a.pause();
+        openingThemeRef.current = null;
+        return;
+      }
+      let v = a.volume;
+      const h = setInterval(() => {
+        try {
+          v = Math.max(0, v - 0.08);
+          if (openingThemeRef.current) openingThemeRef.current.volume = v;
+          if (v <= 0) {
+            clearInterval(h);
+            try { if (openingThemeRef.current) openingThemeRef.current.pause(); } catch {}
+            openingThemeRef.current = null;
+          }
+        } catch {
+          clearInterval(h);
+        }
+      }, 50);
+    } catch {}
+  };
 
   const stepDifficulty = useMemo(() => {
     if (currentStep <= 4) return 1;
@@ -74,17 +142,24 @@ const MONEY_LADDER = [
   };
 
   useEffect(() => {
-    if (!gameOver && !celebrate) loadQuestion();
+    if (started && !gameOver && !celebrate) loadQuestion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, stepDifficulty]);
 
   useEffect(() => {
-    // initial load
-    loadQuestion();
-    setPhase('host');
-    setHostText(hostMessages.Intro);
+    // initial load gated by start; also manage opening theme lifecycle
+    if (started) {
+      // fade out theme and proceed
+      stopOpeningTheme(true);
+      loadQuestion();
+      setPhase('host');
+      setHostText(hostMessages.Intro);
+    } else {
+      // entering opening screen: start theme
+      startOpeningTheme();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [started]);
 
   const handleAnswer = (selectedIdx) => {
     if (!question) return;
@@ -117,6 +192,10 @@ const MONEY_LADDER = [
 
   const handleHostAdvance = () => {
     if (phase === 'host') {
+      if (!playedIntroContinue && started && currentStep === 0) {
+        playStartSound();
+        setPlayedIntroContinue(true);
+      }
       setPhase('qa');
       return;
     }
@@ -168,6 +247,7 @@ const MONEY_LADDER = [
     setWinnings(0);
     setPhase('host');
     setHostText(hostMessages.Intro);
+    setPlayedIntroContinue(false);
     setPendingAdvance(false);
     setPendingCelebrate(false);
     setPendingWrong(false);
@@ -178,7 +258,7 @@ const MONEY_LADDER = [
     loadQuestion();
   };
 
-  if (!quizData.length) {
+  if (!quizData.length && started) {
     return (
       <div
         style={{
@@ -194,6 +274,45 @@ const MONEY_LADDER = [
         }}
       >
         No questions available.
+      </div>
+    );
+  }
+
+  if (!started) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: 'min(80vh, 520px)',
+          borderRadius: 12,
+          overflow: 'hidden',
+          color: '#e2e8f0',
+        }}
+      >
+        <img
+          src={'/art/glimillionaire/openingscreen.png'}
+          alt="Glim-illionaire"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+        />
+        <button
+          onClick={() => setStarted(true)}
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            right: 16,
+            padding: '10px 16px',
+            borderRadius: 10,
+            border: '1px solid rgba(255,255,255,.35)',
+            background: 'rgba(255,255,255,.92)',
+            color: 'black',
+            fontWeight: 900,
+            cursor: 'pointer'
+          }}
+        >
+          Start
+        </button>
       </div>
     );
   }
