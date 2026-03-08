@@ -116,7 +116,7 @@ function genEventSchedule(performerName, startTs) {
   };
   // Anchors
   push(3, 'grant', 'Emerald Patronage Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
-  push(6, 'festival', 'Lantern Festival Week', 'Students hang lanterns across the courtyards and performances draw bigger crowds.', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2 });
+  push(6, 'festival', 'Lantern Festival Week', 'Students hang lanterns across the courtyards and performances draw bigger crowds.', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2, lanterns: true });
   push(12, 'sale', 'Am-Oz-on Student Sale', 'Shop items 20% off', 'Shop items 20% off', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   // Special: The Iron Overture (Metal Festival)
@@ -167,6 +167,8 @@ function mergeEffects(eventsForWeek) {
       if (e.effect.ironLockMetal) eff.ironLockMetal = true;
       if (e.effect.ironGigLock) eff.ironGigLock = true;
       if (e.effect.ironVenue) eff.ironVenue = true;
+      // Lantern Festival visual flag
+      if (e.effect.lanterns) eff.lanterns = true;
     }
   });
   return eff;
@@ -885,6 +887,14 @@ export default function App() {
   const [pinkBubblesEnabled, setPinkBubblesEnabled] = useState(true);
   const [pinkBubblesAllGenres, setPinkBubblesAllGenres] = useState(false);
   const [bubbleSeeds, setBubbleSeeds] = useState([]);
+  // Lantern Festival (floating paper lanterns, any genre)
+  const [lanternUnlocked, setLanternUnlocked] = useState(false);
+  const [lanternEnabled, setLanternEnabled] = useState(true);
+  const [lanternSeeds, setLanternSeeds] = useState([]);
+  // Neon Laser Grid (EDM)
+  const [laserGridUnlocked, setLaserGridUnlocked] = useState(false);
+  const [laserGridEnabled, setLaserGridEnabled] = useState(true);
+  const [laserGridAllGenres, setLaserGridAllGenres] = useState(false);
   // Wizmas Candle (desk cosmetic)
   const [candleUnlocked, setCandleUnlocked] = useState(false);
   // Mini ON AIR Sign (desk cosmetic)
@@ -1687,6 +1697,11 @@ function stationTarget(type) {
       if (typeof s.pinkBubblesUnlocked === 'boolean') setPinkBubblesUnlocked(s.pinkBubblesUnlocked);
       if (typeof s.pinkBubblesEnabled === 'boolean') setPinkBubblesEnabled(s.pinkBubblesEnabled); else setPinkBubblesEnabled(!!s.pinkBubblesUnlocked);
       if (typeof s.pinkBubblesAllGenres === 'boolean') setPinkBubblesAllGenres(s.pinkBubblesAllGenres);
+      if (typeof s.laserGridUnlocked === 'boolean') setLaserGridUnlocked(s.laserGridUnlocked);
+      if (typeof s.laserGridEnabled === 'boolean') setLaserGridEnabled(s.laserGridEnabled); else setLaserGridEnabled(!!s.laserGridUnlocked);
+      if (typeof s.laserGridAllGenres === 'boolean') setLaserGridAllGenres(s.laserGridAllGenres);
+      if (typeof s.lanternUnlocked === 'boolean') setLanternUnlocked(s.lanternUnlocked);
+      if (typeof s.lanternEnabled === 'boolean') setLanternEnabled(s.lanternEnabled); else setLanternEnabled(!!s.lanternUnlocked);
       if (Array.isArray(s.actions)) {
         const norm = s.actions.map((a) => {
           if (typeof a === "string") return { t: a, d: 0 };
@@ -2079,6 +2094,11 @@ function stationTarget(type) {
       pinkBubblesUnlocked,
       pinkBubblesEnabled,
       pinkBubblesAllGenres,
+      laserGridUnlocked,
+      laserGridEnabled,
+      laserGridAllGenres,
+      lanternUnlocked,
+      lanternEnabled,
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
@@ -2094,6 +2114,8 @@ function stationTarget(type) {
       rainfallEnabled,
       spotlightSnapEnabled,
       rivetFilterEnabled,
+      laserGridEnabled,
+      lanternEnabled,
       wizmasGift,
       unlockedPosters,
       currentPosterIdx,
@@ -2107,7 +2129,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -2177,6 +2199,9 @@ function stationTarget(type) {
     });
     setBubbleSeeds(seeds);
   }, [isPerforming, performingSong, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres]);
+
+  // Lantern Festival seeds (gentle floaters). Generate while performing when enabled.
+  // Note: placed after activeEffects is defined to avoid TDZ on dependency evaluation
 
   function saveNow() {
     try {
@@ -3006,6 +3031,21 @@ function stationTarget(type) {
     return ev;
   })), [activeEvents, eventsResolved]);
 
+  // Lantern Festival: remember that the week had lanterns active and unlock after it ends
+  const lanternWeekSeenRef = useRef(false);
+  useEffect(() => {
+    if (activeEffects && activeEffects.lanterns) {
+      lanternWeekSeenRef.current = true;
+    } else if (lanternWeekSeenRef.current) {
+      // The lantern festival week has ended; grant permanent unlock if not already
+      if (!lanternUnlocked) {
+        setLanternUnlocked(true);
+        try { pushToast('Lantern Festival cosmetic unlocked'); } catch(_) {}
+      }
+      lanternWeekSeenRef.current = false;
+    }
+  }, [activeEffects, lanternUnlocked]);
+
   // Genres available in the create-song modal (add seasonal Wizmas genre during event)
   const availableGenres = useMemo(() => {
     let base = [...GENRES];
@@ -3020,6 +3060,21 @@ function stationTarget(type) {
       setGenre('Metal');
     }
   }, [activeEffects, conceptLocked]);
+
+  // Lantern Festival seeds (gentle floaters). Generate while performing when enabled.
+  useEffect(() => {
+    const activeLanterns = !!(isPerforming && ((activeEffects && activeEffects.lanterns) || (lanternUnlocked && lanternEnabled)));
+    if (!activeLanterns) { setLanternSeeds([]); return; }
+    const count = 14;
+    const seeds = Array.from({ length: count }).map(() => {
+      const left = 4 + Math.random() * 92;
+      const duration = 16 + Math.random() * 12; // 16s - 28s
+      const delay = Math.random() * 12; // stagger start
+      const size = 22 + Math.round(Math.random() * 22); // 22px - 44px
+      return { left, duration, delay, size };
+    });
+    setLanternSeeds(seeds);
+  }, [isPerforming, activeEffects, lanternUnlocked, lanternEnabled]);
 
   // On week start: if event grants money immediately or requires choice, handle modal/auto-grant once
   useEffect(() => {
@@ -3145,7 +3200,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } } @keyframes laserSweepBack { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes laserSweepMid { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } } @keyframes laserPulse { 0% { opacity: .4; } 50% { opacity: .9; } 100% { opacity: .4; } } @keyframes lanternRise { 0% { transform: translate3d(0, 12%, 0); opacity: 0; } 10% { opacity: .95; } 100% { transform: translate3d(0, -116%, 0); opacity: .98; } } @keyframes lanternSway { 0% { transform: translateX(-10px) rotate(-2deg); } 50% { transform: translateX(10px) rotate(2deg); } 100% { transform: translateX(-10px) rotate(-2deg); } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -3403,6 +3458,15 @@ function stationTarget(type) {
                 </div>
               )}
 
+              {/* Performance cosmetic overlay: Neon Laser Grid (EDM or All Genres) */}
+              {isPerforming && performingSong && ((performingSong.genre === 'EDM') || laserGridAllGenres) && laserGridUnlocked && laserGridEnabled && (
+                <div style={styles.performLaserOverlay}>
+                  <div style={styles.performLaserBack} />
+                  <div style={styles.performLaserMid} />
+                  <div style={styles.performLaserFront} />
+                </div>
+              )}
+
               {/* Performance cosmetic overlay: Snowfall (Busking venue during Wizmas) */}
               {isPerforming && performingVenue === 'busking' && (activeEffects?.wizmas) && (
                 <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex: 3 }}>
@@ -3451,6 +3515,22 @@ function stationTarget(type) {
                   <div style={styles.performBubblesSheen} />
                 </div>
               )}
+
+              {/* Performance cosmetic overlay: Lantern Festival (any genre) */}
+              {isPerforming && ((activeEffects && activeEffects.lanterns) || (lanternUnlocked && lanternEnabled)) && (
+                <div style={styles.performLanternsOverlay}>
+                  {lanternSeeds.map((l, i) => (
+                    <div key={`lan${i}`} style={{ ...styles.performLantern, left: `${l.left}%`, '--lanDur': `${l.duration}s`, '--lanDelay': `${l.delay}s` }}>
+                      <img
+                        src={'/art/floatinglantern.png'}
+                        alt="Lantern"
+                        onError={(e)=>{ try { e.currentTarget.onerror=null; e.currentTarget.src='/art/paperlantern.png'; } catch(_){} }}
+                        style={{ ...styles.performLanternImg, width: l.size, height: 'auto', filter:'drop-shadow(0 2px 6px rgba(255,200,120,.35))' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* Room HUD: show money and rolls */}
               {!isPerforming && (
                 <div style={{ ...styles.hudMoney, display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -3485,6 +3565,12 @@ function stationTarget(type) {
                   )}
                   {(pinkBubblesUnlocked && pinkBubblesEnabled && (((performingSong?.genre||genre) === 'Pop') || pinkBubblesAllGenres)) && (
                     <div style={{ fontSize: 11, opacity: .95, color: '#ffb3d9', marginTop: 2 }}>Pink Bubbles</div>
+                  )}
+                  {(lanternUnlocked && lanternEnabled) && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#ffdca8', marginTop: 2 }}>Lantern Festival</div>
+                  )}
+                  {(laserGridUnlocked && laserGridEnabled && (((performingSong?.genre||genre) === 'EDM') || laserGridAllGenres)) && (
+                    <div style={{ fontSize: 11, opacity: .95, color: '#8ffbff', marginTop: 2 }}>Neon Laser Grid</div>
                   )}
                   
                 </div>
@@ -4038,6 +4124,10 @@ function stationTarget(type) {
                         setRivetFilterUnlocked(true); setRivetFilterEnabled(true);
                         if (typeof setPinkBubblesUnlocked === 'function') setPinkBubblesUnlocked(true);
                         if (typeof setPinkBubblesEnabled === 'function') setPinkBubblesEnabled(true);
+                        if (typeof setLaserGridUnlocked === 'function') setLaserGridUnlocked(true);
+                        if (typeof setLaserGridEnabled === 'function') setLaserGridEnabled(true);
+                        if (typeof setLanternUnlocked === 'function') setLanternUnlocked(true);
+                        if (typeof setLanternEnabled === 'function') setLanternEnabled(true);
                         pushToast('All performance cosmetics unlocked (debug)');
                       } catch(_) {}
                     }} style={styles.secondaryBtn}>Unlock all performance cosmetics (debug)</button>
@@ -5766,6 +5856,36 @@ function stationTarget(type) {
                     <div style={{ marginTop: 8 }}>
                       <div style={styles.sub}>My Performance Cosmetics</div>
                       <div style={{ marginTop: 8, display:'grid', gap:8 }}>
+                        {/* Lantern Festival */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{lanternUnlocked ? 'Lantern Festival' : '???'}</div>
+                            <div style={{ ...styles.sub }}>Any genre</div>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                            <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                              <input type="checkbox" disabled={!lanternUnlocked} checked={!!lanternEnabled && lanternUnlocked} onChange={(e)=> setLanternEnabled(!!e.target.checked)} />
+                              <span>{lanternUnlocked ? (lanternEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                            </label>
+                          </div>
+                        </div>
+                        {/* Neon Laser Grid */}
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800 }}>{laserGridUnlocked ? 'Neon Laser Grid' : '???'}</div>
+                            <div style={{ ...styles.sub }}>{genreLabel('EDM')} only (default)</div>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                            <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                              <input type="checkbox" disabled={!laserGridUnlocked} checked={!!laserGridEnabled && laserGridUnlocked} onChange={(e)=> setLaserGridEnabled(!!e.target.checked)} />
+                              <span>{laserGridUnlocked ? (laserGridEnabled ? 'On' : 'Off') : 'Locked'}</span>
+                            </label>
+                            <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                              <input type="checkbox" disabled={!laserGridUnlocked} checked={!!laserGridAllGenres && laserGridUnlocked} onChange={(e)=> setLaserGridAllGenres(!!e.target.checked)} />
+                              <span>All genres</span>
+                            </label>
+                          </div>
+                        </div>
                         {/* Midnight Haze */}
                         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:10 }}>
                           <div>
@@ -7021,6 +7141,11 @@ const styles = {
   performMonoHighlights: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 58%)', mixBlendMode:'screen', pointerEvents:'none' },
   // Subtle vignette to emphasize intensity
   performMonoVignette: { position:'absolute', inset:0, background: 'radial-gradient(ellipse at center, rgba(255,255,255,0) 52%, rgba(0,0,0,.18) 82%, rgba(0,0,0,.35) 100%)', mixBlendMode:'multiply', pointerEvents:'none' },
+  // Neon Laser Grid (EDM): layered diagonal lasers sweeping
+  performLaserOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 6, overflow:'hidden' },
+  performLaserBack: { position:'absolute', inset:0, mixBlendMode:'screen', opacity:.55, filter:'blur(0.6px)', background: 'repeating-linear-gradient(60deg, rgba(0,255,170,.18) 0 2px, rgba(0,0,0,0) 2px 26px)', animation:'laserSweepBack 6s linear infinite' },
+  performLaserMid: { position:'absolute', inset:0, mixBlendMode:'screen', opacity:.75, filter:'blur(0.3px)', background: 'repeating-linear-gradient(300deg, rgba(0,255,255,.22) 0 2px, rgba(0,0,0,0) 2px 22px)', animation:'laserSweepMid 4.5s linear infinite' },
+  performLaserFront: { position:'absolute', inset:0, mixBlendMode:'screen', opacity:.85, background: 'radial-gradient(ellipse at 20% 30%, rgba(150,255,255,.35), rgba(150,255,255,0) 40%), radial-gradient(ellipse at 80% 70%, rgba(120,255,210,.35), rgba(120,255,210,0) 40%)', animation:'laserPulse 2.4s ease-in-out infinite' },
   // Pink Bubbles (Pop): layered parallax bubbles + sheen (more visible)
   performBubblesOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 10, overflow:'hidden' },
   performBubble: { position:'absolute', top:'100%', height:'100%', pointerEvents:'none', animation: 'bubbleRiseDom var(--dur) linear var(--delay) infinite', willChange:'transform, opacity' },
@@ -7065,6 +7190,11 @@ const styles = {
     background:'linear-gradient(180deg, rgba(255,200,230,.14) 0%, rgba(255,200,230,0) 30%, rgba(255,200,230,.10) 60%, rgba(255,200,230,0) 100%)',
     opacity:.8
   },
+
+  // Lantern Festival: gentle lanterns floating upward
+  performLanternsOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 8, overflow:'hidden' },
+  performLantern: { position:'absolute', bottom:'-12%', animation: 'lanternRise var(--lanDur) linear var(--lanDelay) infinite', willChange:'transform, opacity' },
+  performLanternImg: { display:'block', animation: 'lanternSway calc(var(--lanDur) * .6) ease-in-out var(--lanDelay) infinite alternate' },
 
   // Wizmas: Snow overlays for Busking during Wizmas weeks
   performSnowBack: {
