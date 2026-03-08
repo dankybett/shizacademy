@@ -3065,13 +3065,27 @@ function stationTarget(type) {
   useEffect(() => {
     const activeLanterns = !!(isPerforming && ((activeEffects && activeEffects.lanterns) || (lanternUnlocked && lanternEnabled)));
     if (!activeLanterns) { setLanternSeeds([]); return; }
-    const count = 14;
+    const count = 10;
     const seeds = Array.from({ length: count }).map(() => {
-      const left = 4 + Math.random() * 92;
-      const duration = 16 + Math.random() * 12; // 16s - 28s
-      const delay = Math.random() * 12; // stagger start
-      const size = 22 + Math.round(Math.random() * 22); // 22px - 44px
-      return { left, duration, delay, size };
+      // Cross-directional wind: choose side per-lantern for nicer spread
+      const fromLeft = Math.random() < 0.5;
+      const startX = fromLeft ? (-12 + Math.random() * 6) : (106 + Math.random() * 6); // -12%..-6% or 106%..112%
+      const endX = fromLeft ? (14 + Math.random() * 48) : (38 + Math.random() * 48); // into scene
+      // Slight parallax by varying speed and sway per lantern
+      const layer = Math.random();
+      const duration = layer < 0.33
+        ? (34 + Math.random() * 16)   // back: slower (34s - 50s)
+        : layer < 0.66
+          ? (28 + Math.random() * 14) // mid: medium (28s - 42s)
+          : (24 + Math.random() * 12);// front: a bit faster (24s - 36s)
+      const sway = layer < 0.33 ? '7px' : (layer < 0.66 ? '10px' : '13px');
+      const startPct = 96 + Math.random() * 16; // slightly higher off-screen (96%..112%)
+      const delay = Math.random() * 12; // stagger later; no negative (avoid mid-screen pop)
+      const w = '9.4vw'; // scales with viewport (~68px at 720px width)
+      const alpha = layer < 0.33 ? 0.78 : (layer < 0.66 ? 0.86 : 0.94);
+      const glowDur = (2.2 + Math.random() * 1.8).toFixed(2) + 's';
+      const glowDelay = (Math.random() * 1.5).toFixed(2) + 's';
+      return { startX, endX, duration, delay, startPct, w, sway, alpha, glowDur, glowDelay };
     });
     setLanternSeeds(seeds);
   }, [isPerforming, activeEffects, lanternUnlocked, lanternEnabled]);
@@ -3200,7 +3214,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } } @keyframes laserSweepBack { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes laserSweepMid { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } } @keyframes laserPulse { 0% { opacity: .4; } 50% { opacity: .9; } 100% { opacity: .4; } } @keyframes lanternRise { 0% { transform: translate3d(0, 12%, 0); opacity: 0; } 10% { opacity: .95; } 100% { transform: translate3d(0, -116%, 0); opacity: .98; } } @keyframes lanternSway { 0% { transform: translateX(-10px) rotate(-2deg); } 50% { transform: translateX(10px) rotate(2deg); } 100% { transform: translateX(-10px) rotate(-2deg); } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } } @keyframes laserSweepBack { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes laserSweepMid { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } } @keyframes laserPulse { 0% { opacity: .4; } 50% { opacity: .9; } 100% { opacity: .4; } } @keyframes lanternDrift { 0% { top: var(--lanTop); left: var(--lanStartX); opacity: .98; } 100% { top: -16%; left: var(--lanEndX); opacity: .98; } } @keyframes lanternSway { 0% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } 50% { transform: translateX(var(--lanSway)) rotate(2deg); } 100% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } } @keyframes lanternGlow { 0% { opacity: .22; transform: translate(-50%, -50%) scale(0.97); } 50% { opacity: .35; transform: translate(-50%, -50%) scale(1.03); } 100% { opacity: .24; transform: translate(-50%, -50%) scale(1.00); } } @keyframes lanternImgFlicker { 0% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.28)); } 50% { filter: drop-shadow(0 3px 8px rgba(255,210,130,.45)); } 100% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.32)); } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -3520,12 +3534,13 @@ function stationTarget(type) {
               {isPerforming && ((activeEffects && activeEffects.lanterns) || (lanternUnlocked && lanternEnabled)) && (
                 <div style={styles.performLanternsOverlay}>
                   {lanternSeeds.map((l, i) => (
-                    <div key={`lan${i}`} style={{ ...styles.performLantern, left: `${l.left}%`, '--lanDur': `${l.duration}s`, '--lanDelay': `${l.delay}s` }}>
+                    <div key={`lan${i}`} style={{ ...styles.performLantern, left: `${l.startX}%`, top: `${l.startPct}%`, '--lanDur': `${l.duration}s`, '--lanDelay': `${l.delay}s`, '--lanTop': `${l.startPct}%`, '--lanStartX': `${l.startX}%`, '--lanEndX': `${l.endX}%`, '--lanSize': l.w, '--lanGlowDur': l.glowDur, '--lanGlowDelay': l.glowDelay }}>
+                      <div style={styles.performLanternGlow} />
                       <img
                         src={'/art/floatinglantern.png'}
                         alt="Lantern"
                         onError={(e)=>{ try { e.currentTarget.onerror=null; e.currentTarget.src='/art/paperlantern.png'; } catch(_){} }}
-                        style={{ ...styles.performLanternImg, width: l.size, height: 'auto', filter:'drop-shadow(0 2px 6px rgba(255,200,120,.35))' }}
+                        style={{ ...styles.performLanternImg, width: l.w, height: 'auto', opacity: l.alpha, filter:'drop-shadow(0 2px 6px rgba(255,200,120,.35))', '--lanSway': l.sway, animation: `lanternSway calc(var(--lanDur) * .6) ease-in-out var(--lanDelay) infinite alternate, lanternImgFlicker var(--lanGlowDur) ease-in-out var(--lanGlowDelay) infinite alternate` }}
                       />
                     </div>
                   ))}
@@ -7193,8 +7208,15 @@ const styles = {
 
   // Lantern Festival: gentle lanterns floating upward
   performLanternsOverlay: { position:'absolute', inset:0, pointerEvents:'none', zIndex: 8, overflow:'hidden' },
-  performLantern: { position:'absolute', bottom:'-12%', animation: 'lanternRise var(--lanDur) linear var(--lanDelay) infinite', willChange:'transform, opacity' },
+  performLantern: { position:'absolute', left:0, animation: 'lanternDrift var(--lanDur) linear var(--lanDelay) infinite', willChange:'top, left, opacity' },
   performLanternImg: { display:'block', animation: 'lanternSway calc(var(--lanDur) * .6) ease-in-out var(--lanDelay) infinite alternate' },
+  performLanternGlow: {
+    position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)',
+    width: 'calc(var(--lanSize) * 2.4)', height:'calc(var(--lanSize) * 2.0)', borderRadius:'50%',
+    background: 'radial-gradient(closest-side, rgba(255,215,140,.35) 0%, rgba(255,180,90,.22) 42%, rgba(255,180,90,0) 72%)',
+    filter:'blur(12px)', mixBlendMode:'screen', pointerEvents:'none',
+    animation: 'lanternGlow var(--lanGlowDur) ease-in-out var(--lanGlowDelay) infinite alternate'
+  },
 
   // Wizmas: Snow overlays for Busking during Wizmas weeks
   performSnowBack: {
