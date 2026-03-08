@@ -115,9 +115,9 @@ function genEventSchedule(performerName, startTs) {
     evs.push({ id: `${key}-${week}`, week, key, title, short, details, type, effect, choices });
   };
   // Anchors
-  push(3, 'grant', 'Arts Council Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
-  push(6, 'festival', 'Local Festival Week', 'Crowds are buzzing', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2 });
-  push(12, 'sale', 'Shop Sale', 'Gear discounts all week', 'The shop is running a sale: rolls are cheaper.', 'bonus', { shopDiscount: 0.8 });
+  push(3, 'grant', 'Emerald Patronage Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
+  push(6, 'festival', 'Lantern Festival Week', 'Students hang lanterns across the courtyards and performances draw bigger crowds.', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2 });
+  push(12, 'sale', 'Am-Oz-on Student Sale', 'Shop items 20% off', 'Shop items 20% off', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   // Special: The Iron Overture (Metal Festival)
   push(26, 'iron', 'The Iron Overture (Metal Festival)', 'Metal festival this week', 'Enter The Iron Overture this week?', 'choice', undefined, [
@@ -177,7 +177,7 @@ function effectSummary(eff) {
     const parts = [];
     if ((eff.fanMult||1) !== 1) parts.push(<span key="fans">Fans x{(eff.fanMult||1).toFixed(2)}</span>);
     if ((eff.payoutMult||1) !== 1) parts.push(<span key="payout">Payout x{(eff.payoutMult||1).toFixed(2)}</span>);
-    if ((eff.shopDiscount||1) !== 1) parts.push(<span key="shop">Shop x{(eff.shopDiscount||1).toFixed(2)}</span>);
+    // Intentionally hide shop discount multiplier from summary (communicated via event text)
     if (eff.grantMoney) parts.push(
       <span key="grant" style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
         +{eff.grantMoney} <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:12, height:12, objectFit:'contain' }} /> now
