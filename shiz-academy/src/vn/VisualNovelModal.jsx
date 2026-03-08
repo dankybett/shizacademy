@@ -312,7 +312,7 @@ export default function VisualNovelModal({
     } catch { /* ignore */ }
   }, [open, friendModal.friendId, friendModal.targetLevel, friendModal.idx, lines, spotlightSnapUnlocked, setSpotlightSnapUnlocked, pushToast]);
 
-  // Rivet LV3: unlock Iron Overture Filter (performance cosmetic)
+  // Rivet LV3: unlock Iron Overture Filter (performance cosmetic) on gift line
   useEffect(() => {
     try {
       if (!open) return;
@@ -320,8 +320,8 @@ export default function VisualNovelModal({
       if (fid !== 'rivet') return;
       if ((friendModal.targetLevel||0) !== 3) return;
       const i = friendModal.idx || 0;
-      // Unlock on the final line of the LV3 conversation
-      if (!rivetFilterUnlocked && i === Math.max(0, (lines?.length||1) - 1)) {
+      const line = lines[i];
+      if (line && typeof line.text === 'string' && line.text.toLowerCase().includes('iron overture filter') && !rivetFilterUnlocked) {
         if (typeof setRivetFilterUnlocked === 'function') setRivetFilterUnlocked(true);
         pushToast('Rivet gift: Iron Overture Filter unlocked');
       }

@@ -38,9 +38,7 @@ const aureliagleam = {
     { speaker: 'aurelia', text: 'By one point. Not enough to rewrite the outcome. Just enough to refine it.' },
     { speaker: 'aurelia', text: 'Talent is important.' },
     { speaker: 'aurelia', text: 'But knowing when to make a small correction? Thats discipline.' },
-    { speaker: 'player', text: 'So I shouldnt use it every time?' },
     { speaker: 'aurelia', text: 'Use it when something is almost right.' },
-    { speaker: 'aurelia', text: 'Most growth happens in small increments.' },
   ],
   3: [
     { speaker: 'aurelia', text: 'Mid-semester can feel heavy.' },
