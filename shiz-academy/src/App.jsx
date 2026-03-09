@@ -5187,7 +5187,11 @@ function stationTarget(type) {
                     <div style={{ display:'flex', justifyContent:'center', marginTop: 8, marginBottom: 10 }}>
                       <div style={styles.shopSearchBar}>
                         <span style={{ opacity: 0.6 }}>Search</span>
-                        <span style={{ opacity: 0.85 }}>ðŸ”</span>
+                        <img
+                          src="/art/searchemoji.png"
+                          alt="Search"
+                          style={{ width: 18, height: 18, opacity: 0.85, objectFit: 'contain' }}
+                        />
                       </div>
                     </div>
                     
