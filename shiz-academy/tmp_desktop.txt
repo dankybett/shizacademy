@@ -1,0 +1,38 @@
+                              styles={styles}
+                              onOpenMyBubble={() => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }}
+                              onOpenSettings={() => setMenuOpen(true)}
+                              onOpenOzPedia={() => setOzPediaOpen(true)}
+                              onOpenMyMusic={() => setMyMusicOpen(true)}
+                              onOpenCalendar={() => setCalendarOpen(true)}
+                              onOpenShop={() => setShopOpen(true)}
+                              onOpenGli={() => setGliOpen(true)}
+                              showMyBubbleBadge={(pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week)}
+                              icons={[
+                                // Row 1
+                                { key: 'mybubble', label: 'myBubble', title: 'MyBubble', src: '/art/mybubbleicon.png', onClick: () => { setSelectedFriendId(null); setShowFriendsList(false); setSocialOpen(true); }, badge: (pendingFriendEvents.some(ev=>ev && ev.week===week) && lastFriendProgressWeek !== week) },
+                                { key: 'music', label: 'Shizy-FI', title: 'My Music', src: '/art/shizyfiicon.png', onClick: () => setMyMusicOpen(true) },
+                                { key: 'calendar', label: 'Calendar', title: 'Calendar', src: '/art/calendaricon.png', onClick: () => setCalendarOpen(true) },
+                                { key: 'shop', label: 'Am-Oz-on', title: 'Shop', src: '/art/shopicon.png', onClick: () => setShopOpen(true) },
+                                // Row 2
+                                { key: 'gli', label: 'Gli-millonaire', title: 'Gli-millonaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) },
+                                { key: 'ozpedia', label: 'Oz-pedia', title: 'Oz-pedia', src: '/art/wikiicon.png', onClick: () => setOzPediaOpen(true) },
+                                { key: 'settings', label: 'Settings', title: 'Settings', src: '/art/settingicon.png', onClick: () => setMenuOpen(true) },
+                              ]}
+                            />
+
+                            {/* scanlines handled inside ComputerDesktop */}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {ozPediaOpen && (
+                  <div style={styles.overlayClear} onClick={() => setOzPediaOpen(false)}>
+                    <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+                      <div style={styles.mirrorFrame}>
+                        <div className="hide-scrollbar" style={{ ...styles.mirrorInner }}>
+                          <OzPedia unlockedLoreIds={unlockedLore} />
+                        </div>
+                      </div>
+                    </div>

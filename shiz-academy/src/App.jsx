@@ -3832,7 +3832,7 @@ function stationTarget(type) {
                                 { key: 'calendar', label: 'Calendar', title: 'Calendar', src: '/art/calendaricon.png', onClick: () => setCalendarOpen(true) },
                                 { key: 'shop', label: 'Am-Oz-on', title: 'Shop', src: '/art/shopicon.png', onClick: () => setShopOpen(true) },
                                 // Row 2
-                                { key: 'gli', label: 'Gli-millonaire', title: 'Gli-millonaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) },
+                                { key: 'gli', label: 'Glim-illionaire', title: 'Glim-illionaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) },
                                 { key: 'ozpedia', label: 'Oz-pedia', title: 'Oz-pedia', src: '/art/wikiicon.png', onClick: () => setOzPediaOpen(true) },
                                 { key: 'settings', label: 'Settings', title: 'Settings', src: '/art/settingicon.png', onClick: () => setMenuOpen(true) },
                               ]}
