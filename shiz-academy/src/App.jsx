@@ -3748,7 +3748,7 @@ function stationTarget(type) {
                       transform:
                         `translate(-50%, -50%)` +
                         (performingVenue === 'busking' ? ' translate(120px, 20px)' : '') +
-                        (performingVenue === 'ozdustball' ? ' translate(-50px, 15px)' : '') +
+                        (performingVenue === 'ozdustball' ? ' translate(-40px, 24px)' : '') +
                         (performingVenue === 'busking'
                           ? ' translate(-110px, 60px)'
                           : (performingVenue === 'katieparty'
@@ -3761,7 +3761,7 @@ function stationTarget(type) {
                     aria-hidden
                     title="Boombox"
                   >
-                    <img src={'/art/boombox.gif'} alt={'Boombox'} style={{ width: (performingVenue === 'iron' ? 48 : 96), height: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
+                    <img src={'/art/boombox.gif'} alt={'Boombox'} style={{ width: (performingVenue === 'iron' ? 48 : (performingVenue === 'ozdustball' ? 56 : 96)), height: 'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))' }} />
                   </div>
                 )}
                 {DICE_MODE && rollFx.show && (
