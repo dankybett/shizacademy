@@ -2604,6 +2604,56 @@ function stationTarget(type) {
     } catch {}
   }, [week, friends]);
 
+  // Schedule Aurelia Gleam LV3 shared track between 2-5 weeks after LV3; clamp to two weeks before finale
+  useEffect(() => {
+    try {
+      const f = friends?.aureliagleam || {};
+      const lvl = f.level || 0;
+      if (lvl >= 3) {
+        const needsLv3Week = !f.lv3Week;
+        const lv3WeekVal = f.lv3Week || week;
+        let nextState = {};
+        if (needsLv3Week) nextState.lv3Week = lv3WeekVal;
+        if (f.sharedTrackScheduledWeek == null) {
+          const seed = hashSeed(`${seedTs||0}|share|aureliagleam|${lv3WeekVal}`);
+          const rnd = rngFrom(seed);
+          const offset = 2 + Math.floor(rnd()*4); // 2..5
+          let sched = lv3WeekVal + offset;
+          const maxWeek = MAX_WEEKS - 2;
+          if (sched > maxWeek) sched = maxWeek;
+          nextState.sharedTrackScheduledWeek = sched;
+          nextState.sharedTrackSent = false;
+          nextState.sharedTrackId = 'aurelia_the_power';
+        }
+        if (Object.keys(nextState).length) {
+          setFriends(prev => ({ ...prev, aureliagleam: { ...(prev.aureliagleam||{}), ...nextState } }));
+        }
+      }
+    } catch {}
+  }, [friends?.aureliagleam?.level]);
+
+  // Deliver Aurelia Gleam shared track on the scheduled week
+  useEffect(() => {
+    try {
+      const f = friends?.aureliagleam || {};
+      if (f.level >= 3 && f.sharedTrackScheduledWeek === week && !f.sharedTrackSent) {
+        const entry = {
+          id: `share-aurelia-${week}`,
+          friendId: 'aureliagleam',
+          title: 'The Power',
+          artist: 'Aurelia Gleam',
+          audioSrc: '/audio/Aurelia Gleam - The Power.mp3',
+          shareWeek: week,
+          liked: false,
+          listened: false,
+          injectedWeek: null,
+        };
+        setSharedSongs(arr => [entry, ...arr]);
+        setFriends(prev => ({ ...prev, aureliagleam: { ...(prev.aureliagleam||{}), sharedTrackSent: true } }));
+      }
+    } catch {}
+  }, [week, friends]);
+
   // Schedule Lumina-O LV5 shared track between 2-5 weeks after LV5; clamp to two weeks before finale
   useEffect(() => {
     try {
@@ -4792,6 +4842,7 @@ function stationTarget(type) {
                                   : fid==='griswald' ? '/art/friends/griswald_profile.png'
                                   : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
                                   : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                                  : fid==='rivet' ? '/art/friends/rivet_profile.png'
                                   : '';
                                 return (
                                   <div style={{ border:'2px solid rgba(54,46,70,.25)', borderRadius:12, padding:12 }}>
