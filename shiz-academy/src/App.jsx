@@ -118,7 +118,7 @@ function genEventSchedule(performerName, startTs) {
   push(3, 'grant', 'Emerald Patronage Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
   push(6, 'festival', 'Lantern Festival Week', 'Students hang lanterns across the courtyards and performances draw bigger crowds.', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2, lanterns: true });
   push(12, 'sale', 'Am-Oz-on Student Sale', 'Shop items 20% off', 'Shop items 20% off', 'bonus', { shopDiscount: 0.8 });
-  push(20, 'festival', 'Summer Fest', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
+  push(20, 'festival', 'Oz Dust Ball', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   // Special: The Iron Overture (Metal Festival)
   push(26, 'iron', 'The Iron Overture (Metal Festival)', 'Metal festival this week', 'Enter The Iron Overture this week?', 'choice', undefined, [
     { label: 'Yes (costs 40)', effect: { cost: -40, ironLockMetal: true, ironGigLock: true, ironVenue: true } },
@@ -607,7 +607,7 @@ const VENUE_FAN_REQ = { busking: 0, ozdustball: 50, stadium: 1000 };
 const MAX_GIGS_PER_WEEK = 3;
 
 // Friends summary constants
-const FRIENDS_ORDER = ['aureliagleam', 'griswald', 'luminaO', 'mcmunch', 'rivet'];
+const FRIENDS_ORDER = ['aureliagleam', 'griswald', 'luminaO', 'mcmunch', 'rivet', 'rowan'];
 const MAX_FRIEND_LEVEL = 5;
 
 function pickReview(grade) {
@@ -788,6 +788,21 @@ export default function App() {
           'They believe grit is forged by showing up when it counts.'
       },
     },
+    rowan: {
+      level: 0,
+      rewardsClaimed: {},
+      posterUnlocked: false,
+      bio: {
+        title: 'Rowan Vire',
+        bullets: [
+          'Role: Organizer of student jam nights',
+          'Known For: Calendar whispers & low-pressure stages',
+        ],
+        summary:
+          'Rowan threads music through the semester calendar. Not much for rankings or charts, they prefer rooms where people play what they want. ' +
+          'If you listen closely, they will point you to the nights that matter.',
+      },
+    },
   });
   const [pendingFriendEvents, setPendingFriendEvents] = useState([]); // [{ friendId:'luminaO', targetLevel:number, week:number, snapshot?:{ songName?, genre?, releaseWeek?, chartRank? } }]
   const [friendModal, setFriendModal] = useState({ open:false, friendId:null, targetLevel:null, idx:0 });
@@ -912,6 +927,8 @@ export default function App() {
   const [candleVisible, setCandleVisible] = useState(true);
   const [onairVisible, setOnairVisible] = useState(true);
   const [fairylightsVisible, setFairylightsVisible] = useState(true);
+  // Venue unlocks
+  const [ozdustUnlocked, setOzdustUnlocked] = useState(false);
   // Furniture modal
   const [furnitureOpen, setFurnitureOpen] = useState(false);
   // Shared songs (friends share WIP after LV5)
@@ -1656,6 +1673,7 @@ function stationTarget(type) {
       if (typeof s.onairUnlocked === 'boolean') setOnairUnlocked(s.onairUnlocked);
       if (typeof s.onairOn === 'boolean') setOnairOn(s.onairOn);
       if (typeof s.fairylightsUnlocked === 'boolean') setFairylightsUnlocked(s.fairylightsUnlocked);
+      if (typeof s.ozdustUnlocked === 'boolean') setOzdustUnlocked(s.ozdustUnlocked);
       if (typeof s.nightMode === 'boolean') setNightMode(s.nightMode);
       if (typeof s.lampVisible === 'boolean') setLampVisible(s.lampVisible);
       if (typeof s.vinylVisible === 'boolean') setVinylVisible(s.vinylVisible);
@@ -2038,7 +2056,7 @@ function stationTarget(type) {
 
   useEffect(() => {
     if (!hydrated) return;
-    const save = {
+  const save = {
       week,
       money,
       fans,
@@ -2102,6 +2120,8 @@ function stationTarget(type) {
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
+      ozdustUnlocked,
+      ozdustUnlocked,
       nightMode,
       onairOn,
       lampVisible,
@@ -2129,7 +2149,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -2753,6 +2773,22 @@ function stationTarget(type) {
       }
     } catch {}
   }, [week, friends]);
+
+  // Rowan Vire: calendar-based introduction (Week 20)
+  useEffect(() => {
+    try {
+      const lvl = friends?.rowan?.level || 0;
+      if (lvl >= 1) return;
+      const targetWeek = 20; // Calendar anchor: Summer Fest period; Rowan invites to play
+      if (week === targetWeek) {
+        setPendingFriendEvents(prev => {
+          if ((prev||[]).some(ev => ev && ev.friendId==='rowan' && ev.targetLevel===1 && ev.week===week)) return prev;
+          // Prepend Rowan's request so it appears before any other friend messages this week
+          return [ { friendId: 'rowan', targetLevel: 1, week }, ...(prev||[]) ];
+        });
+      }
+    } catch {}
+  }, [week, friends?.rowan?.level]);
   // Inject shared songs into next week's Global Trends (small boost if liked)
   useEffect(() => {
     try {
@@ -4064,6 +4100,7 @@ function stationTarget(type) {
             fairylightsUnlocked={fairylightsUnlocked}
             setFairylightsUnlocked={setFairylightsUnlocked}
             setFairylightsVisible={setFairylightsVisible}
+            setOzdustUnlocked={setOzdustUnlocked}
             setLampVisible={setLampVisible}
             unlockedPosters={unlockedPosters}
             setUnlockedPosters={setUnlockedPosters}
@@ -4713,12 +4750,13 @@ function stationTarget(type) {
                       const fid = selectedFriendId;
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
-                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : (fid==='aureliagleam' ? '/art/friends/aureliagleam_bust.png' : (fid==='rivet' ? '/art/friends/rivet_bust.png' : '/art/friends/luminao_bust.png'))));
+                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : (fid==='aureliagleam' ? '/art/friends/aureliagleam_bust.png' : (fid==='rivet' ? '/art/friends/rivet_bust.png' : (fid==='rowan' ? '/art/friends/rowanvire_bust.png' : '/art/friends/luminao_bust.png')))));
                       const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png'
                         : fid==='griswald' ? '/art/friends/griswald_profile.png'
                         : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
                         : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
                         : fid==='rivet' ? '/art/friends/rivet_profile.png'
+                        : fid==='rowan' ? '/art/friends/rowanvire_profile.png'
                         : '/art/friends/luminao_profile.png';
                       return (
                         <div style={{}}>
@@ -4842,6 +4880,7 @@ function stationTarget(type) {
                                   : fid==='griswald' ? '/art/friends/griswald_profile.png'
                                   : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
                                   : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                                  : fid==='rowan' ? '/art/friends/rowanvire_profile.png'
                                   : fid==='rivet' ? '/art/friends/rivet_profile.png'
                                   : '';
                                 return (
@@ -5887,11 +5926,12 @@ function stationTarget(type) {
                           const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
                           const ironOnly = !!(activeEffects && activeEffects.ironVenue);
                           const lockedByIron = ironOnly && key !== 'iron';
-                          const locked = (fans < (VENUE_FAN_REQ[key] ?? 0)) || lockedByIron;
+                          const lockedBase = (key==='ozdustball') ? !ozdustUnlocked : (fans < (VENUE_FAN_REQ[key] ?? 0));
+                          const locked = lockedBase || lockedByIron;
                           const isSwingy = (compat < 0);
                           const reqText = lockedByIron
                             ? 'Festival week: The Iron Overture only'
-                            : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null);
+                            : (key==='ozdustball' && !ozdustUnlocked ? `Requires Rowan's invitation` : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null));
                           return (
                             <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -6082,8 +6122,9 @@ function stationTarget(type) {
                       const risk = v.cost === 0 ? 'None' : margin >= 5 ? 'Low' : margin >= 0 ? 'Edge' : 'High';
                       const turnout = v.fanMult >= 2 ? 'Huge' : v.fanMult >= 1.4 ? 'High' : v.fanMult >= 1 ? 'Medium' : 'Low';
                       const fansPot = v.fanMult >= 2 ? 'Massive' : v.fanMult >= 1.4 ? 'Big' : v.fanMult >= 1 ? 'Solid' : 'Small';
-                      const locked = (fans < (VENUE_FAN_REQ[key] ?? 0));
-                      const reqText = VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null;
+                      const lockedBase = (key==='ozdustball') ? !ozdustUnlocked : (fans < (VENUE_FAN_REQ[key] ?? 0));
+                      const locked = lockedBase;
+                      const reqText = (key==='ozdustball' && !ozdustUnlocked) ? `Requires Rowan's invitation` : (VENUE_FAN_REQ[key] ? `Requires ${VENUE_FAN_REQ[key]} fans` : null);
                       const capReached = weeklyGigs >= MAX_GIGS_PER_WEEK;
                       return (
                         <div key={key} style={{ border: '1px solid rgba(255,255,255,.2)', borderRadius: 12, padding: 10 }}>

@@ -4,6 +4,7 @@ import griswald from './scripts/griswald.js'
 import mcmunch from './scripts/mcmunch.js'
 import aureliagleam from './scripts/aureliagleam.js'
 import rivet from './scripts/rivet.js'
+import rowan from './scripts/rowan.js'
 
 export default function VisualNovelModal({
   open,
@@ -42,6 +43,7 @@ export default function VisualNovelModal({
   fairylightsUnlocked,
   setFairylightsUnlocked,
   setFairylightsVisible,
+  setOzdustUnlocked,
   setLampVisible,
   unlockedPosters,
   setUnlockedPosters,
@@ -60,7 +62,7 @@ export default function VisualNovelModal({
 
   const friendId = friendModal.friendId || 'luminaO';
 
-  const scripts = { luminaO, griswald, mcmunch, aureliagleam, rivet };
+  const scripts = { luminaO, griswald, mcmunch, aureliagleam, rivet, rowan };
 
   const FRIEND_META = {
     luminaO: { name: 'Lumina-O', bust: '/art/friends/luminao_bust.png' },
@@ -68,6 +70,7 @@ export default function VisualNovelModal({
     mcmunch: { name: 'MC Munch', bust: '/art/friends/mcmunch_bust.png' },
     aureliagleam: { name: 'Aurelia Gleam', bust: '/art/friends/aureliagleam_bust.png' },
     rivet: { name: 'Rivet', bust: '/art/friends/rivet_bust.png' },
+    rowan: { name: 'Rowan Vire', bust: '/art/friends/rowanvire_bust.png' },
   };
 
   const lines = (scripts[friendId] && scripts[friendId][friendModal.targetLevel]) || [ { speaker:'lumina', text:'...' } ];
@@ -654,6 +657,10 @@ export default function VisualNovelModal({
                         setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
                         pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
                       }
+                      if (friendId==='rowan' && friendModal.targetLevel === 1) {
+                        if (typeof setOzdustUnlocked === 'function') setOzdustUnlocked(true);
+                        pushToast('Oz Dust Ball venue unlocked');
+                      }
                       if (friendId==='griswald' && friendModal.targetLevel === 2 && !(friends?.griswald?.rewardsClaimed?.[2])) {
                         if (typeof setWriting === 'function') {
                           setWriting(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
@@ -725,14 +732,18 @@ export default function VisualNovelModal({
                       setFriends(prev => ({ ...prev, griswald: { ...prev.griswald, rewardsClaimed: { ...(prev.griswald?.rewardsClaimed||{}), 2:true } } }));
                       pushToast('Griswald gift: Worn Lyric Notebook (+0.20 Writing)');
                     }
-                    if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
-                      if (typeof setVocals === 'function') {
-                        setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
+                      if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
+                        if (typeof setVocals === 'function') {
+                          setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
+                        }
+                        setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
+                        pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
                       }
-                      setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
-                      pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
-                    }
-                    setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
+                      if (friendId==='rowan' && friendModal.targetLevel === 1) {
+                        if (typeof setOzdustUnlocked === 'function') setOzdustUnlocked(true);
+                        pushToast('Oz Dust Ball venue unlocked');
+                      }
+                      setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
                   }
                 }}
               >{isChoiceStep ? ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish') : ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish')}</button>
