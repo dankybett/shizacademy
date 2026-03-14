@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useTetris from './useTetris';
 import useTetrisAI from './useTetrisAI';
 import GameBoard from './GameBoard.jsx';
-import { BLOCK_SRC } from './Constants';
+import { BLOCK_SRC, COLS, ROWS } from './Constants';
 import MiniPreview from './MiniPreview.jsx';
+import GarbagePreview from './GarbagePreview.jsx';
+import VerticalGarbageMeter from './VerticalGarbageMeter.jsx';
 
 const baseAttack = { 1: 0, 2: 1, 3: 2, 4: 4 };
 const comboTable = [0,0,1,1,2,2,3,3,4,4,4,5]; // index = combo count, clamped
@@ -37,6 +39,12 @@ export default function BattleManager({ onClose }) {
   const pendingAIRef = useRef(0);
   const [pendingPlayer, setPendingPlayer] = useState(0);
   const [pendingAI, setPendingAI] = useState(0);
+  const pendingPlayerHoleRef = useRef(null);
+  const pendingAIHoleRef = useRef(null);
+  const [pendingPlayerHole, setPendingPlayerHole] = useState(null);
+  const [pendingAIHole, setPendingAIHole] = useState(null);
+  const [playerCancel, setPlayerCancel] = useState(null); // { amt, ts }
+  const [aiCancel, setAICancel] = useState(null); // { amt, ts }
   const applyPTimerRef = useRef(null);
   const applyAITimerRef = useRef(null);
   const aiPlanTimerRef = useRef(null);
@@ -67,11 +75,17 @@ export default function BattleManager({ onClose }) {
       const cancel = Math.min(send, pendingPlayerRef.current);
       if (cancel > 0) {
         pendingPlayerRef.current -= cancel; setPendingPlayer(pendingPlayerRef.current);
+        if (pendingPlayerRef.current <= 0) { pendingPlayerRef.current = 0; setPendingPlayer(0); pendingPlayerHoleRef.current = null; setPendingPlayerHole(null); }
+        // Flash a cancel indicator for the player
+        setPlayerCancel({ amt: cancel, ts: Date.now() });
       }
       const leftover = send - cancel;
       if (leftover > 0) {
+        const wasZero = pendingAIRef.current <= 0;
         pendingAIRef.current += leftover; setPendingAI(pendingAIRef.current);
-        scheduleApply('ai');
+        if (wasZero) {
+          pendingAIHoleRef.current = Math.floor(Math.random() * COLS); setPendingAIHole(pendingAIHoleRef.current);
+        }
       }
     });
     ai.actions.setOnLinesCleared((info) => {
@@ -79,11 +93,39 @@ export default function BattleManager({ onClose }) {
       const cancel = Math.min(send, pendingAIRef.current);
       if (cancel > 0) {
         pendingAIRef.current -= cancel; setPendingAI(pendingAIRef.current);
+        if (pendingAIRef.current <= 0) { pendingAIRef.current = 0; setPendingAI(0); pendingAIHoleRef.current = null; setPendingAIHole(null); }
+        // Flash a blocked indicator for the AI (they blocked your garbage)
+        setAICancel({ amt: cancel, ts: Date.now() });
       }
       const leftover = send - cancel;
       if (leftover > 0) {
+        const wasZero = pendingPlayerRef.current <= 0;
         pendingPlayerRef.current += leftover; setPendingPlayer(pendingPlayerRef.current);
-        scheduleApply('player');
+        if (wasZero) {
+          pendingPlayerHoleRef.current = Math.floor(Math.random() * COLS); setPendingPlayerHole(pendingPlayerHoleRef.current);
+        }
+      }
+    });
+  }, [player.actions, ai.actions]);
+
+  // Rise-on-lock: apply pending garbage on each side's lock
+  useEffect(() => {
+    player.actions.setOnLock(() => {
+      const amt = pendingPlayerRef.current;
+      if (amt > 0) {
+        const hole = pendingPlayerHoleRef.current;
+        pendingPlayerRef.current = 0; setPendingPlayer(0);
+        pendingPlayerHoleRef.current = null; setPendingPlayerHole(null);
+        player.actions.addGarbage(amt, hole);
+      }
+    });
+    ai.actions.setOnLock(() => {
+      const amt = pendingAIRef.current;
+      if (amt > 0) {
+        const hole = pendingAIHoleRef.current;
+        pendingAIRef.current = 0; setPendingAI(0);
+        pendingAIHoleRef.current = null; setPendingAIHole(null);
+        ai.actions.addGarbage(amt, hole);
       }
     });
   }, [player.actions, ai.actions]);
@@ -174,27 +216,34 @@ export default function BattleManager({ onClose }) {
       <div style={{ display:'grid', gap:10 }}>
         {panel('You', player.state)}
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-          <GameBoard
-            board={player.state.board}
-            current={player.state.current}
-            ghost={player.state.ghost}
-            onTapRotate={player.actions.rotateCW}
-            onHoldDownStart={() => player.actions.setSoftDrop(true)}
-            onHoldDownEnd={() => player.actions.setSoftDrop(false)}
-          />
-          <div style={{ display:'grid', gap:14, minWidth:80 }}>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Hold</div>
-              <MiniPreview id={player.state.holdId} size={60} title={'Hold'} />
-              <button style={btn('secondary')} onClick={player.actions.holdPiece}>Hold</button>
-            </div>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <MiniPreview id={player.state.next && player.state.next[0]} size={44} title={'Next'} />
-              </div>
-            </div>
+          <div style={{ position:'relative', width: COLS*28, height: ROWS*28 }}>
+            <GameBoard
+              board={player.state.board}
+              current={player.state.current}
+              ghost={player.state.ghost}
+              onTapRotate={player.actions.rotateCW}
+              onHoldDownStart={() => player.actions.setSoftDrop(true)}
+              onHoldDownEnd={() => player.actions.setSoftDrop(false)}
+            />
+            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*28} />
+            {playerCancel && (
+              <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
+            )}
           </div>
+          <div style={{ display:'grid', gap:14, minWidth:80 }}>
+        <div style={{ display:'grid', gap:6 }}>
+          <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Hold</div>
+          <MiniPreview id={player.state.holdId} size={60} title={'Hold'} />
+          <button style={btn('secondary')} onClick={player.actions.holdPiece}>Hold</button>
+        </div>
+        <div style={{ display:'grid', gap:6 }}>
+          <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            <MiniPreview id={player.state.next && player.state.next[0]} size={44} title={'Next'} />
+          </div>
+        </div>
+        <GarbagePreview count={pendingPlayer} hole={pendingPlayerHole} cols={COLS} title={'Incoming'} />
+      </div>
         </div>
         <div style={{ display:'flex', gap:8 }}>
           <button style={btn()} onClick={player.actions.moveLeft}>◀ Left</button>
@@ -216,23 +265,30 @@ export default function BattleManager({ onClose }) {
           </div>
         </div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-          <GameBoard
-            board={ai.state.board}
-            current={ai.state.current}
-            ghost={ai.state.ghost}
-          />
+          <div style={{ position:'relative', width: COLS*28, height: ROWS*28 }}>
+            <GameBoard
+              board={ai.state.board}
+              current={ai.state.current}
+              ghost={ai.state.ghost}
+            />
+            <VerticalGarbageMeter rows={pendingAI} heightPx={ROWS*28} />
+            {aiCancel && (
+              <CancelBadge key={aiCancel.ts} amt={aiCancel.amt} label={'Blocked'} side={'left'} variant={'ai'} />
+            )}
+          </div>
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
             <div style={{ display:'grid', gap:6 }}>
               <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Hold</div>
               <MiniPreview id={ai.state.holdId} size={60} title={'Hold'} />
             </div>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                <MiniPreview id={ai.state.next && ai.state.next[0]} size={44} title={'Next'} />
-              </div>
+          <div style={{ display:'grid', gap:6 }}>
+            <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <MiniPreview id={ai.state.next && ai.state.next[0]} size={44} title={'Next'} />
             </div>
           </div>
+          <GarbagePreview count={pendingAI} hole={pendingAIHole} cols={COLS} title={'Incoming'} />
+        </div>
         </div>
         <div style={{ fontSize:12, opacity:.8 }}>AI plays automatically</div>
       </div>
@@ -306,4 +362,21 @@ function btn(kind) {
     cursor: 'pointer',
     transition: 'background 120ms ease, transform 80ms ease',
   };
+}
+
+function CancelBadge({ amt, label = 'Canceled', side = 'right', variant = 'player' }) {
+  const [visible, setVisible] = React.useState(true);
+  React.useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 1200);
+    return () => clearTimeout(t);
+  }, []);
+  if (!visible) return null;
+  const color = variant === 'ai' ? 'rgba(80,140,255,0.85)' : 'rgba(40,160,80,0.85)';
+  const border = variant === 'ai' ? 'rgba(180,205,255,0.6)' : 'rgba(180,255,200,0.6)';
+  const pos = side === 'left' ? { left: -84 } : { right: -84 };
+  return (
+    <div style={{ position:'absolute', top:8, ...pos, background:color, color:'#fff', border:`1px solid ${border}`, borderRadius:8, padding:'4px 8px', fontSize:12, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
+      {label} +{amt}
+    </div>
+  );
 }

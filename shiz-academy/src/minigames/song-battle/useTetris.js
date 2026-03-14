@@ -64,6 +64,7 @@ export default function useTetris() {
   const [gameOverReason, setGameOverReason] = useState(null); // 'spawn'|'topout'|'garbage'|'swap'|'unknown'
   const [paused, setPaused] = useState(false);
   const onLinesClearedRef = useRef(null);
+  const onLockRef = useRef(null);
   const onGameOverRef = useRef(null);
   const [holdId, setHoldId] = useState(null);
   const [holdUsed, setHoldUsed] = useState(false);
@@ -151,6 +152,8 @@ export default function useTetris() {
       if (combo !== 0) setCombo(0);
     }
     setBoard(clearedBoard);
+    setCurrent(null);
+    try { if (onLockRef.current) onLockRef.current({ cleared }); } catch (_) {}
     setCurrent(spawn(clearedBoard));
     setHoldUsed(false);
   }, [board, current, gameOver, lines, spawn, combo, b2bActive]);
@@ -204,10 +207,10 @@ export default function useTetris() {
     step();
   }, [board, current, gameOver, paused, step]);
 
-  const addGarbage = useCallback((n) => {
+  const addGarbage = useCallback((n, holeIdx = null) => {
     if (n <= 0 || gameOver) return;
     setBoard((b) => {
-      const hole = Math.floor(Math.random() * COLS);
+      const hole = (holeIdx != null && holeIdx >= 0 && holeIdx < COLS) ? holeIdx : Math.floor(Math.random() * COLS);
       const garbageRow = Array.from({ length: COLS }, (_, i) => (i === hole ? EMPTY : 8));
       let out = cloneBoard(b);
       for (let i = 0; i < n; i++) {
@@ -232,6 +235,10 @@ export default function useTetris() {
 
   const setOnGameOver = useCallback((cb) => {
     onGameOverRef.current = cb;
+  }, []);
+
+  const setOnLock = useCallback((cb) => {
+    onLockRef.current = cb;
   }, []);
 
   const holdPiece = useCallback(() => {
@@ -265,6 +272,7 @@ export default function useTetris() {
     setPaused(false);
     setHoldSoftDrop(false);
     onLinesClearedRef.current = null;
+    onLockRef.current = null;
     onGameOverRef.current = null;
     setHoldId(null);
     setHoldUsed(false);
@@ -292,6 +300,7 @@ export default function useTetris() {
       addGarbage,
       setOnLinesCleared,
       setOnGameOver,
+      setOnLock,
       holdPiece,
       applyPlanFast,
     }
