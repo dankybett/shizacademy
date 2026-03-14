@@ -74,6 +74,10 @@ export default function useTetris() {
   const gravityMs = useMemo(() => (holdSoftDrop ? SOFT_DROP_MS : levelToGravityMs(level)), [holdSoftDrop, level]);
   const timerRef = useRef(null);
   const endedRef = useRef(false);
+  const duringLockRef = useRef(false);
+  const boardRef = useRef(null);
+  const spawnTimerRef = useRef(null);
+  useEffect(() => { boardRef.current = board; }, [board]);
 
   const endNow = useCallback((reason = 'unknown') => {
     if (endedRef.current) return;
@@ -92,14 +96,15 @@ export default function useTetris() {
     }
     const id = q[nextIdx];
     const piece = { id, rot: 0, x: spawnX, y: spawnY };
-    const collided = collides(b, piece);
+    const baseBoard = b != null ? b : boardRef.current || board;
+    const collided = collides(baseBoard, piece);
     if (collided) { endNow('spawn'); return null; }
     setNextIdx((i) => i + 1);
     return piece;
   }, [nextIdx, queue]);
 
   useEffect(() => {
-    if (!current && !gameOver && !endedRef.current) {
+    if (!current && !gameOver && !endedRef.current && !duringLockRef.current) {
       setCurrent((prev) => prev ?? spawn(board));
     }
   }, [board, current, gameOver, spawn]);
@@ -151,10 +156,22 @@ export default function useTetris() {
       // no clear: break combo; keep b2bActive unchanged
       if (combo !== 0) setCombo(0);
     }
+    duringLockRef.current = true;
     setBoard(clearedBoard);
     setCurrent(null);
+    // Ensure soft-drop does not carry over to the next spawn
+    setHoldSoftDrop(false);
     try { if (onLockRef.current) onLockRef.current({ cleared }); } catch (_) {}
-    setCurrent(spawn(clearedBoard));
+    // Defer spawn until after any rise-on-lock garbage updates have committed
+    clearTimeout(spawnTimerRef.current);
+    spawnTimerRef.current = setTimeout(() => {
+      setTimeout(() => {
+        if (!endedRef.current && !gameOver) {
+          setCurrent(spawn());
+        }
+        duringLockRef.current = false;
+      }, 0);
+    }, 0);
     setHoldUsed(false);
   }, [board, current, gameOver, lines, spawn, combo, b2bActive]);
 
@@ -218,7 +235,7 @@ export default function useTetris() {
         out.push(garbageRow.slice());
       }
       // Raise the active piece by the exact number of rows added, then adjust further if needed
-      if (current) {
+      if (!duringLockRef.current && current) {
         let p = { ...current, y: current.y - n };
         let safety = n + 6; // allow moving above by a few rows if needed
         while (collides(out, p) && safety-- > 0) p = { ...p, y: p.y - 1 };
@@ -277,6 +294,8 @@ export default function useTetris() {
     setHoldId(null);
     setHoldUsed(false);
     endedRef.current = false;
+    duringLockRef.current = false;
+    clearTimeout(spawnTimerRef.current);
   }, []);
 
   const ghost = useMemo(() => {
