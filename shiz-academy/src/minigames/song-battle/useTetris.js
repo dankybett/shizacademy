@@ -1,0 +1,299 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { COLS, ROWS, SHAPES, EMPTY, makeEmptyBoard, levelToGravityMs, SOFT_DROP_MS, randomBag7 } from './Constants';
+
+const spawnX = 3; // left offset from 0
+const spawnY = -1; // start slightly above visible grid
+
+const cloneBoard = (b) => b.map((r) => r.slice());
+
+function collides(board, piece) {
+  const shape = SHAPES[piece.id][piece.rot];
+  for (const [dx, dy] of shape) {
+    const x = piece.x + dx;
+    const y = piece.y + dy;
+    if (x < 0 || x >= COLS || y >= ROWS) return true;
+    if (y >= 0 && board[y][x] !== EMPTY) return true;
+  }
+  return false;
+}
+
+function merge(board, piece) {
+  const b = cloneBoard(board);
+  const shape = SHAPES[piece.id][piece.rot];
+  for (const [dx, dy] of shape) {
+    const x = piece.x + dx;
+    const y = piece.y + dy;
+    if (y >= 0 && y < ROWS && x >= 0 && x < COLS) b[y][x] = piece.id;
+  }
+  return b;
+}
+
+function clearLines(board) {
+  const rows = [];
+  for (let y = 0; y < ROWS; y++) {
+    if (board[y].every((v) => v !== EMPTY)) rows.push(y);
+  }
+  if (rows.length === 0) return { board, cleared: 0 };
+  const b = board.slice();
+  for (const y of rows) b.splice(y, 1);
+  while (b.length < ROWS) b.unshift(Array(COLS).fill(EMPTY));
+  return { board: b, cleared: rows.length };
+}
+
+function tryRotate(board, piece, dir) {
+  const p = { ...piece, rot: (piece.rot + dir + 4) % 4 };
+  if (!collides(board, p)) return p;
+  // simple kicks
+  for (const k of [-1, 1, -2, 2]) {
+    const pk = { ...p, x: p.x + k };
+    if (!collides(board, pk)) return pk;
+  }
+  return piece;
+}
+
+export default function useTetris() {
+  const [board, setBoard] = useState(makeEmptyBoard);
+  const [current, setCurrent] = useState(null);
+  const [queue, setQueue] = useState(() => randomBag7());
+  const [nextIdx, setNextIdx] = useState(0);
+  const [holdSoftDrop, setHoldSoftDrop] = useState(false);
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(0);
+  const [lines, setLines] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameOverReason, setGameOverReason] = useState(null); // 'spawn'|'topout'|'garbage'|'swap'|'unknown'
+  const [paused, setPaused] = useState(false);
+  const onLinesClearedRef = useRef(null);
+  const onGameOverRef = useRef(null);
+  const [holdId, setHoldId] = useState(null);
+  const [holdUsed, setHoldUsed] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [b2bActive, setB2BActive] = useState(false); // true if last clear was Tetris (eligible) and chain not broken
+
+  const gravityMs = useMemo(() => (holdSoftDrop ? SOFT_DROP_MS : levelToGravityMs(level)), [holdSoftDrop, level]);
+  const timerRef = useRef(null);
+  const endedRef = useRef(false);
+
+  const endNow = useCallback((reason = 'unknown') => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    setGameOver(true);
+    setGameOverReason(reason);
+    try { if (onGameOverRef.current) onGameOverRef.current(reason); } catch (_) {}
+  }, []);
+
+  const spawn = useCallback((b) => {
+    // Ensure we have an id available; extend queue synchronously for this read
+    let q = queue;
+    if (nextIdx >= q.length) {
+      q = q.concat(randomBag7());
+      setQueue(q);
+    }
+    const id = q[nextIdx];
+    const piece = { id, rot: 0, x: spawnX, y: spawnY };
+    const collided = collides(b, piece);
+    if (collided) { endNow('spawn'); return null; }
+    setNextIdx((i) => i + 1);
+    return piece;
+  }, [nextIdx, queue]);
+
+  useEffect(() => {
+    if (!current && !gameOver && !endedRef.current) {
+      setCurrent((prev) => prev ?? spawn(board));
+    }
+  }, [board, current, gameOver, spawn]);
+
+  // Keep queue ahead for previews
+  useEffect(() => {
+    if (gameOver) return;
+    if (queue.length - nextIdx < 6) {
+      setQueue((q) => (q.length - nextIdx < 6 ? q.concat(randomBag7()) : q));
+    }
+  }, [queue, nextIdx, gameOver]);
+
+  const step = useCallback(() => {
+    if (gameOver || !current) return;
+    const down = { ...current, y: current.y + 1 };
+    if (!collides(board, down)) {
+      setCurrent(down);
+      return;
+    }
+    // lock; if any part would lock above the top, it's game over (top-out)
+    {
+      const shape = SHAPES[current.id][current.rot];
+      for (const [dx, dy] of shape) {
+        if (current.y + dy < 0) { endNow('topout'); return; }
+      }
+    }
+    // proceed to place the piece and resolve lines
+    let merged = merge(board, current);
+    const { board: clearedBoard, cleared } = clearLines(merged);
+    if (cleared > 0) {
+      const newLinesTotal = lines + cleared;
+      setLines(newLinesTotal);
+      const delta = [0, 100, 300, 500, 800][cleared] || cleared * 200;
+      setScore((s) => s + delta);
+      if (newLinesTotal % 10 === 0) setLevel((lv) => lv + 1);
+
+      // combo / B2B tracking (Tetrises only for now)
+      const eligible = (cleared === 4);
+      const isB2B = b2bActive && eligible;
+      const newCombo = combo + 1;
+      setCombo(newCombo);
+      setB2BActive(eligible ? true : false);
+
+      // notify listeners (battle manager) with extra info
+      try {
+        if (onLinesClearedRef.current) onLinesClearedRef.current({ cleared, combo: newCombo, isB2B, eligible });
+      } catch (_) {}
+    } else {
+      // no clear: break combo; keep b2bActive unchanged
+      if (combo !== 0) setCombo(0);
+    }
+    setBoard(clearedBoard);
+    setCurrent(spawn(clearedBoard));
+    setHoldUsed(false);
+  }, [board, current, gameOver, lines, spawn, combo, b2bActive]);
+
+  // gravity timer
+  useEffect(() => {
+    if (gameOver || paused) return;
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(step, gravityMs);
+    return () => clearInterval(timerRef.current);
+  }, [gravityMs, step, gameOver, paused]);
+
+  const tryMove = useCallback((dx) => {
+    if (gameOver || paused || !current) return;
+    const moved = { ...current, x: current.x + dx };
+    if (!collides(board, moved)) setCurrent(moved);
+  }, [board, current, gameOver, paused]);
+
+  const hardDrop = useCallback(() => {
+    if (gameOver || paused || !current) return;
+    let p = current;
+    while (!collides(board, { ...p, y: p.y + 1 })) p = { ...p, y: p.y + 1 };
+    setCurrent(p);
+    // Immediately lock on next tick
+    step();
+  }, [board, current, gameOver, paused, step]);
+
+  const rotate = useCallback((dir = 1) => {
+    if (gameOver || paused || !current) return;
+    const r = tryRotate(board, current, dir);
+    setCurrent(r);
+  }, [board, current, gameOver, paused]);
+
+  const applyPlanFast = useCallback((plan) => {
+    if (!plan || gameOver || paused || !current) return;
+    let p = { ...current };
+    // apply rotations
+    for (let i = 0; i < (plan.rotSteps || 0); i++) p = tryRotate(board, p, 1);
+    // apply horizontal moves
+    const dir = plan.moveDir || 0;
+    const steps = plan.moveSteps || 0;
+    for (let i = 0; i < steps; i++) {
+      const moved = { ...p, x: p.x + dir };
+      if (!collides(board, moved)) p = moved; else break;
+    }
+    setCurrent(p);
+    // hard drop synchronously
+    let q = p;
+    while (!collides(board, { ...q, y: q.y + 1 })) q = { ...q, y: q.y + 1 };
+    setCurrent(q);
+    step();
+  }, [board, current, gameOver, paused, step]);
+
+  const addGarbage = useCallback((n) => {
+    if (n <= 0 || gameOver) return;
+    setBoard((b) => {
+      const hole = Math.floor(Math.random() * COLS);
+      const garbageRow = Array.from({ length: COLS }, (_, i) => (i === hole ? EMPTY : 8));
+      let out = cloneBoard(b);
+      for (let i = 0; i < n; i++) {
+        out.shift();
+        out.push(garbageRow.slice());
+      }
+      // Raise the active piece by the exact number of rows added, then adjust further if needed
+      if (current) {
+        let p = { ...current, y: current.y - n };
+        let safety = n + 6; // allow moving above by a few rows if needed
+        while (collides(out, p) && safety-- > 0) p = { ...p, y: p.y - 1 };
+        if (!collides(out, p)) setCurrent(p);
+        else { endNow('garbage'); }
+      }
+      return out;
+    });
+  }, [current, gameOver, endNow]);
+
+  const setOnLinesCleared = useCallback((cb) => {
+    onLinesClearedRef.current = cb;
+  }, []);
+
+  const setOnGameOver = useCallback((cb) => {
+    onGameOverRef.current = cb;
+  }, []);
+
+  const holdPiece = useCallback(() => {
+    if (gameOver || paused || !current || holdUsed) return;
+    if (holdId == null) {
+      // Store current, spawn next
+      setHoldId(current.id);
+      const p = spawn(board);
+      if (p) setCurrent(p); else endNow('spawn');
+      setHoldUsed(true);
+      return;
+    }
+    // Swap with hold
+    const incoming = { id: holdId, rot: 0, x: spawnX, y: spawnY };
+    if (collides(board, incoming)) return; // ignore if cannot place
+    setHoldId(current.id);
+    setCurrent(incoming);
+    setHoldUsed(true);
+  }, [board, current, gameOver, paused, holdId, holdUsed, spawn]);
+
+  const reset = useCallback(() => {
+    setBoard(makeEmptyBoard());
+    setCurrent(null);
+    setQueue(randomBag7());
+    setNextIdx(0);
+    setScore(0);
+    setLevel(0);
+    setLines(0);
+    setGameOver(false);
+    setGameOverReason(null);
+    setPaused(false);
+    setHoldSoftDrop(false);
+    onLinesClearedRef.current = null;
+    onGameOverRef.current = null;
+    setHoldId(null);
+    setHoldUsed(false);
+    endedRef.current = false;
+  }, []);
+
+  const ghost = useMemo(() => {
+    if (!current) return null;
+    let p = { ...current };
+    while (!collides(board, { ...p, y: p.y + 1 })) p = { ...p, y: p.y + 1 };
+    return p;
+  }, [board, current]);
+
+  return {
+    state: { board, current, ghost, score, level, lines, gameOver, gameOverReason, paused, holdId, next: queue.slice(nextIdx, nextIdx + 5) },
+    actions: {
+      moveLeft: () => tryMove(-1),
+      moveRight: () => tryMove(1),
+      rotateCW: () => rotate(1),
+      rotateCCW: () => rotate(-1),
+      hardDrop,
+      setSoftDrop: setHoldSoftDrop,
+      setPaused,
+      reset,
+      addGarbage,
+      setOnLinesCleared,
+      setOnGameOver,
+      holdPiece,
+      applyPlanFast,
+    }
+  };
+}

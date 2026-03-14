@@ -4,6 +4,7 @@ import VisualNovelModal from './vn/VisualNovelModal.jsx';
 import OzPedia from './OzPedia.jsx';
 import GliMillonaire from './GliMillonaire.jsx';
 import ComputerDesktop from './components/ComputerDesktop.jsx';
+import SongBattleModal from './minigames/song-battle/SongBattleModal.jsx';
 const ROOM_HEIGHT = 260;
 // Positive moves target down, negative moves up (in pixels, relative to room height)
 const FLOOR_TARGET_Y_ADJUST_PX = -20;
@@ -643,6 +644,8 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Debug controls are hidden unless unlocked with a simple password
   const [debugUnlocked, setDebugUnlocked] = useState(false);
+  // Song Battle (Tetris) debug modal
+  const [songBattleOpen, setSongBattleOpen] = useState(false);
   const [status, setStatus] = useState("Ready to work!");
   const [statsOpen, setStatsOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
@@ -4168,6 +4171,10 @@ function stationTarget(type) {
           </div>
         )}
 
+        {songBattleOpen && (
+          <SongBattleModal onClose={() => setSongBattleOpen(false)} />
+        )}
+
         {menuOpen && !isOver && (
                 <div style={styles.overlayClear} onClick={() => setMenuOpen(false)}>
                   <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
@@ -4199,6 +4206,7 @@ function stationTarget(type) {
                   <>
                     <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
                     <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Â£100 (debug)</button>
+                    <button onClick={() => { setSongBattleOpen(true); }} style={styles.secondaryBtn}>Start Song Battle (debug)</button>
                     <button onClick={() => {
                       try {
                         // Unlock all friend items
