@@ -92,6 +92,9 @@ export default function BattleManager({ onClose }) {
   const playerRiskRef = useRef(0);
   const aiRiskRef = useRef(0);
   // const [audioDebug, setAudioDebug] = useState(null);
+  const [aiFace, setAIFace] = useState('neutral');
+  const aiHitUntilRef = useRef(0);
+  const aiHypeUntilRef = useRef(0);
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -243,9 +246,52 @@ export default function BattleManager({ onClose }) {
         pendingAIHoleRef.current = null; setPendingAIHole(null);
         ai.actions.addGarbage(amt, hole);
         try { audioRef.current && audioRef.current.onGarbageApplied('ai', amt); } catch(_) {}
+        aiHitUntilRef.current = Date.now() + 750; // show hit face briefly
       }
     });
   }, [player.actions, ai.actions]);
+
+  // Temporary hype on AI strong clears
+  useEffect(() => {
+    ai.actions.setOnLinesCleared((info) => {
+      if (!info) return;
+      if (info.cleared >= 4) aiHypeUntilRef.current = Date.now() + 800; // Tetris
+    });
+  }, [ai.actions]);
+
+  // Drive AI face from advantage, risk and recent events
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Result overrides
+      if (result) {
+        // result is from the player's perspective
+        // player 'win' => AI defeated; player 'lose' => AI celebrate
+        setAIFace(result === 'win' ? 'defeated' : result === 'lose' ? 'celebrate' : 'neutral');
+        return;
+      }
+      const now = Date.now();
+      if (now < aiHitUntilRef.current) { setAIFace('hit'); return; }
+      if (now < aiHypeUntilRef.current) { setAIFace('hyped'); return; }
+
+      // Compute simple advantage consistent with audio compute
+      const w = 0.5;
+      const pPending = Math.min(Number(pendingPlayerRef.current || 0) / 10, 1);
+      const aPending = Math.min(Number(pendingAIRef.current || 0) / 10, 1);
+      const pPressure = playerRiskRef.current + w * pPending;
+      const aPressure = aiRiskRef.current + w * aPending;
+      const diff = (aPressure - pPressure); // >0 favors player
+      const K = 1.6;
+      const adv = Math.max(-1, Math.min(1, diff / K));
+
+      // Map thresholds to expressions for AI
+      if (adv < -0.25) { setAIFace('hyped'); }
+      else if (adv < -0.10) { setAIFace('confident'); }
+      else if (adv > 0.25) { setAIFace('panicked'); }
+      else if (adv > 0.10) { setAIFace('worried'); }
+      else { setAIFace('determined'); }
+    }, 200);
+    return () => clearInterval(timer);
+  }, [result]);
 
   // End conditions
   useEffect(() => {
@@ -423,9 +469,10 @@ export default function BattleManager({ onClose }) {
         style={{ position:'absolute', top: 8, left: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
       />
       <img
-        src={'/art/friends/mcmunch_profile.png'}
-        alt={'Friend'}
+        src={`/art/friends/mcmunch_${aiFace}.png`}
+        alt={`Friend ${aiFace}`}
         style={{ position:'absolute', top: 8, right: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
+        onError={(e) => { e.currentTarget.src = '/art/friends/mcmunch_neutral.png'; }}
       />
 
       {/* Stats box on right */}
