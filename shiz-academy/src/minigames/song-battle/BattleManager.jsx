@@ -6,6 +6,7 @@ import { BLOCK_SRC, COLS, ROWS } from './Constants';
 import MiniPreview from './MiniPreview.jsx';
 import GarbagePreview from './GarbagePreview.jsx';
 import VerticalGarbageMeter from './VerticalGarbageMeter.jsx';
+import AudioTugController from './AudioTugController';
 
 const baseAttack = { 1: 0, 2: 1, 3: 2, 4: 4 };
 const comboTable = [0,0,1,1,2,2,3,3,4,4,4,5]; // index = combo count, clamped
@@ -86,6 +87,11 @@ export default function BattleManager({ onClose }) {
   const applyPTimerRef = useRef(null);
   const applyAITimerRef = useRef(null);
   const aiPlanTimerRef = useRef(null);
+  const audioRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+  const playerRiskRef = useRef(0);
+  const aiRiskRef = useRef(0);
+  const [audioDebug, setAudioDebug] = useState(null);
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -107,6 +113,71 @@ export default function BattleManager({ onClose }) {
 
   // Garbage exchange
   useEffect(() => {
+    // Set up audio controller
+    const ctrl = new AudioTugController({
+      playerUrl: '/art/music/player.mp3',
+      aiUrl: '/art/music/ai.mp3',
+      computeAdvantage: () => {
+        // Pressure = risk + w*pending; advantage favors player when AI pressure is higher
+        const w = 0.5;
+        const pPending = Math.min(Number(pendingPlayerRef.current || 0) / 10, 1);
+        const aPending = Math.min(Number(pendingAIRef.current || 0) / 10, 1);
+        const pPressure = playerRiskRef.current + w * pPending;
+        const aPressure = aiRiskRef.current + w * aPending;
+        const diff = (aPressure - pPressure); // >0 favors player
+        const K = 1.6; // scaling
+        const raw = diff / K;
+        return Math.max(-1, Math.min(1, raw));
+      },
+    });
+    audioRef.current = ctrl;
+    ctrl.init().catch(()=>{});
+    return () => { try { ctrl.destroy(); } catch (_) {} };
+  }, []);
+
+  // Track simple risk from board height (normalized 0..1)
+  useEffect(() => {
+    const calcRisk = (board) => {
+      if (!board || !board.length) return 0;
+      let highest = -1;
+      for (let y = 0; y < board.length; y++) {
+        const row = board[y];
+        for (let x = 0; x < row.length; x++) {
+          if (row[x] && row[x] !== 0) { highest = y; break; }
+        }
+        if (highest === y) break;
+      }
+      if (highest < 0) return 0; // empty
+      return (board.length - highest) / board.length; // taller stack => higher risk
+    };
+    playerRiskRef.current = calcRisk(player.state.board);
+  }, [player.state.board]);
+  useEffect(() => {
+    const calcRisk = (board) => {
+      if (!board || !board.length) return 0;
+      let highest = -1;
+      for (let y = 0; y < board.length; y++) {
+        const row = board[y];
+        for (let x = 0; x < row.length; x++) {
+          if (row[x] && row[x] !== 0) { highest = y; break; }
+        }
+        if (highest === y) break;
+      }
+      if (highest < 0) return 0;
+      return (board.length - highest) / board.length;
+    };
+    aiRiskRef.current = calcRisk(ai.state.board);
+  }, [ai.state.board]);
+
+  // Unlock audio on first interaction inside battle area
+  const handleUnlockAudio = () => {
+    if (audioUnlockedRef.current) return;
+    audioUnlockedRef.current = true;
+    try { audioRef.current && audioRef.current.unlockAndStart(); } catch (_) {}
+  };
+
+  // Ducking on clears + garbage exchange handlers
+  useEffect(() => {
     player.actions.setOnLinesCleared((info) => {
       const send = calcAttack(info);
       // Cancel incoming first
@@ -114,7 +185,6 @@ export default function BattleManager({ onClose }) {
       if (cancel > 0) {
         pendingPlayerRef.current -= cancel; setPendingPlayer(pendingPlayerRef.current);
         if (pendingPlayerRef.current <= 0) { pendingPlayerRef.current = 0; setPendingPlayer(0); pendingPlayerHoleRef.current = null; setPendingPlayerHole(null); }
-        // Flash a cancel indicator for the player
         setPlayerCancel({ amt: cancel, ts: Date.now() });
       }
       const leftover = send - cancel;
@@ -125,6 +195,10 @@ export default function BattleManager({ onClose }) {
           pendingAIHoleRef.current = Math.floor(Math.random() * COLS); setPendingAIHole(pendingAIHoleRef.current);
         }
       }
+      try {
+        const kind = info.cleared >= 4 ? 'tetris' : 'line';
+        audioRef.current && audioRef.current.onClear('player', kind);
+      } catch (_) {}
     });
     ai.actions.setOnLinesCleared((info) => {
       const send = calcAttack(info);
@@ -132,7 +206,6 @@ export default function BattleManager({ onClose }) {
       if (cancel > 0) {
         pendingAIRef.current -= cancel; setPendingAI(pendingAIRef.current);
         if (pendingAIRef.current <= 0) { pendingAIRef.current = 0; setPendingAI(0); pendingAIHoleRef.current = null; setPendingAIHole(null); }
-        // Flash a blocked indicator for the AI (they blocked your garbage)
         setAICancel({ amt: cancel, ts: Date.now() });
       }
       const leftover = send - cancel;
@@ -143,6 +216,10 @@ export default function BattleManager({ onClose }) {
           pendingPlayerHoleRef.current = Math.floor(Math.random() * COLS); setPendingPlayerHole(pendingPlayerHoleRef.current);
         }
       }
+      try {
+        const kind = info.cleared >= 4 ? 'tetris' : 'line';
+        audioRef.current && audioRef.current.onClear('ai', kind);
+      } catch (_) {}
     });
   }, [player.actions, ai.actions]);
 
@@ -155,6 +232,7 @@ export default function BattleManager({ onClose }) {
         pendingPlayerRef.current = 0; setPendingPlayer(0);
         pendingPlayerHoleRef.current = null; setPendingPlayerHole(null);
         player.actions.addGarbage(amt, hole);
+        try { audioRef.current && audioRef.current.onGarbageApplied('player', amt); } catch(_) {}
       }
     });
     ai.actions.setOnLock(() => {
@@ -164,6 +242,7 @@ export default function BattleManager({ onClose }) {
         pendingAIRef.current = 0; setPendingAI(0);
         pendingAIHoleRef.current = null; setPendingAIHole(null);
         ai.actions.addGarbage(amt, hole);
+        try { audioRef.current && audioRef.current.onGarbageApplied('ai', amt); } catch(_) {}
       }
     });
   }, [player.actions, ai.actions]);
@@ -175,6 +254,25 @@ export default function BattleManager({ onClose }) {
     else if (player.state.gameOver) { setResult('lose'); setPlayerReason(player.state.gameOverReason); }
     else if (ai.state.gameOver) { setResult('win'); setAIReason(ai.state.gameOverReason); }
   }, [player.state.gameOver, ai.state.gameOver, result]);
+
+  useEffect(() => {
+    if (!result) return;
+    try {
+      if (result === 'win') audioRef.current && audioRef.current.onGameOver('player');
+      else if (result === 'lose') audioRef.current && audioRef.current.onGameOver('ai');
+      else audioRef.current && audioRef.current.pause();
+    } catch (_) {}
+  }, [result]);
+
+  // Poll audio debug for tuning UI
+  useEffect(() => {
+    const t = setInterval(() => {
+      try {
+        if (audioRef.current) setAudioDebug(audioRef.current.getDebug());
+      } catch (_) {}
+    }, 200);
+    return () => clearInterval(t);
+  }, []);
 
   // Immediate end hooks from engines
   useEffect(() => {
@@ -240,7 +338,7 @@ export default function BattleManager({ onClose }) {
   );
 
   return (
-    <div ref={wrapRef} style={{ position:'relative', height: '100%' }}>
+    <div ref={wrapRef} style={{ position:'relative', height: '100%' }} onPointerDown={handleUnlockAudio}>
       <div
         style={{
           position: 'absolute',
@@ -351,6 +449,17 @@ export default function BattleManager({ onClose }) {
           </select>
         </div>
       </div>
+
+      {/* Audio debug */}
+      {audioDebug && (
+        <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', bottom: 56, background:'rgba(0,0,0,0.45)', border:'1px solid rgba(255,255,255,0.25)', color:'#fff', borderRadius:8, padding:'4px 8px', fontSize:11, display:'flex', gap:10 }}>
+          <div>adv: {audioDebug.adv.toFixed(2)}</div>
+          <div>mom: {audioDebug.momentum.toFixed(2)}</div>
+          <div>lead: {audioDebug.leader || '-'}</div>
+          <div>P:{(audioDebug.gains.player*100|0)}%</div>
+          <div>AI:{(audioDebug.gains.ai*100|0)}%</div>
+        </div>
+      )}
 
       
       </div>
