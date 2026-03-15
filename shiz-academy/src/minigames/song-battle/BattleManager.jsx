@@ -91,7 +91,7 @@ export default function BattleManager({ onClose }) {
   const audioUnlockedRef = useRef(false);
   const playerRiskRef = useRef(0);
   const aiRiskRef = useRef(0);
-  const [audioDebug, setAudioDebug] = useState(null);
+  // const [audioDebug, setAudioDebug] = useState(null);
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -264,15 +264,7 @@ export default function BattleManager({ onClose }) {
     } catch (_) {}
   }, [result]);
 
-  // Poll audio debug for tuning UI
-  useEffect(() => {
-    const t = setInterval(() => {
-      try {
-        if (audioRef.current) setAudioDebug(audioRef.current.getDebug());
-      } catch (_) {}
-    }, 200);
-    return () => clearInterval(t);
-  }, []);
+  // Debug polling disabled (hide audio tug-of-war debug panel)
 
   // Immediate end hooks from engines
   useEffect(() => {
@@ -450,16 +442,7 @@ export default function BattleManager({ onClose }) {
         </div>
       </div>
 
-      {/* Audio debug */}
-      {audioDebug && (
-        <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', bottom: 56, background:'rgba(0,0,0,0.45)', border:'1px solid rgba(255,255,255,0.25)', color:'#fff', borderRadius:8, padding:'4px 8px', fontSize:11, display:'flex', gap:10 }}>
-          <div>adv: {audioDebug.adv.toFixed(2)}</div>
-          <div>mom: {audioDebug.momentum.toFixed(2)}</div>
-          <div>lead: {audioDebug.leader || '-'}</div>
-          <div>P:{(audioDebug.gains.player*100|0)}%</div>
-          <div>AI:{(audioDebug.gains.ai*100|0)}%</div>
-        </div>
-      )}
+      {/* Audio debug hidden */}
 
       
       </div>

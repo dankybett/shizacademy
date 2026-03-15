@@ -227,12 +227,14 @@ export default function useTetris() {
   const addGarbage = useCallback((n, holeIdx = null) => {
     if (n <= 0 || gameOver) return;
     setBoard((b) => {
-      const hole = (holeIdx != null && holeIdx >= 0 && holeIdx < COLS) ? holeIdx : Math.floor(Math.random() * COLS);
-      const garbageRow = Array.from({ length: COLS }, (_, i) => (i === hole ? EMPTY : 8));
       let out = cloneBoard(b);
       for (let i = 0; i < n; i++) {
+        const h = (holeIdx != null && holeIdx >= 0 && holeIdx < COLS)
+          ? Math.floor(Math.random() * COLS) // even if a base hole is provided, randomize per line
+          : Math.floor(Math.random() * COLS);
+        const row = Array.from({ length: COLS }, (_, x) => (x === h ? EMPTY : 8));
         out.shift();
-        out.push(garbageRow.slice());
+        out.push(row);
       }
       // Raise the active piece by the exact number of rows added, then adjust further if needed
       if (!duringLockRef.current && current) {
