@@ -258,23 +258,10 @@ export default function useTetris() {
     onLockRef.current = cb;
   }, []);
 
+  // Hold is disabled for this game mode
   const holdPiece = useCallback(() => {
-    if (gameOver || paused || !current || holdUsed) return;
-    if (holdId == null) {
-      // Store current, spawn next
-      setHoldId(current.id);
-      const p = spawn(board);
-      if (p) setCurrent(p); else endNow('spawn');
-      setHoldUsed(true);
-      return;
-    }
-    // Swap with hold
-    const incoming = { id: holdId, rot: 0, x: spawnX, y: spawnY };
-    if (collides(board, incoming)) return; // ignore if cannot place
-    setHoldId(current.id);
-    setCurrent(incoming);
-    setHoldUsed(true);
-  }, [board, current, gameOver, paused, holdId, holdUsed, spawn]);
+    return; // no-op
+  }, []);
 
   const reset = useCallback(() => {
     setBoard(makeEmptyBoard());

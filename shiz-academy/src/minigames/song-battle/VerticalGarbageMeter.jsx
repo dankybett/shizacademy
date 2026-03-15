@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function VerticalGarbageMeter({ rows = 0, maxRows = 20, heightPx = 560, widthPx = 10, flash = false, showCount = true }) {
+export default function VerticalGarbageMeter({ rows = 0, maxRows = 20, heightPx = 560, widthPx = 10, flash = false, showCount = true, side = 'right' }) {
   const h = Math.max(0, Math.min(Number(rows || 0), maxRows));
   const fillH = Math.round((h / maxRows) * heightPx);
   return (
@@ -8,7 +8,7 @@ export default function VerticalGarbageMeter({ rows = 0, maxRows = 20, heightPx 
       title={rows > 0 ? `Incoming +${rows}` : 'No incoming'}
       style={{
         position: 'absolute',
-        right: -12,
+        ...(side === 'left' ? { left: -12 } : { right: -12 }),
         top: 0,
         width: widthPx,
         height: heightPx,
@@ -35,4 +35,3 @@ export default function VerticalGarbageMeter({ rows = 0, maxRows = 20, heightPx 
     </div>
   );
 }
-

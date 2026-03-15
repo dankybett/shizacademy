@@ -22,6 +22,8 @@ export default function BattleManager({ onClose }) {
   const { bestMove } = useTetrisAI();
 
   const [cellPx, setCellPx] = useState(28);
+  const [containerHeight, setContainerHeight] = useState(720);
+  const headerH = 36; // unify header row heights so boards align
 
   useEffect(() => {
     const updateCell = () => {
@@ -31,23 +33,25 @@ export default function BattleManager({ onClose }) {
       const modalMaxW = 820; // matches SongBattleModal card max width
       const containerW = Math.min(vw * 0.96, modalMaxW);
 
-      // Rough width budget: two side panels, inner + outer gaps, small center column
-      const sideEstimate = 110; // Hold/Next column approx
-      const outerGaps = 16 * 2; // grid gap between 3 cols -> two gaps
+      // Rough width budget: two side panels (no Hold now), inner + outer gaps, small center column
+      const sideEstimate = 90; // Next + Incoming approx
+      const outerGaps = 8 * 2; // grid gap between 3 cols -> two gaps (now 8)
       const innerGaps = 16 * 2; // left/right flex gaps between board and side panel
       const centerW = 24; // "VS" text
 
       const widthBudget = containerW - (sideEstimate * 2) - outerGaps - innerGaps - centerW;
       const cellFromWidth = Math.floor(widthBudget / (2 * COLS));
 
-      // Height budget: modal max height plus overhead for headers/controls
-      const containerH = Math.min(vh * 0.92, 720);
-      const overhead = 180; // title, stats, controls
+      // Height budget: modal max height plus overhead for headers/labels
+      const containerH = Math.min(vh * 0.96, 800);
+      const overhead = 110; // tighter: title, stats, labels
       const heightBudget = containerH - overhead;
       const cellFromHeight = Math.floor(heightBudget / ROWS);
 
-      const next = Math.max(12, Math.min(36, Math.min(cellFromWidth, cellFromHeight)));
-      setCellPx(Number.isFinite(next) && next > 0 ? next : 16);
+      const next = Math.max(12, Math.min(48, Math.min(cellFromWidth, cellFromHeight)));
+      const finalCell = Number.isFinite(next) && next > 0 ? next : 16;
+      setCellPx(finalCell);
+      setContainerHeight(containerH);
     };
     updateCell();
     window.addEventListener('resize', updateCell);
@@ -237,18 +241,35 @@ export default function BattleManager({ onClose }) {
   );
 
   return (
-    <div style={{ position:'relative' }}>
+    <div style={{ position:'relative', height: containerHeight }}>
       <div
         style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 8,
           display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          gap: 16,
+          gridTemplateColumns: 'auto auto auto',
+          gap: 8,
           alignItems: 'flex-start',
+          justifyContent: 'center',
         }}
       >
-      <div style={{ display:'grid', gap:10 }}>
-        {panel('You', player.state)}
+      <div style={{ display:'grid', gap:10, justifySelf:'end' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height: headerH }}>
+          {panel('You', player.state)}
+        </div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+          {/* Player side panel on the LEFT (Hold removed) */}
+          <div style={{ display:'grid', gap:14, minWidth:80 }}>
+            <div style={{ display:'grid', gap:6 }}>
+              <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <MiniPreview id={player.state.next && player.state.next[0]} size={44} title={'Next'} />
+              </div>
+            </div>
+            <GarbagePreview count={pendingPlayer} hole={pendingPlayerHole} cols={COLS} title={'Incoming'} />
+          </div>
           <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
             <GameBoard
               board={player.state.board}
@@ -259,35 +280,17 @@ export default function BattleManager({ onClose }) {
               onHoldDownStart={() => player.actions.setSoftDrop(true)}
               onHoldDownEnd={() => player.actions.setSoftDrop(false)}
             />
-            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} />
+            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
             {playerCancel && (
               <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
             )}
           </div>
-          <div style={{ display:'grid', gap:14, minWidth:80 }}>
-        <div style={{ display:'grid', gap:6 }}>
-          <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Hold</div>
-          <MiniPreview id={player.state.holdId} size={60} title={'Hold'} />
-          <button style={btn('secondary')} onClick={player.actions.holdPiece}>Hold</button>
         </div>
-        <div style={{ display:'grid', gap:6 }}>
-          <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            <MiniPreview id={player.state.next && player.state.next[0]} size={44} title={'Next'} />
-          </div>
-        </div>
-        <GarbagePreview count={pendingPlayer} hole={pendingPlayerHole} cols={COLS} title={'Incoming'} />
-      </div>
-        </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button style={btn()} onClick={player.actions.moveLeft}>◀ Left</button>
-          <button style={btn()} onClick={player.actions.moveRight}>Right ▶</button>
-          <button style={btn('secondary')} onClick={player.actions.hardDrop}>Hard Drop</button>
-        </div>
+        {/* Player controls moved to bottom row to free vertical space */}
       </div>
       <div style={{ alignSelf:'center', opacity:.6 }}>VS</div>
-      <div style={{ display:'grid', gap:10 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div style={{ display:'grid', gap:10, justifySelf:'start' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height: headerH }}>
           {panel('AI', ai.state)}
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
@@ -312,10 +315,6 @@ export default function BattleManager({ onClose }) {
             )}
           </div>
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Hold</div>
-              <MiniPreview id={ai.state.holdId} size={60} title={'Hold'} />
-            </div>
           <div style={{ display:'grid', gap:6 }}>
             <div style={{ fontWeight:700, fontSize:13, opacity:.9 }}>Next</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
@@ -325,23 +324,24 @@ export default function BattleManager({ onClose }) {
           <GarbagePreview count={pendingAI} hole={pendingAIHole} cols={COLS} title={'Incoming'} />
         </div>
         </div>
-        <div style={{ fontSize:12, opacity:.8 }}>AI plays automatically</div>
+        {/* moved helper text to bottom controls to free height */}
       </div>
 
-      <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'space-between', alignItems:'center', marginTop: 4 }}>
-        <div style={{ fontWeight:700 }}>
-          {result === 'win' && 'You win!'}
-          {result === 'lose' && 'You lose!'}
-          {result === 'draw' && 'Draw!'}
-        </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <div title="Incoming garbage" style={{ opacity:.85 }}>
-            You: +{pendingPlayer} | AI: +{pendingAI}
-          </div>
-          <button style={btn('secondary')} onClick={resetBoth}>Restart</button>
-          <button style={btn('danger')} onClick={onClose}>Close</button>
-        </div>
-      </div>
+      {/* Corner controls */}
+      <button
+        style={{ ...btn(), position:'absolute', left: 8, bottom: 8 }}
+        onClick={player.actions.moveLeft}
+      >
+        ◀ Left
+      </button>
+      <button
+        style={{ ...btn(), position:'absolute', right: 8, bottom: 8 }}
+        onClick={player.actions.moveRight}
+      >
+        Right ▶
+      </button>
+
+      
       </div>
       {result && (
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.55)' }}>
@@ -362,7 +362,6 @@ export default function BattleManager({ onClose }) {
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
               <button style={btn('secondary')} onClick={resetBoth}>Restart</button>
-              <button style={btn('danger')} onClick={onClose}>Close</button>
             </div>
           </div>
         </div>
