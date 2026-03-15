@@ -23,32 +23,33 @@ export default function BattleManager({ onClose }) {
 
   const [cellPx, setCellPx] = useState(28);
   const [containerHeight, setContainerHeight] = useState(720);
-  const headerH = 36; // unify header row heights so boards align
+  const wrapRef = useRef(null);
 
   useEffect(() => {
     const updateCell = () => {
       const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
       const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
-      const modalMaxW = 820; // matches SongBattleModal card max width
-      const containerW = Math.min(vw * 0.96, modalMaxW);
+      const modalMaxW = 1100; // matches SongBattleModal card max width
+      const rect = wrapRef.current && wrapRef.current.getBoundingClientRect ? wrapRef.current.getBoundingClientRect() : null;
+      const containerW = rect ? rect.width : Math.min(vw * 0.98, modalMaxW);
 
       // Rough width budget: two side panels (no Hold now), inner + outer gaps, small center column
       const sideEstimate = 90; // Next + Incoming approx
       const outerGaps = 8 * 2; // grid gap between 3 cols -> two gaps (now 8)
-      const innerGaps = 16 * 2; // left/right flex gaps between board and side panel
-      const centerW = 24; // "VS" text
+      const innerGaps = 12 * 2; // left/right flex gaps between board and side panel
+      const centerW = 16; // "VS" text
 
       const widthBudget = containerW - (sideEstimate * 2) - outerGaps - innerGaps - centerW;
       const cellFromWidth = Math.floor(widthBudget / (2 * COLS));
 
-      // Height budget: modal max height plus overhead for headers/labels
-      const containerH = Math.min(vh * 0.96, 800);
-      const overhead = 110; // tighter: title, stats, labels
+      // Height budget: use actual container height when available
+      const containerH = rect ? Math.floor(rect.height) : Math.floor(vh * 0.96);
+      const overhead = 8; // minimal top/bottom spacing; stats moved out
       const heightBudget = containerH - overhead;
       const cellFromHeight = Math.floor(heightBudget / ROWS);
 
-      const next = Math.max(12, Math.min(48, Math.min(cellFromWidth, cellFromHeight)));
+      const next = Math.max(12, Math.min(64, Math.min(cellFromWidth, cellFromHeight)));
       const finalCell = Number.isFinite(next) && next > 0 ? next : 16;
       setCellPx(finalCell);
       setContainerHeight(containerH);
@@ -229,19 +230,17 @@ export default function BattleManager({ onClose }) {
     try { player.actions.setSoftDrop(false); } catch (_) {}
   };
 
-  const panel = (label, s) => (
-    <div style={{ display:'flex', gap:10, alignItems:'center', justifyContent:'space-between' }}>
-      <div style={{ fontWeight:800 }}>{label}</div>
-      <div style={{ display:'flex', gap:10, opacity:.9 }}>
-        <div>Score: <b>{s.score}</b></div>
-        <div>Lines: <b>{s.lines}</b></div>
-        <div>Level: <b>{s.level}</b></div>
-      </div>
+  const statLine = (label, s) => (
+    <div style={{ display:'flex', gap:8 }}>
+      <div style={{ fontWeight:700, width:28, textAlign:'right' }}>{label}</div>
+      <div>Score: <b>{s.score}</b></div>
+      <div>Lines: <b>{s.lines}</b></div>
+      <div>Level: <b>{s.level}</b></div>
     </div>
   );
 
   return (
-    <div style={{ position:'relative', height: containerHeight }}>
+    <div ref={wrapRef} style={{ position:'relative', height: '100%' }}>
       <div
         style={{
           position: 'absolute',
@@ -256,9 +255,6 @@ export default function BattleManager({ onClose }) {
         }}
       >
       <div style={{ display:'grid', gap:10, justifySelf:'end' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height: headerH }}>
-          {panel('You', player.state)}
-        </div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
           {/* Player side panel on the LEFT (Hold removed) */}
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
@@ -290,17 +286,6 @@ export default function BattleManager({ onClose }) {
       </div>
       <div style={{ alignSelf:'center', opacity:.6 }}>VS</div>
       <div style={{ display:'grid', gap:10, justifySelf:'start' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height: headerH }}>
-          {panel('AI', ai.state)}
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
-            <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'4px 8px' }}>
-              {Object.entries(DIFFS).map(([k,v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
           <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
             <GameBoard
@@ -340,6 +325,20 @@ export default function BattleManager({ onClose }) {
       >
         Right ▶
       </button>
+
+      {/* Stats box on right */}
+      <div style={{ position:'absolute', top: 8, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'8px 10px', color:'#fff', display:'grid', gap:6 }}>
+        {statLine('You', player.state)}
+        {statLine('AI', ai.state)}
+        <div style={{ display:'flex', gap:6, alignItems:'center', justifyContent:'flex-end', marginTop:4 }}>
+          <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
+          <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'4px 8px' }}>
+            {Object.entries(DIFFS).map(([k,v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       
       </div>

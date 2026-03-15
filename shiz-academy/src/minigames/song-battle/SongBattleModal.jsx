@@ -22,17 +22,19 @@ export default function SongBattleModal({ onClose }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 'min(98vw, 1100px)',
-          maxHeight: '96vh',
+          height: '96vh',
           background: 'linear-gradient(180deg, rgba(25,28,36,0.95), rgba(20,22,28,0.95))',
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 14,
           padding: 14,
           boxShadow: '0 10px 28px rgba(0,0,0,0.45)',
           color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{ width:'100%' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: '1 1 auto', minHeight: 0 }}>
+          <div style={{ width:'100%', flex: '1 1 auto', minHeight: 0 }}>
             <BattleManager onClose={onClose} />
           </div>
         </div>
