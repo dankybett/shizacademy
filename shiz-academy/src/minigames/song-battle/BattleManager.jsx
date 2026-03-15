@@ -231,8 +231,8 @@ export default function BattleManager({ onClose }) {
   };
 
   const statLine = (label, s) => (
-    <div style={{ display:'flex', gap:8 }}>
-      <div style={{ fontWeight:700, width:28, textAlign:'right' }}>{label}</div>
+    <div style={{ display:'flex', gap:6, fontSize:12 }}>
+      <div style={{ fontWeight:700, width:24, textAlign:'right' }}>{label}</div>
       <div>Score: <b>{s.score}</b></div>
       <div>Lines: <b>{s.lines}</b></div>
       <div>Level: <b>{s.level}</b></div>
@@ -327,12 +327,12 @@ export default function BattleManager({ onClose }) {
       </button>
 
       {/* Stats box on right */}
-      <div style={{ position:'absolute', top: 8, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'8px 10px', color:'#fff', display:'grid', gap:6 }}>
+      <div style={{ position:'absolute', top: 18, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}
-        <div style={{ display:'flex', gap:6, alignItems:'center', justifyContent:'flex-end', marginTop:4 }}>
+        <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
           <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
-          <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'4px 8px' }}>
+          <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:12 }}>
             {Object.entries(DIFFS).map(([k,v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
