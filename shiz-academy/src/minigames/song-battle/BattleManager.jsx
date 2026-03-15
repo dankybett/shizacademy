@@ -326,8 +326,20 @@ export default function BattleManager({ onClose }) {
         Right ▶
       </button>
 
+      {/* Friend avatars */}
+      <img
+        src={'/art/friends/player_profile.png'}
+        alt={'You'}
+        style={{ position:'absolute', top: 8, left: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
+      />
+      <img
+        src={'/art/friends/mcmunch_profile.png'}
+        alt={'Friend'}
+        style={{ position:'absolute', top: 8, right: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
+      />
+
       {/* Stats box on right */}
-      <div style={{ position:'absolute', top: 18, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
+      <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
