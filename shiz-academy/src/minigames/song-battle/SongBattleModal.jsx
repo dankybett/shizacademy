@@ -1,7 +1,7 @@
 import React from 'react';
 import useTetris from './useTetris';
 import GameBoard from './GameBoard.jsx';
-import { BLOCK_SRC } from './Constants';
+import { BLOCK_SRC, COLS, ROWS } from './Constants';
 import MiniPreview from './MiniPreview.jsx';
 import BattleManager from './BattleManager.jsx';
 
@@ -9,6 +9,31 @@ export default function SongBattleModal({ onClose }) {
   const [mode, setMode] = React.useState('battle'); // 'solo' | 'battle'
   const { state, actions } = useTetris();
   const { board, current, ghost, score, level, lines, gameOver } = state;
+
+  const [cellPx, setCellPx] = React.useState(28);
+
+  React.useEffect(() => {
+    const updateCell = () => {
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+      const modalMaxW = 820; // matches card width cap
+      const containerW = Math.min(vw * 0.96, modalMaxW);
+
+      const sideEstimate = 110; // Hold/Next column approx
+      const innerGap = 16;
+      const cellFromWidth = Math.floor((containerW - sideEstimate - innerGap) / COLS);
+
+      const containerH = Math.min(vh * 0.92, 720);
+      const overhead = 160; // title, stats, controls
+      const cellFromHeight = Math.floor((containerH - overhead) / ROWS);
+
+      const next = Math.max(12, Math.min(36, Math.min(cellFromWidth, cellFromHeight)));
+      setCellPx(Number.isFinite(next) && next > 0 ? next : 16);
+    };
+    updateCell();
+    window.addEventListener('resize', updateCell);
+    return () => window.removeEventListener('resize', updateCell);
+  }, []);
 
   return (
     <div
@@ -56,6 +81,7 @@ export default function SongBattleModal({ onClose }) {
                 board={board}
                 current={current}
                 ghost={ghost}
+                cellPx={cellPx}
                 onTapRotate={actions.rotateCW}
                 onHoldDownStart={() => actions.setSoftDrop(true)}
                 onHoldDownEnd={() => actions.setSoftDrop(false)}

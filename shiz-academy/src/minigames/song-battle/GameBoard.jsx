@@ -1,8 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { BLOCK_SRC, COLS, ROWS, SHAPES } from './Constants';
 
-const cellPx = 28; // visual cell size
-
 function drawCells(board, current, ghost) {
   const b = board.map((r) => r.slice());
   if (ghost) {
@@ -22,7 +20,7 @@ function drawCells(board, current, ghost) {
   return b;
 }
 
-export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDownStart, onHoldDownEnd }) {
+export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
   const canvasRef = useRef(null);
   const [pressStartTs, setPressStartTs] = useState(null);
 
@@ -93,4 +91,3 @@ export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDo
     </div>
   );
 }
-

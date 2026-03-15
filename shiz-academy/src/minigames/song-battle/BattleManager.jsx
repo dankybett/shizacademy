@@ -21,6 +21,39 @@ export default function BattleManager({ onClose }) {
   const ai = useTetris();
   const { bestMove } = useTetrisAI();
 
+  const [cellPx, setCellPx] = useState(28);
+
+  useEffect(() => {
+    const updateCell = () => {
+      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+      const modalMaxW = 820; // matches SongBattleModal card max width
+      const containerW = Math.min(vw * 0.96, modalMaxW);
+
+      // Rough width budget: two side panels, inner + outer gaps, small center column
+      const sideEstimate = 110; // Hold/Next column approx
+      const outerGaps = 16 * 2; // grid gap between 3 cols -> two gaps
+      const innerGaps = 16 * 2; // left/right flex gaps between board and side panel
+      const centerW = 24; // "VS" text
+
+      const widthBudget = containerW - (sideEstimate * 2) - outerGaps - innerGaps - centerW;
+      const cellFromWidth = Math.floor(widthBudget / (2 * COLS));
+
+      // Height budget: modal max height plus overhead for headers/controls
+      const containerH = Math.min(vh * 0.92, 720);
+      const overhead = 180; // title, stats, controls
+      const heightBudget = containerH - overhead;
+      const cellFromHeight = Math.floor(heightBudget / ROWS);
+
+      const next = Math.max(12, Math.min(36, Math.min(cellFromWidth, cellFromHeight)));
+      setCellPx(Number.isFinite(next) && next > 0 ? next : 16);
+    };
+    updateCell();
+    window.addEventListener('resize', updateCell);
+    return () => window.removeEventListener('resize', updateCell);
+  }, []);
+
   const [result, setResult] = useState(null); // 'win' | 'lose' | 'draw'
   const [playerReason, setPlayerReason] = useState(null);
   const [aiReason, setAIReason] = useState(null);
@@ -216,16 +249,17 @@ export default function BattleManager({ onClose }) {
       <div style={{ display:'grid', gap:10 }}>
         {panel('You', player.state)}
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-          <div style={{ position:'relative', width: COLS*28, height: ROWS*28 }}>
+          <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
             <GameBoard
               board={player.state.board}
               current={player.state.current}
               ghost={player.state.ghost}
+              cellPx={cellPx}
               onTapRotate={player.actions.rotateCW}
               onHoldDownStart={() => player.actions.setSoftDrop(true)}
               onHoldDownEnd={() => player.actions.setSoftDrop(false)}
             />
-            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*28} />
+            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} />
             {playerCancel && (
               <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
             )}
@@ -265,13 +299,14 @@ export default function BattleManager({ onClose }) {
           </div>
         </div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
-          <div style={{ position:'relative', width: COLS*28, height: ROWS*28 }}>
+          <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
             <GameBoard
               board={ai.state.board}
               current={ai.state.current}
               ghost={ai.state.ghost}
+              cellPx={cellPx}
             />
-            <VerticalGarbageMeter rows={pendingAI} heightPx={ROWS*28} />
+            <VerticalGarbageMeter rows={pendingAI} heightPx={ROWS*cellPx} />
             {aiCancel && (
               <CancelBadge key={aiCancel.ts} amt={aiCancel.amt} label={'Blocked'} side={'left'} variant={'ai'} />
             )}
