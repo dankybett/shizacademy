@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { COLS, ROWS, SHAPES, EMPTY, makeEmptyBoard, levelToGravityMs, SOFT_DROP_MS, randomBag7 } from './Constants';
+import { COLS, ROWS, SHAPES, EMPTY, makeEmptyBoard, levelToGravityMs, SOFT_DROP_MS, randomBag7, ITEM_INDEX_MAP } from './Constants';
 
 const spawnX = 3; // left offset from 0
 const spawnY = -1; // start slightly above visible grid
@@ -51,7 +51,9 @@ function tryRotate(board, piece, dir) {
   return piece;
 }
 
-export default function useTetris() {
+export default function useTetris(options = {}) {
+  const enableItems = !!options.enableItems;
+  const itemSpawnChance = Number.isFinite(options.itemSpawnChance) ? options.itemSpawnChance : 0.25; // 25% default
   const [board, setBoard] = useState(makeEmptyBoard);
   const [current, setCurrent] = useState(null);
   const [queue, setQueue] = useState(() => randomBag7());
@@ -66,10 +68,16 @@ export default function useTetris() {
   const onLinesClearedRef = useRef(null);
   const onLockRef = useRef(null);
   const onGameOverRef = useRef(null);
+  const onItemAwardRef = useRef(null);
   const [holdId, setHoldId] = useState(null);
   const [holdUsed, setHoldUsed] = useState(false);
   const [combo, setCombo] = useState(0);
   const [b2bActive, setB2BActive] = useState(false); // true if last clear was Tetris (eligible) and chain not broken
+  // Item system: track item overlay board separately (0/1 markers)
+  const [itemBoard, setItemBoard] = useState(() => makeEmptyBoard());
+  const [currentItemPick, setCurrentItemPick] = useState(null); // index 0..3 of current shape that has the item, or null
+  const itemBoardRef = useRef(null);
+  useEffect(() => { itemBoardRef.current = itemBoard; }, [itemBoard]);
 
   const gravityMs = useMemo(() => (holdSoftDrop ? SOFT_DROP_MS : levelToGravityMs(level)), [holdSoftDrop, level]);
   const timerRef = useRef(null);
@@ -78,6 +86,8 @@ export default function useTetris() {
   const boardRef = useRef(null);
   const spawnTimerRef = useRef(null);
   useEffect(() => { boardRef.current = board; }, [board]);
+  const lockSeqRef = useRef(0);
+  const processedSeqRef = useRef(0);
 
   const endNow = useCallback((reason = 'unknown') => {
     if (endedRef.current) return;
@@ -100,8 +110,17 @@ export default function useTetris() {
     const collided = collides(baseBoard, piece);
     if (collided) { endNow('spawn'); return null; }
     setNextIdx((i) => i + 1);
+    // Items: on spawn, optionally tag one cell of this piece as item for visual; we'll commit to board on lock
+    if (enableItems && Math.random() < itemSpawnChance) {
+      // choose an index within the piece's 4 blocks
+      const idx = Math.floor(Math.random() * (SHAPES[id][0].length || 4));
+      setCurrentItemPick(idx);
+      return { ...piece, hasItem: true };
+    } else {
+      setCurrentItemPick(null);
+    }
     return piece;
-  }, [nextIdx, queue]);
+  }, [nextIdx, queue, enableItems, itemSpawnChance]);
 
   useEffect(() => {
     if (!current && !gameOver && !endedRef.current && !duringLockRef.current) {
@@ -133,6 +152,30 @@ export default function useTetris() {
     }
     // proceed to place the piece and resolve lines
     let merged = merge(board, current);
+    // Prepare item layer update and awards BEFORE applying line clears
+    let awardCount = 0;
+    // Identify rows that will clear from the merged board
+    const rowsToClear = [];
+    for (let y = 0; y < ROWS; y++) if (merged[y].every((v) => v !== EMPTY)) rowsToClear.push(y);
+    if (enableItems) {
+      // Start from latest item board
+      let ib = itemBoardRef.current || itemBoard;
+      let work = ib.map((r) => r.slice());
+      if (current && currentItemPick != null) {
+        const shape = SHAPES[current.id][current.rot];
+        const ii = Math.max(0, Math.min(currentItemPick, shape.length - 1));
+        const [dx, dy] = shape[ii] || [0, 0];
+        const x = current.x + dx, y = current.y + dy;
+        if (y >= 0 && y < ROWS && x >= 0 && x < COLS) work[y][x] = 1;
+      }
+      const res = findAndConsumeItemTriples(work);
+      awardCount = res.awarded || 0;
+      // Mirror line clears onto item layer result
+      let ib2 = res.board.slice();
+      for (let i = rowsToClear.length - 1; i >= 0; i--) ib2.splice(rowsToClear[i], 1);
+      while (ib2.length < ROWS) ib2.unshift(Array(COLS).fill(0));
+      setItemBoard(ib2);
+    }
     const { board: clearedBoard, cleared } = clearLines(merged);
     if (cleared > 0) {
       const newLinesTotal = lines + cleared;
@@ -159,6 +202,11 @@ export default function useTetris() {
     duringLockRef.current = true;
     setBoard(clearedBoard);
     setCurrent(null);
+    if (enableItems && awardCount > 0) {
+      try { if (onItemAwardRef.current) onItemAwardRef.current(awardCount); } catch (_) {}
+    }
+    setCurrentItemPick(null);
+    // Awarding already processed pre-clears above
     // Ensure soft-drop does not carry over to the next spawn
     setHoldSoftDrop(false);
     try { if (onLockRef.current) onLockRef.current({ cleared }); } catch (_) {}
@@ -173,7 +221,7 @@ export default function useTetris() {
       }, 0);
     }, 0);
     setHoldUsed(false);
-  }, [board, current, gameOver, lines, spawn, combo, b2bActive]);
+  }, [board, current, gameOver, lines, spawn, combo, b2bActive, enableItems, currentItemPick]);
 
   // gravity timer
   useEffect(() => {
@@ -200,9 +248,35 @@ export default function useTetris() {
 
   const rotate = useCallback((dir = 1) => {
     if (gameOver || paused || !current) return;
-    const r = tryRotate(board, current, dir);
+    const prev = current;
+    const r = tryRotate(board, prev, dir);
     setCurrent(r);
-  }, [board, current, gameOver, paused]);
+    // Keep d12 bound to the same local block through exact 4x4 rotation mapping
+    if (enableItems && currentItemPick != null && r && (r.rot !== prev.rot)) {
+      try {
+        const step = ((r.rot - prev.rot) + 4) % 4; // 1..3 steps CW
+        let idx = currentItemPick;
+        if (step === 1) {
+          idx = ITEM_INDEX_MAP[prev.id]?.[prev.rot]?.[idx] ?? idx;
+        } else if (step === 2) {
+          idx = ITEM_INDEX_MAP[prev.id]?.[prev.rot]?.[idx] ?? idx;
+          idx = ITEM_INDEX_MAP[prev.id]?.[(prev.rot + 1) % 4]?.[idx] ?? idx;
+        } else if (step === 3) {
+          // effectively CCW one step: invert mapping
+          // Build inverse quickly from next rotation
+          const nextMap = ITEM_INDEX_MAP[prev.id]?.[(r.rot) % 4];
+          if (nextMap && Array.isArray(nextMap)) {
+            // nextMap maps r.rot -> (r.rot+1); we need mapping r.rot <- prev.rot
+            // safer: chain CW three times
+            idx = ITEM_INDEX_MAP[prev.id]?.[prev.rot]?.[idx] ?? idx;
+            idx = ITEM_INDEX_MAP[prev.id]?.[(prev.rot + 1) % 4]?.[idx] ?? idx;
+            idx = ITEM_INDEX_MAP[prev.id]?.[(prev.rot + 2) % 4]?.[idx] ?? idx;
+          }
+        }
+        setCurrentItemPick(idx);
+      } catch (_) {}
+    }
+  }, [board, current, gameOver, paused, enableItems, currentItemPick]);
 
   const applyPlanFast = useCallback((plan) => {
     if (!plan || gameOver || paused || !current) return;
@@ -246,6 +320,17 @@ export default function useTetris() {
       }
       return out;
     });
+    // Keep itemBoard in sync with garbage rise
+    if (enableItems) {
+      setItemBoard((ib) => {
+        let out = ib.map((r) => r.slice());
+        for (let i = 0; i < n; i++) {
+          out.shift();
+          out.push(Array(COLS).fill(0));
+        }
+        return out;
+      });
+    }
   }, [current, gameOver, endNow]);
 
   const setOnLinesCleared = useCallback((cb) => {
@@ -280,11 +365,14 @@ export default function useTetris() {
     onLinesClearedRef.current = null;
     onLockRef.current = null;
     onGameOverRef.current = null;
+    onItemAwardRef.current = null;
     setHoldId(null);
     setHoldUsed(false);
     endedRef.current = false;
     duringLockRef.current = false;
     clearTimeout(spawnTimerRef.current);
+    setItemBoard(makeEmptyBoard());
+    setCurrentItemPick(null);
   }, []);
 
   const ghost = useMemo(() => {
@@ -295,7 +383,7 @@ export default function useTetris() {
   }, [board, current]);
 
   return {
-    state: { board, current, ghost, score, level, lines, gameOver, gameOverReason, paused, holdId, next: queue.slice(nextIdx, nextIdx + 5) },
+    state: { board, current, ghost, score, level, lines, gameOver, gameOverReason, paused, holdId, next: queue.slice(nextIdx, nextIdx + 5), itemBoard, currentItemPick },
     actions: {
       moveLeft: () => tryMove(-1),
       moveRight: () => tryMove(1),
@@ -311,6 +399,56 @@ export default function useTetris() {
       setOnLock,
       holdPiece,
       applyPlanFast,
+      setOnItemAward: (cb) => { onItemAwardRef.current = cb; },
     }
   };
 }
+
+// Find horizontal/vertical runs of >=3 and consume them; returns { board, awarded }
+function findAndConsumeItemTriples(iboard) {
+  const b = iboard.map((r) => r.slice());
+  const marked = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+  let award = 0;
+  // Horizontal
+  for (let y = 0; y < ROWS; y++) {
+    let x = 0;
+    while (x < COLS) {
+      if (b[y][x]) {
+        let x2 = x;
+        while (x2 < COLS && b[y][x2]) x2++;
+        const len = x2 - x;
+        if (len >= 3) {
+          const triples = Math.floor(len / 3);
+          award += triples;
+          // consume all in the run
+          for (let k = x; k < x2; k++) marked[y][k] = 1;
+        }
+        x = x2;
+      } else x++;
+    }
+  }
+  // Vertical
+  for (let x = 0; x < COLS; x++) {
+    let y = 0;
+    while (y < ROWS) {
+      if (b[y][x]) {
+        let y2 = y;
+        while (y2 < ROWS && b[y2][x]) y2++;
+        const len = y2 - y;
+        if (len >= 3) {
+          const triples = Math.floor(len / 3);
+          award += triples;
+          for (let k = y; k < y2; k++) marked[k][x] = 1;
+        }
+        y = y2;
+      } else y++;
+    }
+  }
+  if (award > 0) {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (marked[y][x]) b[y][x] = 0;
+  }
+  return { board: b, awarded: award };
+}
+
+// Map a block index from one rotation to another using exact 4x4 grid rotation
+// removed old rotation-math mapper; using precomputed ITEM_INDEX_MAP in Constants

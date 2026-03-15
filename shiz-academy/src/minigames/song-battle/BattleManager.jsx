@@ -18,7 +18,7 @@ const calcAttack = ({ cleared, combo, isB2B }) => {
 };
 
 export default function BattleManager({ onClose }) {
-  const player = useTetris();
+  const player = useTetris({ enableItems: true, itemSpawnChance: 0.5 });
   const ai = useTetris();
   const { bestMove } = useTetrisAI();
 
@@ -95,6 +95,8 @@ export default function BattleManager({ onClose }) {
   const [aiFace, setAIFace] = useState('neutral');
   const aiHitUntilRef = useRef(0);
   const aiHypeUntilRef = useRef(0);
+  const [d12Count, setD12Count] = useState(0);
+  const [d12Toast, setD12Toast] = useState(null); // { amt, ts }
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -225,6 +227,17 @@ export default function BattleManager({ onClose }) {
       } catch (_) {}
     });
   }, [player.actions, ai.actions]);
+
+  // Item award hook (player only)
+  useEffect(() => {
+    player.actions.setOnItemAward((amt) => {
+      if (!amt) return;
+      setD12Count((c) => c + amt);
+      setD12Toast({ amt, ts: Date.now() });
+      // small audio momentum boost for fun
+      try { audioRef.current && audioRef.current.onClear('player', amt >= 2 ? 'tetris' : 'line'); } catch (_) {}
+    });
+  }, [player.actions]);
 
   // Rise-on-lock: apply pending garbage on each side's lock
   useEffect(() => {
@@ -403,20 +416,25 @@ export default function BattleManager({ onClose }) {
             <GarbagePreview count={pendingPlayer} hole={pendingPlayerHole} cols={COLS} title={'Incoming'} />
           </div>
           <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
-            <GameBoard
-              board={player.state.board}
-              current={player.state.current}
-              ghost={player.state.ghost}
-              cellPx={cellPx}
-              onTapRotate={player.actions.rotateCW}
-              onHoldDownStart={() => player.actions.setSoftDrop(true)}
-              onHoldDownEnd={() => player.actions.setSoftDrop(false)}
-            />
-            <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
-            {playerCancel && (
-              <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
-            )}
-          </div>
+          <GameBoard
+            board={player.state.board}
+            current={player.state.current}
+            ghost={player.state.ghost}
+            itemBoard={player.state.itemBoard}
+            currentItemPick={player.state.currentItemPick}
+            cellPx={cellPx}
+            onTapRotate={player.actions.rotateCW}
+            onHoldDownStart={() => player.actions.setSoftDrop(true)}
+            onHoldDownEnd={() => player.actions.setSoftDrop(false)}
+          />
+          <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
+          {playerCancel && (
+            <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
+          )}
+          {d12Toast && (
+            <D12Badge key={d12Toast.ts} amt={d12Toast.amt} />
+          )}
+        </div>
         </div>
         {/* Player controls moved to bottom row to free vertical space */}
       </div>
@@ -468,6 +486,11 @@ export default function BattleManager({ onClose }) {
         alt={'You'}
         style={{ position:'absolute', top: 8, left: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
       />
+      {/* D12 counter under player image */}
+      <div style={{ position:'absolute', top: 100, left: 8, display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:8, padding:'4px 6px', color:'#fff', fontSize:12 }}>
+        <img src={'/art/tetrominoes/d12.png'} alt={'d12'} style={{ width:16, height:16, imageRendering:'pixelated' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+        <span style={{ fontWeight:800 }}>x{d12Count}</span>
+      </div>
       <img
         src={`/art/friends/mcmunch_${aiFace}.png`}
         alt={`Friend ${aiFace}`}
@@ -561,6 +584,21 @@ function CancelBadge({ amt, label = 'Canceled', side = 'right', variant = 'playe
   return (
     <div style={{ position:'absolute', top:8, ...pos, background:color, color:'#fff', border:`1px solid ${border}`, borderRadius:8, padding:'4px 8px', fontSize:12, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
       {label} +{amt}
+    </div>
+  );
+}
+
+function D12Badge({ amt }) {
+  const [visible, setVisible] = React.useState(true);
+  React.useEffect(() => {
+    const t = setTimeout(() => setVisible(false), 1200);
+    return () => clearTimeout(t);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div style={{ position:'absolute', top: 40, left: 8, background:'rgba(100,180,255,0.9)', color:'#001', border:'1px solid rgba(200,230,255,0.9)', borderRadius:8, padding:'4px 8px', fontSize:12, boxShadow:'0 2px 8px rgba(0,0,0,0.3)', display:'flex', alignItems:'center', gap:6 }}>
+      <img src={'/art/tetrominoes/d12.png'} alt={'d12'} style={{ width:14, height:14, imageRendering:'pixelated' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+      +{amt}
     </div>
   );
 }

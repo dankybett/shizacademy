@@ -83,3 +83,61 @@ export const randomBag7 = () => {
   return a;
 };
 
+// Precomputed index mapping for item overlay to stick to the same logical block across rotations.
+// For each piece id and rotation r, ITEM_INDEX_MAP[id][r][i] gives the index in rotation r+1 (CW) corresponding to block i in rotation r.
+const rotCW = ([x, y]) => [3 - y, x];
+function computeCWMapForPiece(shapes) {
+  const map = [];
+  for (let r = 0; r < 4; r++) {
+    const a = shapes[r];
+    const b = shapes[(r + 1) % 4];
+    // rotate A into A' in 4x4 space
+    const ar = a.map(([x, y]) => rotCW([x, y]));
+    // Try small translations to align to B best
+    let best = { matches: -1, dx: 0, dy: 0 };
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dy = -2; dy <= 2; dy++) {
+        let m = 0;
+        for (let i = 0; i < ar.length; i++) {
+          const [x, y] = ar[i];
+          for (let j = 0; j < b.length; j++) {
+            const [bx, by] = b[j];
+            if (bx === x + dx && by === y + dy) { m++; break; }
+          }
+        }
+        if (m > best.matches) best = { matches: m, dx, dy };
+      }
+    }
+    const out = [];
+    for (let i = 0; i < ar.length; i++) {
+      const [x, y] = ar[i];
+      let targetIdx = -1;
+      for (let j = 0; j < b.length; j++) {
+        const [bx, by] = b[j];
+        if (bx === x + best.dx && by === y + best.dy) { targetIdx = j; break; }
+      }
+      if (targetIdx === -1) {
+        // fallback to nearest by manhattan
+        let bestJ = 0, bestD = Infinity;
+        for (let j = 0; j < b.length; j++) {
+          const [bx, by] = b[j];
+          const d = Math.abs((x + best.dx) - bx) + Math.abs((y + best.dy) - by);
+          if (d < bestD) { bestD = d; bestJ = j; }
+        }
+        targetIdx = bestJ;
+      }
+      out.push(targetIdx);
+    }
+    map.push(out);
+  }
+  return map;
+}
+
+export const ITEM_INDEX_MAP = (() => {
+  const m = {};
+  for (const id of Object.keys(SHAPES)) {
+    m[id] = computeCWMapForPiece(SHAPES[id]);
+  }
+  return m;
+})();
+

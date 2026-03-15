@@ -20,7 +20,7 @@ function drawCells(board, current, ghost) {
   return b;
 }
 
-export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
+export default function GameBoard({ board, current, ghost, itemBoard, currentItemPick, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
   const canvasRef = useRef(null);
   const [pressStartTs, setPressStartTs] = useState(null);
 
@@ -65,6 +65,19 @@ export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDo
           {row.map((v, x) => {
             const id = Math.abs(v);
             const isGhost = v < 0;
+            const hasItemOverlay = (() => {
+              try {
+                if (itemBoard && itemBoard[y] && itemBoard[y][x]) return true;
+                if (current && currentItemPick != null) {
+                  const shape = SHAPES[current.id][current.rot] || [];
+                  const ii = Math.max(0, Math.min(currentItemPick, shape.length - 1));
+                  const [dx, dy] = shape[ii] || [];
+                  const cx = current.x + dx, cy = current.y + dy;
+                  if (cx === x && cy === y) return true;
+                }
+              } catch (_) {}
+              return false;
+            })();
             return (
               <div key={x} style={{ width: cellPx, height: cellPx, position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 1, background: 'rgba(255,255,255,0.05)' }} />
@@ -81,6 +94,25 @@ export default function GameBoard({ board, current, ghost, onTapRotate, onHoldDo
                       objectFit: 'contain',
                       imageRendering: 'pixelated',
                     }}
+                  />
+                )}
+                {hasItemOverlay && (
+                  <img
+                    src={'/art/tetrominoes/d12.png'}
+                    alt={'d12'}
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: Math.floor(cellPx * 0.72),
+                      height: Math.floor(cellPx * 0.72),
+                      opacity: isGhost ? 0.5 : 1,
+                      pointerEvents: 'none',
+                      imageRendering: 'pixelated',
+                      filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+                    }}
+                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
                   />
                 )}
               </div>
