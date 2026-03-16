@@ -113,6 +113,10 @@ export default function BattleManager({ onClose }) {
   const nextBombAtRef = useRef(null);
   const countdownTimerRef = useRef(null);
   const [bombCountdownMs, setBombCountdownMs] = useState(null);
+  // Griswald countdown + armed flag
+  const nextLogAtRef = useRef(null);
+  const [logCountdownMs, setLogCountdownMs] = useState(null);
+  const [logArmed, setLogArmed] = useState(false);
   const [shake, setShake] = useState({ x: 0, y: 0 });
   const shakeTimerRef = useRef(null);
   const shakeEndRef = useRef(0);
@@ -343,6 +347,7 @@ export default function BattleManager({ onClose }) {
             }, 16);
           }
           logArmedRef.current = false;
+          setLogArmed(false);
           logLaneXRef.current = null;
           setLogHintCells(null);
         }, 0);
@@ -516,12 +521,17 @@ export default function BattleManager({ onClose }) {
       try { clearInterval(logAnimTimerRef.current); } catch(_) {}
       setLogAnim(null);
       setLogMaskCells(null);
+      nextLogAtRef.current = null;
+      setLogCountdownMs(null);
+      setLogArmed(false);
       return;
     }
     clearTimeout(logTimerRef.current);
     const base = ({ easy: 80000, normal: 60000, hard: 48000, expert: 36000, insane: 32000 })[difficulty] || 60000;
     const jitter = 2000;
     const schedule = (delayMs) => {
+      const armDelay = Math.max(2000, delayMs);
+      nextLogAtRef.current = Date.now() + armDelay;
       logTimerRef.current = setTimeout(() => {
         if (logArmedRef.current) { // already telegraphed/armed; try again shortly
           schedule(3000);
@@ -530,6 +540,8 @@ export default function BattleManager({ onClose }) {
         const x = Math.floor(Math.random() * (COLS - 4 + 1));
         logLaneXRef.current = x;
         logArmedRef.current = true;
+        setLogArmed(true);
+        nextLogAtRef.current = null; setLogCountdownMs(null);
         // Update predicted landing row periodically until drop
         const update = () => {
           const b = playerBoardRef.current;
@@ -566,13 +578,22 @@ export default function BattleManager({ onClose }) {
     }, 32);
   }
 
-  // Countdown ticker for the incoming bomb badge (only show last 5s)
+  // Countdown ticker for incoming power badges (only show last 5s)
   useEffect(() => {
     clearInterval(countdownTimerRef.current);
     countdownTimerRef.current = setInterval(() => {
-      if (!nextBombAtRef.current) { setBombCountdownMs(null); return; }
-      const remain = nextBombAtRef.current - Date.now();
-      if (remain > 0 && remain <= 5000) setBombCountdownMs(remain); else setBombCountdownMs(null);
+      // MC Munch bomb countdown
+      if (!nextBombAtRef.current) setBombCountdownMs(null);
+      else {
+        const remain = nextBombAtRef.current - Date.now();
+        if (remain > 0 && remain <= 5000) setBombCountdownMs(remain); else setBombCountdownMs(null);
+      }
+      // Griswald log countdown
+      if (!nextLogAtRef.current) setLogCountdownMs(null);
+      else {
+        const remainL = nextLogAtRef.current - Date.now();
+        if (remainL > 0 && remainL <= 5000) setLogCountdownMs(remainL); else setLogCountdownMs(null);
+      }
     }, 200);
     return () => clearInterval(countdownTimerRef.current);
   }, []);
@@ -689,6 +710,16 @@ export default function BattleManager({ onClose }) {
           {typeof bombCountdownMs === 'number' && bombCountdownMs > 0 && (
             <div style={{ position:'absolute', top: 6, right: 6, background:'rgba(255,120,120,0.9)', color:'#130707', border:'1px solid rgba(255,200,200,0.9)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
               Bomb in {Math.ceil(bombCountdownMs/1000)}s
+            </div>
+          )}
+          {typeof logCountdownMs === 'number' && logCountdownMs > 0 && (
+            <div style={{ position:'absolute', top: 6, left: 6, background:'rgba(180,130,80,0.9)', color:'#120a04', border:'1px solid rgba(230,200,160,0.9)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
+              Tree in {Math.ceil(logCountdownMs/1000)}s
+            </div>
+          )}
+          {logArmed && !logCountdownMs && (
+            <div style={{ position:'absolute', top: 6, left: 6, background:'rgba(180,130,80,0.95)', color:'#120a04', border:'1px solid rgba(230,200,160,0.95)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
+              Tree Ready
             </div>
           )}
           {d12Toast && (
