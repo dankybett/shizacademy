@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useTetris from './useTetris';
 import useTetrisAI from './useTetrisAI';
 import GameBoard from './GameBoard.jsx';
-import { BLOCK_SRC, COLS, ROWS } from './Constants';
+import { BLOCK_SRC, COLS, ROWS, SHAPES } from './Constants';
 import MiniPreview from './MiniPreview.jsx';
 import GarbagePreview from './GarbagePreview.jsx';
 import VerticalGarbageMeter from './VerticalGarbageMeter.jsx';
@@ -97,6 +97,19 @@ export default function BattleManager({ onClose }) {
   const aiHypeUntilRef = useRef(0);
   const [d12Count, setD12Count] = useState(0);
   const [d12Toast, setD12Toast] = useState(null); // { amt, ts }
+  // MC Munch: Lyric Bomb power
+  const bombTimerRef = useRef(null);
+  const [bombCells, setBombCells] = useState(null); // telegraph cells on player board
+  const deferredBombRef = useRef(null); // cells to apply after next lock if overlapping
+  const playerBoardRef = useRef(null);
+  const playerCurrentRef = useRef(null);
+  const applyBombRef = useRef(null);
+  const nextBombAtRef = useRef(null);
+  const countdownTimerRef = useRef(null);
+  const [bombCountdownMs, setBombCountdownMs] = useState(null);
+  useEffect(() => { playerBoardRef.current = player.state.board; }, [player.state.board]);
+  useEffect(() => { playerCurrentRef.current = player.state.current; }, [player.state.current]);
+  useEffect(() => { applyBombRef.current = player.actions.applyBomb; }, [player.actions]);
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -250,6 +263,13 @@ export default function BattleManager({ onClose }) {
         player.actions.addGarbage(amt, hole);
         try { audioRef.current && audioRef.current.onGarbageApplied('player', amt); } catch(_) {}
       }
+      // Apply deferred Lyric Bomb (if any) safely after lock
+      if (deferredBombRef.current && Array.isArray(deferredBombRef.current)) {
+        const cells = deferredBombRef.current;
+        deferredBombRef.current = null;
+        try { applyBombRef.current && applyBombRef.current(cells); } catch(_) {}
+        try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
+      }
     });
     ai.actions.setOnLock(() => {
       const amt = pendingAIRef.current;
@@ -366,6 +386,86 @@ export default function BattleManager({ onClose }) {
     return () => clearInterval(aiActTimerRef.current);
   }, [ai.actions, result, difficulty]);
 
+  // MC Munch: Lyric Bomb scheduling (telegraph + detonate)
+  useEffect(() => {
+    if (result) { clearTimeout(bombTimerRef.current); setBombCells(null); return; }
+    clearTimeout(bombTimerRef.current);
+    // Less frequent (quarter as frequent vs original): doubled again
+    const base = ({ easy: 80000, normal: 60000, hard: 48000, expert: 36000, insane: 32000 })[difficulty] || 60000;
+    const jitter = 2000;
+    const schedule = (delayMs) => {
+      nextBombAtRef.current = Date.now() + Math.max(2000, delayMs);
+      bombTimerRef.current = setTimeout(() => {
+        const highest = getHighestOccupiedRow(playerBoardRef.current);
+        if (highest >= 0 && highest <= 3) { schedule(3000); return; }
+        const filled = getFilledCells(playerBoardRef.current);
+        if (filled.length === 0) { schedule(3000); return; }
+        const [cx, cy] = filled[Math.floor(Math.random() * filled.length)];
+        const cells = plusShape(cx, cy, COLS, ROWS);
+        setBombCells(cells);
+        try { aiHypeUntilRef.current = Date.now() + 800; } catch (_) {}
+        setTimeout(() => {
+          setBombCells(null);
+          if (overlapsCurrentPiece(playerCurrentRef.current, cells)) {
+            deferredBombRef.current = cells;
+          } else {
+            try { applyBombRef.current && applyBombRef.current(cells); } catch(_) {}
+            try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
+          }
+          const d = base + Math.floor((Math.random() * 2 - 1) * jitter);
+          schedule(Math.max(4000, d));
+        }, 1000);
+      }, Math.max(2000, delayMs));
+    };
+    const first = base + Math.floor((Math.random() * 2 - 1) * jitter);
+    schedule(first);
+    return () => clearTimeout(bombTimerRef.current);
+  }, [difficulty, result]);
+
+  // Countdown ticker for the incoming bomb badge (only show last 5s)
+  useEffect(() => {
+    clearInterval(countdownTimerRef.current);
+    countdownTimerRef.current = setInterval(() => {
+      if (!nextBombAtRef.current) { setBombCountdownMs(null); return; }
+      const remain = nextBombAtRef.current - Date.now();
+      if (remain > 0 && remain <= 5000) setBombCountdownMs(remain); else setBombCountdownMs(null);
+    }, 200);
+    return () => clearInterval(countdownTimerRef.current);
+  }, []);
+
+  function getHighestOccupiedRow(board) {
+    if (!board || !board.length) return -1;
+    for (let y = 0; y < board.length; y++) {
+      const row = board[y];
+      for (let x = 0; x < row.length; x++) {
+        if (row[x] && row[x] !== 0) return y;
+      }
+    }
+    return -1;
+  }
+  function getFilledCells(board) {
+    const out = [];
+    for (let y = 0; y < board.length; y++) {
+      for (let x = 0; x < board[0].length; x++) {
+        if (board[y][x] >= 1 && board[y][x] <= 7) out.push([x, y]);
+      }
+    }
+    return out;
+  }
+  function plusShape(cx, cy, cols, rows) {
+    const pts = [[cx, cy], [cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+    return pts.filter(([x, y]) => x >= 0 && x < cols && y >= 0 && y < rows);
+  }
+  function overlapsCurrentPiece(cur, cells) {
+    if (!cur || !cells || cells.length === 0) return false;
+    const shape = SHAPES[cur.id][cur.rot] || [];
+    const curCells = shape.map(([dx, dy]) => [cur.x + dx, cur.y + dy]);
+    for (const [x, y] of cells) {
+      for (const [cx, cy] of curCells) if (x === cx && y === cy) return true;
+    }
+    return false;
+  }
+
   const resetBoth = () => {
     player.actions.reset();
     ai.actions.reset();
@@ -375,6 +475,7 @@ export default function BattleManager({ onClose }) {
     setAIReason(null);
     pendingPlayerRef.current = 0; setPendingPlayer(0);
     pendingAIRef.current = 0; setPendingAI(0);
+    clearTimeout(bombTimerRef.current); setBombCells(null); deferredBombRef.current = null;
     try { ai.actions.setSoftDrop(false); } catch (_) {}
     try { player.actions.setSoftDrop(false); } catch (_) {}
   };
@@ -422,6 +523,7 @@ export default function BattleManager({ onClose }) {
             ghost={player.state.ghost}
             itemBoard={player.state.itemBoard}
             currentItemPick={player.state.currentItemPick}
+            bombCells={bombCells}
             cellPx={cellPx}
             onTapRotate={player.actions.rotateCW}
             onHoldDownStart={() => player.actions.setSoftDrop(true)}
@@ -430,6 +532,11 @@ export default function BattleManager({ onClose }) {
           <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
           {playerCancel && (
             <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
+          )}
+          {typeof bombCountdownMs === 'number' && bombCountdownMs > 0 && (
+            <div style={{ position:'absolute', top: 6, right: 6, background:'rgba(255,120,120,0.9)', color:'#130707', border:'1px solid rgba(255,200,200,0.9)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
+              Bomb in {Math.ceil(bombCountdownMs/1000)}s
+            </div>
           )}
           {d12Toast && (
             <D12Badge key={d12Toast.ts} amt={d12Toast.amt} />

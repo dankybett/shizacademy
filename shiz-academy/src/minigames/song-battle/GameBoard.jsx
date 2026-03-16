@@ -20,7 +20,7 @@ function drawCells(board, current, ghost) {
   return b;
 }
 
-export default function GameBoard({ board, current, ghost, itemBoard, currentItemPick, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
+export default function GameBoard({ board, current, ghost, itemBoard, currentItemPick, bombCells, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
   const canvasRef = useRef(null);
   const [pressStartTs, setPressStartTs] = useState(null);
 
@@ -119,6 +119,14 @@ export default function GameBoard({ board, current, ghost, itemBoard, currentIte
             );
           })}
         </div>
+      ))}
+      {/* Bomb telegraph overlay */}
+      {Array.isArray(bombCells) && bombCells.length > 0 && bombCells.map(([bx, by], i) => (
+        (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) ? (
+          <div key={`bomb-${i}`} style={{ position: 'absolute', left: bx * cellPx, top: by * cellPx, width: cellPx, height: cellPx, pointerEvents:'none', zIndex: 5 }}>
+            <div style={{ position:'absolute', inset:2, border:'2px dashed rgba(255,120,120,0.95)', borderRadius:4, boxShadow:'0 0 8px rgba(255,60,60,0.7), inset 0 0 6px rgba(255,80,80,0.6)' }} />
+          </div>
+        ) : null
       ))}
     </div>
   );

@@ -399,6 +399,39 @@ export default function useTetris(options = {}) {
       setOnLock,
       holdPiece,
       applyPlanFast,
+      applyBomb: (cells = []) => {
+        try {
+          if (!Array.isArray(cells) || cells.length === 0) return;
+          const cur = current;
+          const curCells = [];
+          if (cur) {
+            const shape = SHAPES[cur.id][cur.rot] || [];
+            for (const [dx, dy] of shape) curCells.push([cur.x + dx, cur.y + dy]);
+          }
+          setBoard((b) => {
+            const out = b.map((r) => r.slice());
+            for (const [x, y] of cells) {
+              if (y >= 0 && y < ROWS && x >= 0 && x < COLS) {
+                let overlaps = false;
+                for (const [cx, cy] of curCells) { if (cx === x && cy === y) { overlaps = true; break; } }
+                if (overlaps) continue;
+                const v = out[y][x];
+                if (v >= 1 && v <= 7) out[y][x] = EMPTY;
+              }
+            }
+            return out;
+          });
+          if (enableItems) {
+            setItemBoard((ib) => {
+              const out = ib.map((r) => r.slice());
+              for (const [x, y] of cells) {
+                if (y >= 0 && y < ROWS && x >= 0 && x < COLS) out[y][x] = 0;
+              }
+              return out;
+            });
+          }
+        } catch (_) {}
+      },
       setOnItemAward: (cb) => { onItemAwardRef.current = cb; },
     }
   };
