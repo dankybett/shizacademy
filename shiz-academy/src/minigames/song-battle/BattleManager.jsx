@@ -107,6 +107,9 @@ export default function BattleManager({ onClose }) {
   const nextBombAtRef = useRef(null);
   const countdownTimerRef = useRef(null);
   const [bombCountdownMs, setBombCountdownMs] = useState(null);
+  const [shake, setShake] = useState({ x: 0, y: 0 });
+  const shakeTimerRef = useRef(null);
+  const shakeEndRef = useRef(0);
   useEffect(() => { playerBoardRef.current = player.state.board; }, [player.state.board]);
   useEffect(() => { playerCurrentRef.current = player.state.current; }, [player.state.current]);
   useEffect(() => { applyBombRef.current = player.actions.applyBomb; }, [player.actions]);
@@ -269,6 +272,7 @@ export default function BattleManager({ onClose }) {
         deferredBombRef.current = null;
         try { applyBombRef.current && applyBombRef.current(cells); } catch(_) {}
         try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
+        triggerShake(260);
       }
     });
     ai.actions.setOnLock(() => {
@@ -411,6 +415,7 @@ export default function BattleManager({ onClose }) {
           } else {
             try { applyBombRef.current && applyBombRef.current(cells); } catch(_) {}
             try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
+            triggerShake(260);
           }
           const d = base + Math.floor((Math.random() * 2 - 1) * jitter);
           schedule(Math.max(4000, d));
@@ -421,6 +426,22 @@ export default function BattleManager({ onClose }) {
     schedule(first);
     return () => clearTimeout(bombTimerRef.current);
   }, [difficulty, result]);
+
+  function triggerShake(ms = 220) {
+    try { clearInterval(shakeTimerRef.current); } catch (_) {}
+    shakeEndRef.current = Date.now() + ms;
+    setShake({ x: 0, y: 0 });
+    shakeTimerRef.current = setInterval(() => {
+      const now = Date.now();
+      if (now > shakeEndRef.current) {
+        clearInterval(shakeTimerRef.current);
+        setShake({ x: 0, y: 0 });
+        return;
+      }
+      const amp = 2.5;
+      setShake({ x: (Math.random() - 0.5) * amp * 2, y: (Math.random() - 0.5) * amp * 2 });
+    }, 32);
+  }
 
   // Countdown ticker for the incoming bomb badge (only show last 5s)
   useEffect(() => {
@@ -476,6 +497,8 @@ export default function BattleManager({ onClose }) {
     pendingPlayerRef.current = 0; setPendingPlayer(0);
     pendingAIRef.current = 0; setPendingAI(0);
     clearTimeout(bombTimerRef.current); setBombCells(null); deferredBombRef.current = null;
+    try { clearInterval(shakeTimerRef.current); } catch(_) {}
+    setShake({ x: 0, y: 0 });
     try { ai.actions.setSoftDrop(false); } catch (_) {}
     try { player.actions.setSoftDrop(false); } catch (_) {}
   };
@@ -516,19 +539,19 @@ export default function BattleManager({ onClose }) {
             </div>
             <GarbagePreview count={pendingPlayer} hole={pendingPlayerHole} cols={COLS} title={'Incoming'} />
           </div>
-          <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx }}>
-          <GameBoard
-            board={player.state.board}
-            current={player.state.current}
-            ghost={player.state.ghost}
-            itemBoard={player.state.itemBoard}
-            currentItemPick={player.state.currentItemPick}
-            bombCells={bombCells}
-            cellPx={cellPx}
-            onTapRotate={player.actions.rotateCW}
-            onHoldDownStart={() => player.actions.setSoftDrop(true)}
-            onHoldDownEnd={() => player.actions.setSoftDrop(false)}
-          />
+          <div style={{ position:'relative', width: COLS*cellPx, height: ROWS*cellPx, transform: `translate(${shake.x}px, ${shake.y}px)` }}>
+            <GameBoard
+              board={player.state.board}
+              current={player.state.current}
+              ghost={player.state.ghost}
+              itemBoard={player.state.itemBoard}
+              currentItemPick={player.state.currentItemPick}
+              bombCells={bombCells}
+              cellPx={cellPx}
+              onTapRotate={player.actions.rotateCW}
+              onHoldDownStart={() => player.actions.setSoftDrop(true)}
+              onHoldDownEnd={() => player.actions.setSoftDrop(false)}
+            />
           <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
           {playerCancel && (
             <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
@@ -607,6 +630,7 @@ export default function BattleManager({ onClose }) {
 
       {/* Stats box on right */}
       <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
+        <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>MC Munch — Lyric Bomb</div>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
