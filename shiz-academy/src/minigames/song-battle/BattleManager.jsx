@@ -652,8 +652,8 @@ export default function BattleManager({ onClose }) {
   };
 
   const statLine = (label, s) => (
-    <div style={{ display:'flex', gap:6, fontSize:12 }}>
-      <div style={{ fontWeight:700, width:24, textAlign:'right' }}>{label}</div>
+    <div style={{ display:'flex', gap:4, fontSize:11, flexWrap:'wrap' }}>
+      <div style={{ fontWeight:700, width:22, textAlign:'right' }}>{label}</div>
       <div>Score: <b>{s.score}</b></div>
       <div>Lines: <b>{s.lines}</b></div>
       <div>Level: <b>{s.level}</b></div>
@@ -790,26 +790,25 @@ export default function BattleManager({ onClose }) {
       />
 
       {/* Stats box on right */}
-      <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
+      <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'4px 6px', color:'#fff', display:'grid', gap:3, fontSize:11, justifyItems:'end', textAlign:'right' }}>
         <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>
           {OPPONENTS[opponent]?.label}{OPPONENTS[opponent]?.hasBomb ? ' — Lyric Bomb' : ''}
+          {opponent === 'griswald' && (<span>{' - Tree Fall'}</span>)}
         </div>
-        <div style={{ fontSize:11, opacity:.88, fontWeight:700 }}>
+        <div style={{ fontSize:11, opacity:.88, fontWeight:700, display:'none' }}>
           {(OPPONENTS[opponent]?.hasBomb ? 'Lyric Bomb' : '') + (OPPONENTS[opponent]?.hasLog ? (OPPONENTS[opponent]?.hasBomb ? ' · ' : '') + 'Tree Fall' : '')}
         </div>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
-          <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
-          <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:12 }}>
+          <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:11 }}>
             {Object.entries(DIFFS).map(([k,v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
         </div>
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end' }}>
-          <span style={{ fontSize:12, opacity:.9 }}>Opponent</span>
-          <select value={opponent} onChange={(e)=> setOpponent(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:12 }}>
+          <select value={opponent} onChange={(e)=> setOpponent(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:11 }}>
             {Object.entries(OPPONENTS).map(([k,v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
