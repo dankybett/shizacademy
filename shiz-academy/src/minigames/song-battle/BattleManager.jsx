@@ -68,7 +68,7 @@ export default function BattleManager({ onClose }) {
 
   const OPPONENTS = {
     mcmunch: { label: 'MC Munch', track: '/art/music/ai.mp3', faceBase: '/art/friends/mcmunch', hasBomb: true },
-    griswald: { label: 'Griswald', track: '/art/music/griswald.mp3', faceBase: '/art/friends/griswald', hasBomb: false },
+    griswald: { label: 'Griswald', track: '/art/music/griswald.mp3', faceBase: '/art/friends/griswald', hasBomb: false, hasLog: true },
   };
 
   const DIFFS = {
@@ -119,6 +119,33 @@ export default function BattleManager({ onClose }) {
   useEffect(() => { playerBoardRef.current = player.state.board; }, [player.state.board]);
   useEffect(() => { playerCurrentRef.current = player.state.current; }, [player.state.current]);
   useEffect(() => { applyBombRef.current = player.actions.applyBomb; }, [player.actions]);
+
+  // Griswald: Tree Drop (log)
+  const logTimerRef = useRef(null);
+  const logLaneXRef = useRef(null);
+  const [logHintCells, setLogHintCells] = useState(null);
+  const logArmedRef = useRef(false);
+  const placeLogRef = useRef(null);
+  useEffect(() => { placeLogRef.current = player.actions.placeLogRow; }, [player.actions]);
+  const [logAnim, setLogAnim] = useState(null); // { x, topPx }
+  const logAnimTimerRef = useRef(null);
+  const [logMaskCells, setLogMaskCells] = useState(null);
+
+  function computeLogLandingY(board, x0) {
+    if (!board || !board.length) return ROWS - 1;
+    const w = 4;
+    const x = Math.max(0, Math.min(x0, COLS - w));
+    let minOcc = ROWS;
+    for (let cx = x; cx < x + w; cx++) {
+      let occ = ROWS;
+      for (let y = 0; y < ROWS; y++) {
+        if (board[y][cx] && board[y][cx] !== 0) { occ = y; break; }
+      }
+      if (occ < minOcc) minOcc = occ;
+    }
+    const y = minOcc - 1;
+    return y;
+  }
 
   const scheduleApply = (side) => {
     const isPlayer = side === 'player';
@@ -282,6 +309,44 @@ export default function BattleManager({ onClose }) {
         try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
         triggerShake(260);
       }
+      // Griswald: Apply log drop if armed (after garbage and bombs)
+      if (logArmedRef.current && Number.isFinite(logLaneXRef.current)) {
+        const x = Math.max(0, Math.min(logLaneXRef.current, COLS - 4));
+        setTimeout(() => {
+          const b = playerBoardRef.current;
+          const y = computeLogLandingY(b, x);
+          if (y >= 0) {
+            // Commit board immediately for correctness
+            try { placeLogRef.current && placeLogRef.current(x, y, 4, 9); } catch (_) {}
+            // Mask committed row until animation finishes to avoid early reveal
+            setLogMaskCells([[x, y],[x+1, y],[x+2, y],[x+3, y]]);
+            // Run a short falling overlay animation and shake on landing
+            try { clearInterval(logAnimTimerRef.current); } catch(_) {}
+            const startTop = -Math.floor(cellPx * 3);
+            const endTop = y * cellPx;
+            const dur = Math.max(160, Math.min(420, 220 + Math.floor(y * 6)));
+            const t0 = Date.now();
+            setLogAnim({ x, topPx: startTop });
+            logAnimTimerRef.current = setInterval(() => {
+              const t = Date.now() - t0;
+              const p = Math.max(0, Math.min(1, t / dur));
+              const ease = 1 - Math.pow(1 - p, 3); // ease-out
+              const topPx = Math.round(startTop + (endTop - startTop) * ease);
+              setLogAnim({ x, topPx });
+              if (p >= 1) {
+                clearInterval(logAnimTimerRef.current);
+                setLogAnim(null);
+                setLogMaskCells(null);
+                try { audioRef.current && audioRef.current.onGarbageApplied('player', 1); } catch (_) {}
+                triggerShake(240);
+              }
+            }, 16);
+          }
+          logArmedRef.current = false;
+          logLaneXRef.current = null;
+          setLogHintCells(null);
+        }, 0);
+      }
     });
     ai.actions.setOnLock(() => {
       const amt = pendingAIRef.current;
@@ -400,7 +465,13 @@ export default function BattleManager({ onClose }) {
 
   // MC Munch: Lyric Bomb scheduling (telegraph + detonate)
   useEffect(() => {
-    if (result || opponent !== 'mcmunch') { clearTimeout(bombTimerRef.current); setBombCells(null); setBombCountdownMs(null); return; }
+    if (result || opponent !== 'mcmunch') {
+      clearTimeout(bombTimerRef.current);
+      setBombCells(null);
+      setBombCountdownMs(null);
+      nextBombAtRef.current = null; // ensure countdown ticker has nothing to show
+      return;
+    }
     clearTimeout(bombTimerRef.current);
     // Less frequent (quarter as frequent vs original): doubled again
     const base = ({ easy: 80000, normal: 60000, hard: 48000, expert: 36000, insane: 32000 })[difficulty] || 60000;
@@ -434,6 +505,50 @@ export default function BattleManager({ onClose }) {
     schedule(first);
     return () => clearTimeout(bombTimerRef.current);
   }, [difficulty, result]);
+
+  // Griswald: Tree Drop scheduling (telegraph until next player lock)
+  useEffect(() => {
+    if (result || opponent !== 'griswald') {
+      clearTimeout(logTimerRef.current);
+      logLaneXRef.current = null;
+      logArmedRef.current = false;
+      setLogHintCells(null);
+      try { clearInterval(logAnimTimerRef.current); } catch(_) {}
+      setLogAnim(null);
+      setLogMaskCells(null);
+      return;
+    }
+    clearTimeout(logTimerRef.current);
+    const base = ({ easy: 80000, normal: 60000, hard: 48000, expert: 36000, insane: 32000 })[difficulty] || 60000;
+    const jitter = 2000;
+    const schedule = (delayMs) => {
+      logTimerRef.current = setTimeout(() => {
+        if (logArmedRef.current) { // already telegraphed/armed; try again shortly
+          schedule(3000);
+          return;
+        }
+        const x = Math.floor(Math.random() * (COLS - 4 + 1));
+        logLaneXRef.current = x;
+        logArmedRef.current = true;
+        // Update predicted landing row periodically until drop
+        const update = () => {
+          const b = playerBoardRef.current;
+          const y = computeLogLandingY(b, x);
+          if (y >= 0) setLogHintCells([[x, y],[x+1, y],[x+2, y],[x+3, y]]); else setLogHintCells(null);
+        };
+        update();
+        const hintTicker = setInterval(() => {
+          if (!logArmedRef.current || result || opponent !== 'griswald') { clearInterval(hintTicker); return; }
+          update();
+        }, 200);
+        const d = base + Math.floor((Math.random() * 2 - 1) * jitter);
+        schedule(Math.max(4000, d));
+      }, Math.max(2000, delayMs));
+    };
+    const first = base + Math.floor((Math.random() * 2 - 1) * jitter);
+    schedule(first);
+    return () => clearTimeout(logTimerRef.current);
+  }, [difficulty, result, opponent]);
 
   function triggerShake(ms = 220) {
     try { clearInterval(shakeTimerRef.current); } catch (_) {}
@@ -505,8 +620,12 @@ export default function BattleManager({ onClose }) {
     pendingPlayerRef.current = 0; setPendingPlayer(0);
     pendingAIRef.current = 0; setPendingAI(0);
     clearTimeout(bombTimerRef.current); setBombCells(null); deferredBombRef.current = null;
+    clearTimeout(logTimerRef.current); logLaneXRef.current = null; logArmedRef.current = false; setLogHintCells(null);
+    try { clearInterval(logAnimTimerRef.current); } catch(_) {}
+    setLogAnim(null);
     try { clearInterval(shakeTimerRef.current); } catch(_) {}
     setShake({ x: 0, y: 0 });
+    setLogMaskCells(null);
     try { ai.actions.setSoftDrop(false); } catch (_) {}
     try { player.actions.setSoftDrop(false); } catch (_) {}
   };
@@ -555,6 +674,9 @@ export default function BattleManager({ onClose }) {
               itemBoard={player.state.itemBoard}
               currentItemPick={player.state.currentItemPick}
               bombCells={bombCells}
+              logHintCells={logHintCells}
+              logAnim={logAnim}
+              logMaskCells={logMaskCells}
               cellPx={cellPx}
               onTapRotate={player.actions.rotateCW}
               onHoldDownStart={() => player.actions.setSoftDrop(true)}
@@ -640,6 +762,9 @@ export default function BattleManager({ onClose }) {
       <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
         <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>
           {OPPONENTS[opponent]?.label}{OPPONENTS[opponent]?.hasBomb ? ' — Lyric Bomb' : ''}
+        </div>
+        <div style={{ fontSize:11, opacity:.88, fontWeight:700 }}>
+          {(OPPONENTS[opponent]?.hasBomb ? 'Lyric Bomb' : '') + (OPPONENTS[opponent]?.hasLog ? (OPPONENTS[opponent]?.hasBomb ? ' · ' : '') + 'Tree Fall' : '')}
         </div>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}

@@ -20,7 +20,7 @@ function drawCells(board, current, ghost) {
   return b;
 }
 
-export default function GameBoard({ board, current, ghost, itemBoard, currentItemPick, bombCells, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
+export default function GameBoard({ board, current, ghost, itemBoard, currentItemPick, bombCells, logHintCells, logAnim, logMaskCells, onTapRotate, onHoldDownStart, onHoldDownEnd, cellPx = 28 }) {
   const canvasRef = useRef(null);
   const [pressStartTs, setPressStartTs] = useState(null);
 
@@ -65,6 +65,7 @@ export default function GameBoard({ board, current, ghost, itemBoard, currentIte
           {row.map((v, x) => {
             const id = Math.abs(v);
             const isGhost = v < 0;
+            const masked = Array.isArray(logMaskCells) && logMaskCells.some(([mx, my]) => mx === x && my === y);
             const hasItemOverlay = (() => {
               try {
                 if (itemBoard && itemBoard[y] && itemBoard[y][x]) return true;
@@ -81,7 +82,7 @@ export default function GameBoard({ board, current, ghost, itemBoard, currentIte
             return (
               <div key={x} style={{ width: cellPx, height: cellPx, position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 1, background: 'rgba(255,255,255,0.05)' }} />
-                {id > 0 && (
+                {id > 0 && !masked && (
                   <img
                     src={BLOCK_SRC[id]}
                     alt={`b${id}`}
@@ -128,6 +129,22 @@ export default function GameBoard({ board, current, ghost, itemBoard, currentIte
           </div>
         ) : null
       ))}
+      {/* Griswald log predicted landing overlay */}
+      {Array.isArray(logHintCells) && logHintCells.length > 0 && logHintCells.map(([lx, ly], i) => (
+        (ly >= 0 && ly < ROWS && lx >= 0 && lx < COLS) ? (
+          <div key={`loghint-${i}`} style={{ position: 'absolute', left: lx * cellPx, top: ly * cellPx, width: cellPx, height: cellPx, pointerEvents:'none', zIndex: 4 }}>
+            <div style={{ position:'absolute', inset:2, border:'2px dashed rgba(160,120,60,0.95)', borderRadius:4, boxShadow:'0 0 6px rgba(160,120,60,0.6), inset 0 0 4px rgba(160,120,60,0.6)' }} />
+          </div>
+        ) : null
+      ))}
+      {/* Griswald log falling overlay (purely visual) */}
+      {logAnim && Number.isFinite(logAnim.x) && Number.isFinite(logAnim.topPx) && (
+        <div style={{ position:'absolute', left: logAnim.x * cellPx, top: logAnim.topPx, width: 4 * cellPx, height: cellPx, pointerEvents:'none', zIndex: 6, display:'flex' }}>
+          {[0,1,2,3].map((i) => (
+            <img key={i} src={BLOCK_SRC[9]} alt={'wood'} style={{ width: cellPx, height: cellPx, imageRendering:'pixelated', objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.65))' }} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -62,6 +62,7 @@ export const BLOCK_SRC = {
   6: '/art/tetrominoes/6.png',
   7: '/art/tetrominoes/7.png',
   8: '/art/tetrominoes/8.png', // garbage
+  9: '/art/tetrominoes/wood.png', // Griswald log
 };
 
 export const levelToGravityMs = (level) => {

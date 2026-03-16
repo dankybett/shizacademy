@@ -432,6 +432,32 @@ export default function useTetris(options = {}) {
           }
         } catch (_) {}
       },
+      placeLogRow: (x, y, width = 4, id = 9) => {
+        try {
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          if (y < 0 || y >= ROWS) return;
+          const w = Math.max(1, Math.min(width, COLS));
+          const x0 = Math.max(0, Math.min(x, COLS - w));
+          setBoard((b) => {
+            const out = b.map((r) => r.slice());
+            for (let dx = 0; dx < w; dx++) {
+              const cx = x0 + dx;
+              if (out[y] && out[y][cx] === EMPTY) out[y][cx] = id;
+            }
+            return out;
+          });
+          if (enableItems) {
+            setItemBoard((ib) => {
+              const out = ib.map((r) => r.slice());
+              for (let dx = 0; dx < Math.max(1, Math.min(width, COLS)); dx++) {
+                const cx = Math.max(0, Math.min(x + dx, COLS - 1));
+                if (out[y]) out[y][cx] = 0;
+              }
+              return out;
+            });
+          }
+        } catch (_) {}
+      },
       setOnItemAward: (cb) => { onItemAwardRef.current = cb; },
     }
   };
