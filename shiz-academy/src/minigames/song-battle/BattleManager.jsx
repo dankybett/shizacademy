@@ -64,6 +64,12 @@ export default function BattleManager({ onClose }) {
   const [playerReason, setPlayerReason] = useState(null);
   const [aiReason, setAIReason] = useState(null);
   const [difficulty, setDifficulty] = useState('normal');
+  const [opponent, setOpponent] = useState('mcmunch'); // 'mcmunch' | 'griswald'
+
+  const OPPONENTS = {
+    mcmunch: { label: 'MC Munch', track: '/art/music/ai.mp3', faceBase: '/art/friends/mcmunch', hasBomb: true },
+    griswald: { label: 'Griswald', track: '/art/music/griswald.mp3', faceBase: '/art/friends/griswald', hasBomb: false },
+  };
 
   const DIFFS = {
     easy:   { label: 'Easy',   actionMs: 200, thinkMs: 120, noise: 0.35, topK: 4 },
@@ -132,12 +138,12 @@ export default function BattleManager({ onClose }) {
     }, 550);
   };
 
-  // Garbage exchange
+  // Garbage exchange + audio init (re-init if opponent changes to swap AI track)
   useEffect(() => {
     // Set up audio controller
     const ctrl = new AudioTugController({
       playerUrl: '/art/music/player.mp3',
-      aiUrl: '/art/music/ai.mp3',
+      aiUrl: OPPONENTS[opponent]?.track || '/art/music/ai.mp3',
       computeAdvantage: () => {
         // Pressure = risk + w*pending; advantage favors player when AI pressure is higher
         const w = 0.5;
@@ -153,8 +159,10 @@ export default function BattleManager({ onClose }) {
     });
     audioRef.current = ctrl;
     ctrl.init().catch(()=>{});
+    // If already unlocked, attempt to start immediately
+    try { if (audioUnlockedRef.current) ctrl.unlockAndStart(); } catch (_) {}
     return () => { try { ctrl.destroy(); } catch (_) {} };
-  }, []);
+  }, [opponent]);
 
   // Track simple risk from board height (normalized 0..1)
   useEffect(() => {
@@ -392,7 +400,7 @@ export default function BattleManager({ onClose }) {
 
   // MC Munch: Lyric Bomb scheduling (telegraph + detonate)
   useEffect(() => {
-    if (result) { clearTimeout(bombTimerRef.current); setBombCells(null); return; }
+    if (result || opponent !== 'mcmunch') { clearTimeout(bombTimerRef.current); setBombCells(null); setBombCountdownMs(null); return; }
     clearTimeout(bombTimerRef.current);
     // Less frequent (quarter as frequent vs original): doubled again
     const base = ({ easy: 80000, normal: 60000, hard: 48000, expert: 36000, insane: 32000 })[difficulty] || 60000;
@@ -622,21 +630,31 @@ export default function BattleManager({ onClose }) {
         <span style={{ fontWeight:800 }}>x{d12Count}</span>
       </div>
       <img
-        src={`/art/friends/mcmunch_${aiFace}.png`}
+        src={`${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_${aiFace}.png`}
         alt={`Friend ${aiFace}`}
         style={{ position:'absolute', top: 8, right: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
-        onError={(e) => { e.currentTarget.src = '/art/friends/mcmunch_neutral.png'; }}
+        onError={(e) => { e.currentTarget.src = `${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_neutral.png`; setTimeout(()=>{ try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/friends/griswald_profile.png'; } catch(_){} }, 0); }}
       />
 
       {/* Stats box on right */}
       <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'6px 8px', color:'#fff', display:'grid', gap:4, fontSize:12 }}>
-        <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>MC Munch — Lyric Bomb</div>
+        <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>
+          {OPPONENTS[opponent]?.label}{OPPONENTS[opponent]?.hasBomb ? ' — Lyric Bomb' : ''}
+        </div>
         {statLine('You', player.state)}
         {statLine('AI', ai.state)}
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
           <span style={{ fontSize:12, opacity:.9 }}>Difficulty</span>
           <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:12 }}>
             {Object.entries(DIFFS).map(([k,v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end' }}>
+          <span style={{ fontSize:12, opacity:.9 }}>Opponent</span>
+          <select value={opponent} onChange={(e)=> setOpponent(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:12 }}>
+            {Object.entries(OPPONENTS).map(([k,v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
