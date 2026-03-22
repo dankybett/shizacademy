@@ -43,13 +43,15 @@ export default function BattleManager({ onClose }) {
       const widthBudget = containerW - (sideEstimate * 2) - outerGaps - innerGaps - centerW;
       const cellFromWidth = Math.floor(widthBudget / (2 * COLS));
 
-      // Height budget: use actual container height when available
+      // Height budget: use full container height with slight bias to be shorter
       const containerH = rect ? Math.floor(rect.height) : Math.floor(vh * 0.96);
       const overhead = 8; // minimal top/bottom spacing; stats moved out
       const heightBudget = containerH - overhead;
       const cellFromHeight = Math.floor(heightBudget / ROWS);
+      const heightBias = 0.9; // make boards slightly shorter
+      const adjustedCellFromHeight = Math.floor(cellFromHeight * heightBias);
 
-      const next = Math.max(12, Math.min(64, Math.min(cellFromWidth, cellFromHeight)));
+      const next = Math.max(12, Math.min(64, Math.min(cellFromWidth, adjustedCellFromHeight)));
       const finalCell = Number.isFinite(next) && next > 0 ? next : 16;
       setCellPx(finalCell);
       setContainerHeight(containerH);
@@ -104,6 +106,7 @@ export default function BattleManager({ onClose }) {
   const [d12Toast, setD12Toast] = useState(null); // { amt, ts }
   const [leftPressed, setLeftPressed] = useState(false);
   const [rightPressed, setRightPressed] = useState(false);
+  const [reservedGapPx, setReservedGapPx] = useState(0);
   // MC Munch: Lyric Bomb power
   const bombTimerRef = useRef(null);
   const [bombCells, setBombCells] = useState(null); // telegraph cells on player board
@@ -668,7 +671,7 @@ export default function BattleManager({ onClose }) {
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: 8,
+          top: 8,
           display: 'grid',
           gridTemplateColumns: 'auto auto auto',
           gap: 8,
@@ -774,27 +777,29 @@ export default function BattleManager({ onClose }) {
       </button>
 
       </div>
-      {/* New image buttons */}
-      <button
-        aria-label="Move Left"
-        style={{ position:'absolute', left: 8, bottom: 8, padding:0, background:'transparent', border:'none', cursor:'pointer', transform: leftPressed ? 'scale(0.96)' : 'none', transition: 'transform 80ms ease, filter 120ms ease', filter: leftPressed ? 'brightness(0.95)' : 'none' }}
-        onClick={player.actions.moveLeft}
-        onPointerDown={() => setLeftPressed(true)}
-        onPointerUp={() => setLeftPressed(false)}
-        onPointerLeave={() => setLeftPressed(false)}
-      >
-        <img src={'/art/leftbutton.png'} alt={'Left'} style={{ display:'block', width: 92, height: 'auto', userSelect:'none', pointerEvents:'none' }} />
-      </button>
-      <button
-        aria-label="Move Right"
-        style={{ position:'absolute', right: 8, bottom: 8, padding:0, background:'transparent', border:'none', cursor:'pointer', transform: rightPressed ? 'scale(0.96)' : 'none', transition: 'transform 80ms ease, filter 120ms ease', filter: rightPressed ? 'brightness(0.95)' : 'none' }}
-        onClick={player.actions.moveRight}
-        onPointerDown={() => setRightPressed(true)}
-        onPointerUp={() => setRightPressed(false)}
-        onPointerLeave={() => setRightPressed(false)}
-      >
-        <img src={'/art/rightbutton.png'} alt={'Right'} style={{ display:'block', width: 92, height: 'auto', userSelect:'none', pointerEvents:'none' }} />
-      </button>
+      {/* Bottom control bar with image buttons */}
+      <div style={{ position:'absolute', left:0, right:0, bottom:-40, height:112, display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'0 12px 0 12px', pointerEvents:'none' }}>
+        <button
+          aria-label="Move Left"
+          style={{ pointerEvents:'auto', padding:0, background:'transparent', border:'none', cursor:'pointer', transform: leftPressed ? 'scale(0.96)' : 'none', transition: 'transform 80ms ease, filter 120ms ease', filter: leftPressed ? 'brightness(0.95)' : 'none' }}
+          onClick={player.actions.moveLeft}
+          onPointerDown={() => setLeftPressed(true)}
+          onPointerUp={() => setLeftPressed(false)}
+          onPointerLeave={() => setLeftPressed(false)}
+        >
+          <img src={'/art/leftbutton.png'} alt={'Left'} style={{ display:'block', width: 92, height: 'auto', userSelect:'none', pointerEvents:'none' }} />
+        </button>
+        <button
+          aria-label="Move Right"
+          style={{ pointerEvents:'auto', padding:0, background:'transparent', border:'none', cursor:'pointer', transform: rightPressed ? 'scale(0.96)' : 'none', transition: 'transform 80ms ease, filter 120ms ease', filter: rightPressed ? 'brightness(0.95)' : 'none' }}
+          onClick={player.actions.moveRight}
+          onPointerDown={() => setRightPressed(true)}
+          onPointerUp={() => setRightPressed(false)}
+          onPointerLeave={() => setRightPressed(false)}
+        >
+          <img src={'/art/rightbutton.png'} alt={'Right'} style={{ display:'block', width: 92, height: 'auto', userSelect:'none', pointerEvents:'none' }} />
+        </button>
+      </div>
 
       {/* Friend avatars and panels */}
       <div style={{ position:'absolute', left: 8, bottom: 72, display:'grid', gap:6, justifyItems:'start' }}>
