@@ -711,6 +711,13 @@ export default function BattleManager({ onClose }) {
           {playerCancel && (
             <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
           )}
+          {/* Player singing GIF to the left of the board */}
+          <img
+            src={'/art/singing.gif'}
+            alt={'Singing'}
+            style={{ position:'absolute', bottom: -2, left: -104, width: 58, height: 'auto', pointerEvents:'none', zIndex: 2 }}
+            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+          />
           {typeof bombCountdownMs === 'number' && bombCountdownMs > 0 && (
             <div style={{ position:'absolute', top: 6, right: 6, background:'rgba(255,120,120,0.9)', color:'#130707', border:'1px solid rgba(255,200,200,0.9)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
               Bomb in {Math.ceil(bombCountdownMs/1000)}s
@@ -747,6 +754,14 @@ export default function BattleManager({ onClose }) {
             {aiCancel && (
               <CancelBadge key={aiCancel.ts} amt={aiCancel.amt} label={'Blocked'} side={'left'} variant={'ai'} />
             )}
+            {opponent === 'mcmunch' && (
+              <img
+                src={'/art/mcmunch.gif'}
+                alt={'MC Munch'}
+                style={{ position:'absolute', bottom: -2, right: -104, width: 72, height: 'auto', pointerEvents:'none', zIndex: 2 }}
+                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+              />
+            )}
           </div>
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
           <div style={{ display:'grid', gap:6 }}>
@@ -777,6 +792,16 @@ export default function BattleManager({ onClose }) {
       </button>
 
       </div>
+      {/* MC Munch GIF above right button when selected */}
+      {opponent === 'mcmunch' && (
+        <img
+          src={'/art/mcmunch.gif'}
+          alt={'MC Munch'}
+          style={{ position:'absolute', right: 20, bottom: 128, width: 72, height: 'auto', pointerEvents:'none' }}
+          onError={(e)=>{ e.currentTarget.style.display='none'; }}
+        />
+      )}
+
       {/* Bottom control bar with image buttons */}
       <div style={{ position:'absolute', left:0, right:0, bottom:-48, height:112, display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'0 12px 0 12px', pointerEvents:'none' }}>
         <button
