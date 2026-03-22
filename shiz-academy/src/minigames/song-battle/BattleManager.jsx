@@ -778,7 +778,7 @@ export default function BattleManager({ onClose }) {
 
       </div>
       {/* Bottom control bar with image buttons */}
-      <div style={{ position:'absolute', left:0, right:0, bottom:-40, height:112, display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'0 12px 0 12px', pointerEvents:'none' }}>
+      <div style={{ position:'absolute', left:0, right:0, bottom:-48, height:112, display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'0 12px 0 12px', pointerEvents:'none' }}>
         <button
           aria-label="Move Left"
           style={{ pointerEvents:'auto', padding:0, background:'transparent', border:'none', cursor:'pointer', transform: leftPressed ? 'scale(0.96)' : 'none', transition: 'transform 80ms ease, filter 120ms ease', filter: leftPressed ? 'brightness(0.95)' : 'none' }}
