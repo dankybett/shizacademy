@@ -711,12 +711,12 @@ export default function BattleManager({ onClose }) {
           {playerCancel && (
             <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
           )}
-          {/* Player singing GIF to the left of the board */}
+          {/* Player singing image/GIF to the left of the board (PNG on result to pause) */}
           <img
-            src={'/art/singing.gif'}
+            src={result ? '/art/singing.png' : '/art/singing.gif'}
             alt={'Singing'}
             style={{ position:'absolute', bottom: -2, left: -104, width: 58, height: 'auto', pointerEvents:'none', zIndex: 2 }}
-            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+            onError={(e)=>{ if (String(e.currentTarget.src).endsWith('.png')) { try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/singing.gif'; } catch(_){} } else { e.currentTarget.style.display='none'; } }}
           />
           {typeof bombCountdownMs === 'number' && bombCountdownMs > 0 && (
             <div style={{ position:'absolute', top: 6, right: 6, background:'rgba(255,120,120,0.9)', color:'#130707', border:'1px solid rgba(255,200,200,0.9)', borderRadius:8, padding:'3px 6px', fontSize:12, fontWeight:800, boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>
@@ -756,18 +756,18 @@ export default function BattleManager({ onClose }) {
             )}
             {opponent === 'mcmunch' && (
               <img
-                src={'/art/mcmunch.gif'}
+                src={result ? '/art/mcmunch.png' : '/art/mcmunch.gif'}
                 alt={'MC Munch'}
                 style={{ position:'absolute', bottom: -2, right: -104, width: 72, height: 'auto', pointerEvents:'none', zIndex: 2 }}
-                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                onError={(e)=>{ if (String(e.currentTarget.src).endsWith('.png')) { try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/mcmunch.gif'; } catch(_){} } else { e.currentTarget.style.display='none'; } }}
               />
             )}
             {opponent === 'griswald' && (
               <img
-                src={'/art/griswald.gif'}
+                src={result ? '/art/griswald.png' : '/art/griswald.gif'}
                 alt={'Griswald'}
                 style={{ position:'absolute', bottom: -2, right: -104, width: 83, height: 'auto', pointerEvents:'none', zIndex: 2 }}
-                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                onError={(e)=>{ if (String(e.currentTarget.src).endsWith('.png')) { try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/griswald.gif'; } catch(_){} } else { e.currentTarget.style.display='none'; } }}
               />
             )}
           </div>
