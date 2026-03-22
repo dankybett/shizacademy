@@ -762,6 +762,14 @@ export default function BattleManager({ onClose }) {
                 onError={(e)=>{ e.currentTarget.style.display='none'; }}
               />
             )}
+            {opponent === 'griswald' && (
+              <img
+                src={'/art/griswald.gif'}
+                alt={'Griswald'}
+                style={{ position:'absolute', bottom: -2, right: -104, width: 83, height: 'auto', pointerEvents:'none', zIndex: 2 }}
+                onError={(e)=>{ e.currentTarget.style.display='none'; }}
+              />
+            )}
           </div>
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
           <div style={{ display:'grid', gap:6 }}>
