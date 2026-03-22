@@ -23,7 +23,7 @@ export default function SongBattleModal({ onClose }) {
         style={{
           width: 'min(98vw, 1100px)',
           height: '96vh',
-          background: 'linear-gradient(180deg, rgba(25,28,36,0.95), rgba(20,22,28,0.95))',
+          background: "#000 url('/art/songbattlebackground.png') center/cover no-repeat",
           border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 14,
           padding: 14,

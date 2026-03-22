@@ -5,7 +5,6 @@ import GameBoard from './GameBoard.jsx';
 import { BLOCK_SRC, COLS, ROWS, SHAPES } from './Constants';
 import MiniPreview from './MiniPreview.jsx';
 import GarbagePreview from './GarbagePreview.jsx';
-import VerticalGarbageMeter from './VerticalGarbageMeter.jsx';
 import AudioTugController from './AudioTugController';
 
 const baseAttack = { 1: 0, 2: 1, 3: 2, 4: 4 };
@@ -676,7 +675,7 @@ export default function BattleManager({ onClose }) {
         }}
       >
       <div style={{ display:'grid', gap:10, justifySelf:'end' }}>
-        <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+        <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
           {/* Player side panel on the LEFT (Hold removed) */}
           <div style={{ display:'grid', gap:14, minWidth:80 }}>
             <div style={{ display:'grid', gap:6 }}>
@@ -703,7 +702,7 @@ export default function BattleManager({ onClose }) {
               onHoldDownStart={() => player.actions.setSoftDrop(true)}
               onHoldDownEnd={() => player.actions.setSoftDrop(false)}
             />
-          <VerticalGarbageMeter rows={pendingPlayer} heightPx={ROWS*cellPx} side="left" />
+          {/* VerticalGarbageMeter hidden per request */}
           {playerCancel && (
             <CancelBadge key={playerCancel.ts} amt={playerCancel.amt} />
           )}
@@ -739,7 +738,7 @@ export default function BattleManager({ onClose }) {
               ghost={ai.state.ghost}
               cellPx={cellPx}
             />
-            <VerticalGarbageMeter rows={pendingAI} heightPx={ROWS*cellPx} />
+            {/* VerticalGarbageMeter hidden per request */}
             {aiCancel && (
               <CancelBadge key={aiCancel.ts} amt={aiCancel.amt} label={'Blocked'} side={'left'} variant={'ai'} />
             )}
@@ -771,35 +770,86 @@ export default function BattleManager({ onClose }) {
         Right ▶
       </button>
 
-      {/* Friend avatars */}
-      <img
-        src={'/art/friends/player_profile.png'}
-        alt={'You'}
-        style={{ position:'absolute', top: 8, left: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
-      />
-      {/* D12 counter under player image */}
-      <div style={{ position:'absolute', top: 100, left: 8, display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:8, padding:'4px 6px', color:'#fff', fontSize:12 }}>
-        <img src={'/art/tetrominoes/d12.png'} alt={'d12'} style={{ width:16, height:16, imageRendering:'pixelated' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-        <span style={{ fontWeight:800 }}>x{d12Count}</span>
+      {/* Friend avatars and panels */}
+      <div style={{ position:'absolute', left: 8, bottom: 72, display:'grid', gap:6, justifyItems:'start' }}>
+        <img
+          src={'/art/friends/player_profile.png'}
+          alt={'You'}
+          style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
+        />
+        {/* Player stats under avatar: Score, D12s */}
+        <div
+          style={{
+            display:'grid',
+            gap:4,
+            background:'rgba(255,255,255,0.08)',
+            border:'1px solid rgba(255,255,255,0.25)',
+            borderRadius:8,
+            padding:'4px 6px',
+            color:'#fff',
+            fontSize:12,
+            fontWeight:600,
+          }}
+        >
+          <div style={{ display:'flex', gap:8 }}>
+            <div>Score: <b>{player.state.score}</b></div>
+            <div>Lines: <b>{player.state.lines}</b></div>
+            <div>Level: <b>{player.state.level}</b></div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <img src={'/art/tetrominoes/d12.png'} alt={'d12'} style={{ width:16, height:16, imageRendering:'pixelated' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+            <span style={{ fontWeight:800 }}>x{d12Count}</span>
+          </div>
+        </div>
       </div>
-      <img
-        src={`${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_${aiFace}.png`}
-        alt={`Friend ${aiFace}`}
-        style={{ position:'absolute', top: 8, right: 8, width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
-        onError={(e) => { e.currentTarget.src = `${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_neutral.png`; setTimeout(()=>{ try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/friends/griswald_profile.png'; } catch(_){} }, 0); }}
-      />
 
-      {/* Stats box on right */}
-      <div style={{ position:'absolute', top: 104, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'4px 6px', color:'#fff', display:'grid', gap:3, fontSize:11, justifyItems:'end', textAlign:'right' }}>
-        <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2 }}>
+      <div style={{ position:'absolute', right: 8, bottom: 72, display:'grid', gap:6, justifyItems:'end', textAlign:'right' }}>
+        <img
+          src={`${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_${aiFace}.png`}
+          alt={`Friend ${aiFace}`}
+          style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
+          onError={(e) => { e.currentTarget.src = `${OPPONENTS[opponent]?.faceBase || '/art/friends/mcmunch'}_neutral.png`; setTimeout(()=>{ try { e.currentTarget.onerror = null; e.currentTarget.src = '/art/friends/griswald_profile.png'; } catch(_){} }, 0); }}
+        />
+        {/* Opponent info under avatar: Name/features first line, Score second */}
+        <div
+          style={{
+            display:'grid',
+            gap:2,
+            background:'rgba(255,255,255,0.08)',
+            border:'1px solid rgba(255,255,255,0.25)',
+            borderRadius:8,
+            padding:'4px 6px',
+            color:'#fff',
+            fontSize:12,
+          }}
+        >
+          <div style={{ fontWeight:800, fontSize:12.5 }}>
+            {(() => {
+              const opp = OPPONENTS[opponent] || {};
+              const feats = [];
+              if (opp.hasBomb) feats.push('Lyric Bomb');
+              if (opp.hasLog || opponent === 'griswald') feats.push('Tree Fall');
+              return `${opp.label || ''}${feats.length ? ' - ' + feats.join(' • ') : ''}`;
+            })()}
+          </div>
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <div>Score: <b>{ai.state.score}</b></div>
+            <div>Lines: <b>{ai.state.lines}</b></div>
+            <div>Level: <b>{ai.state.level}</b></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls box moved to top-right */}
+      <div style={{ position:'absolute', top: 8, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'4px 6px', color:'#fff', display:'grid', gap:3, fontSize:11, justifyItems:'end', textAlign:'right' }}>
+        <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2, display:'none' }}>
           {OPPONENTS[opponent]?.label}{OPPONENTS[opponent]?.hasBomb ? ' — Lyric Bomb' : ''}
           {opponent === 'griswald' && (<span>{' - Tree Fall'}</span>)}
         </div>
         <div style={{ fontSize:11, opacity:.88, fontWeight:700, display:'none' }}>
           {(OPPONENTS[opponent]?.hasBomb ? 'Lyric Bomb' : '') + (OPPONENTS[opponent]?.hasLog ? (OPPONENTS[opponent]?.hasBomb ? ' · ' : '') + 'Tree Fall' : '')}
         </div>
-        {statLine('You', player.state)}
-        {statLine('AI', ai.state)}
+        {/* Player and AI stats moved under avatars */}
         <div style={{ display:'flex', gap:4, alignItems:'center', justifyContent:'flex-end', marginTop:2 }}>
           <select value={difficulty} onChange={(e)=> setDifficulty(e.target.value)} style={{ background:'rgba(255,255,255,0.06)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:6, padding:'3px 6px', fontSize:11 }}>
             {Object.entries(DIFFS).map(([k,v]) => (
