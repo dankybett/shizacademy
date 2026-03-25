@@ -109,6 +109,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
   const aiHypeUntilRef = useRef(0);
   const [d12Count, setD12Count] = useState(0);
   const [d12Toast, setD12Toast] = useState(null); // { amt, ts }
+  const isPaused = (player?.state?.paused || false) || (ai?.state?.paused || false);
   const [leftPressed, setLeftPressed] = useState(false);
   const [rightPressed, setRightPressed] = useState(false);
   const [reservedGapPx, setReservedGapPx] = useState(0);
@@ -203,6 +204,14 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
     try { if (audioUnlockedRef.current) ctrl.unlockAndStart(); } catch (_) {}
     return () => { try { ctrl.destroy(); } catch (_) {} };
   }, [opponent]);
+
+  // Pause/resume audio when game pause state changes
+  useEffect(() => {
+    try {
+      if (!audioRef.current) return;
+      if (isPaused) audioRef.current.pause(); else audioRef.current.resume();
+    } catch (_) {}
+  }, [isPaused]);
 
   // Track simple risk from board height (normalized 0..1)
   useEffect(() => {
@@ -444,7 +453,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
 
   // AI planning: when AI gets a (new) current piece and no plan, compute one
   useEffect(() => {
-    if (result) return;
+    if (result || isPaused) { clearTimeout(aiPlanTimerRef.current); return; }
     const cur = ai.state.current;
     if (!cur) return;
     if (!aiPlanRef.current) {
@@ -455,14 +464,15 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
         aiPlanRef.current = plan || null;
       }, conf.thinkMs);
     }
-  }, [ai.state.board, ai.state.current, bestMove, result, difficulty]);
+  }, [ai.state.board, ai.state.current, bestMove, result, difficulty, isPaused]);
 
   // AI execution loop
   useEffect(() => {
-    if (result) { clearInterval(aiActTimerRef.current); return; }
+    if (result || isPaused) { clearInterval(aiActTimerRef.current); return; }
     clearInterval(aiActTimerRef.current);
     const conf = DIFFS[difficulty] || DIFFS.normal;
     aiActTimerRef.current = setInterval(() => {
+      if (isPaused) return;
       const plan = aiPlanRef.current;
       if (!plan) return;
       if (plan.rotSteps > 0) { ai.actions.rotateCW(); plan.rotSteps -= 1; return; }
@@ -475,11 +485,11 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
       aiPlanRef.current = null;
     }, conf.actionMs);
     return () => clearInterval(aiActTimerRef.current);
-  }, [ai.actions, result, difficulty]);
+  }, [ai.actions, result, difficulty, isPaused]);
 
   // MC Munch: Lyric Bomb scheduling (telegraph + detonate)
   useEffect(() => {
-    if (result || opponent !== 'mcmunch') {
+    if (result || isPaused || opponent !== 'mcmunch') {
       clearTimeout(bombTimerRef.current);
       setBombCells(null);
       setBombCountdownMs(null);
@@ -518,11 +528,11 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
     const first = base + Math.floor((Math.random() * 2 - 1) * jitter);
     schedule(first);
     return () => clearTimeout(bombTimerRef.current);
-  }, [difficulty, result]);
+  }, [difficulty, result, isPaused]);
 
   // Griswald: Tree Drop scheduling (telegraph until next player lock)
   useEffect(() => {
-    if (result || opponent !== 'griswald') {
+    if (result || isPaused || opponent !== 'griswald') {
       clearTimeout(logTimerRef.current);
       logLaneXRef.current = null;
       logArmedRef.current = false;
@@ -569,7 +579,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
     const first = base + Math.floor((Math.random() * 2 - 1) * jitter);
     schedule(first);
     return () => clearTimeout(logTimerRef.current);
-  }, [difficulty, result, opponent]);
+  }, [difficulty, result, opponent, isPaused]);
 
   function triggerShake(ms = 220) {
     try { clearInterval(shakeTimerRef.current); } catch (_) {}
@@ -590,6 +600,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
   // Countdown ticker for incoming power badges (only show last 5s)
   useEffect(() => {
     clearInterval(countdownTimerRef.current);
+    if (isPaused) return; // don't tick while paused
     countdownTimerRef.current = setInterval(() => {
       // MC Munch bomb countdown
       if (!nextBombAtRef.current) setBombCountdownMs(null);
@@ -605,7 +616,13 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
       }
     }, 200);
     return () => clearInterval(countdownTimerRef.current);
-  }, []);
+  }, [isPaused]);
+
+  function togglePause() {
+    const next = !isPaused;
+    try { player.actions.setPaused(next); } catch (_) {}
+    try { ai.actions.setPaused(next); } catch (_) {}
+  }
 
   function getHighestOccupiedRow(board) {
     if (!board || !board.length) return -1;
@@ -838,6 +855,30 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
           <img src={'/art/rightbutton.png'} alt={'Right'} style={{ display:'block', width: 92, height: 'auto', userSelect:'none', pointerEvents:'none' }} />
         </button>
       </div>
+
+      {/* Pause button top-right */}
+      {!result && (
+        <button
+          aria-label="Pause"
+          onClick={togglePause}
+          style={{ position:'absolute', top: 8, right: 8, padding:0, background:'transparent', border:'none', cursor:'pointer' }}
+        >
+          <img src={'/art/tetrominoes/pause.png'} alt={'Pause'} style={{ width: 28, height: 28, imageRendering:'pixelated' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+        </button>
+      )}
+
+      {/* Pause modal */}
+      {isPaused && !result && (
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.55)' }}>
+          <div style={{ background:'rgba(25,28,36,0.95)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:12, padding:16, color:'#fff', display:'grid', gap:10, minWidth: 220, textAlign:'center' }}>
+            <div style={{ fontWeight:800, fontSize:18 }}>Paused</div>
+            <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
+              <button style={btn('secondary')} onClick={togglePause}>Resume</button>
+              <button style={btn('danger')} onClick={onClose}>Quit</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Friend avatars and panels */}
       <div style={{ position:'absolute', left: 8, bottom: 72, display:'grid', gap:6, justifyItems:'start' }}>

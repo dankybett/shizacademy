@@ -17,7 +17,7 @@ export default function SongBattleModal({ onClose, opponent, onResult }) {
         justifyContent: 'center',
         padding: 12,
       }}
-      onClick={onClose}
+      onClick={started ? undefined : onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
