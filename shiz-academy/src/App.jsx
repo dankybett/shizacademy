@@ -4184,7 +4184,11 @@ function stationTarget(type) {
         )}
 
         {songBattleOpen && (
-          <SongBattleModal opponent={songBattleOpponent} onClose={() => { setSongBattleOpen(false); }} />
+          <SongBattleModal
+            opponent={songBattleOpponent}
+            onClose={() => { setSongBattleOpen(false); }}
+            onResult={(res) => { if (res === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} } }}
+          />
         )}
 
         {menuOpen && !isOver && (
