@@ -52,11 +52,9 @@ export default class AudioTugController {
   async init() {
     if (this.buffers) return; // already loaded
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Preload buffers (fetch/decode ok before unlock)
-    const [p, a] = await Promise.all([
-      this._loadBuffer(this.playerUrl),
-      this._loadBuffer(this.aiUrl),
-    ]);
+    // Preload buffers (fetch/decode ok before unlock), with fallbacks
+    const p = await this._loadWithFallback(this.playerUrl, '/art/music/player.mp3');
+    const a = await this._loadWithFallback(this.aiUrl, '/art/music/ai.mp3');
     this.buffers = { player: p, ai: a };
   }
 
@@ -226,6 +224,20 @@ export default class AudioTugController {
     if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
     const arr = await res.arrayBuffer();
     return await this.ctx.decodeAudioData(arr);
+  }
+
+  async _loadWithFallback(primaryUrl, fallbackUrl) {
+    try {
+      return await this._loadBuffer(primaryUrl);
+    } catch (e) {
+      try {
+        return await this._loadBuffer(fallbackUrl);
+      } catch (e2) {
+        // As a last resort, rethrow the original error to surface in console
+        console.error('Audio load failed for both primary and fallback', { primaryUrl, fallbackUrl, e, e2 });
+        throw e;
+      }
+    }
   }
 
   _ramp(param, target, when, dur) {

@@ -16,7 +16,7 @@ const calcAttack = ({ cleared, combo, isB2B }) => {
   return base + b2b + c;
 };
 
-export default function BattleManager({ onClose }) {
+export default function BattleManager({ onClose, initialOpponent }) {
   const player = useTetris({ enableItems: true, itemSpawnChance: 0.5 });
   const ai = useTetris();
   const { bestMove } = useTetrisAI();
@@ -64,12 +64,17 @@ export default function BattleManager({ onClose }) {
   const [result, setResult] = useState(null); // 'win' | 'lose' | 'draw'
   const [playerReason, setPlayerReason] = useState(null);
   const [aiReason, setAIReason] = useState(null);
-  const [difficulty, setDifficulty] = useState('normal');
-  const [opponent, setOpponent] = useState('mcmunch'); // 'mcmunch' | 'griswald'
+  const [difficulty, setDifficulty] = useState('expert');
+  const [opponent, setOpponent] = useState(initialOpponent || 'mcmunch'); // 'mcmunch' | 'griswald'
 
   const OPPONENTS = {
     mcmunch: { label: 'MC Munch', track: '/art/music/ai.mp3', faceBase: '/art/friends/mcmunch', hasBomb: true },
     griswald: { label: 'Griswald', track: '/art/music/griswald.mp3', faceBase: '/art/friends/griswald', hasBomb: false, hasLog: true },
+  };
+
+  const PLAYER_TRACKS = {
+    mcmunch: '/art/music/playervsmunch.mp3',
+    griswald: '/art/music/playervsgriswald.mp3', // to be added; falls back if missing
   };
 
   const DIFFS = {
@@ -177,7 +182,7 @@ export default function BattleManager({ onClose }) {
   useEffect(() => {
     // Set up audio controller
     const ctrl = new AudioTugController({
-      playerUrl: '/art/music/player.mp3',
+      playerUrl: PLAYER_TRACKS[opponent] || '/art/music/player.mp3',
       aiUrl: OPPONENTS[opponent]?.track || '/art/music/ai.mp3',
       computeAdvantage: () => {
         // Pressure = risk + w*pending; advantage favors player when AI pressure is higher
@@ -904,8 +909,8 @@ export default function BattleManager({ onClose }) {
         </div>
       </div>
 
-      {/* Controls box moved to top-right */}
-      <div style={{ position:'absolute', top: 8, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'4px 6px', color:'#fff', display:'grid', gap:3, fontSize:11, justifyItems:'end', textAlign:'right' }}>
+      {/* Controls box hidden per request */}
+      <div style={{ display:'none', position:'absolute', top: 8, right: 8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.22)', borderRadius:8, padding:'4px 6px', color:'#fff', gap:3, fontSize:11, justifyItems:'end', textAlign:'right' }}>
         <div style={{ fontWeight:900, fontSize:12.5, letterSpacing:0.2, display:'none' }}>
           {OPPONENTS[opponent]?.label}{OPPONENTS[opponent]?.hasBomb ? ' — Lyric Bomb' : ''}
           {opponent === 'griswald' && (<span>{' - Tree Fall'}</span>)}
@@ -952,7 +957,9 @@ export default function BattleManager({ onClose }) {
               )}
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
-              <button style={btn('secondary')} onClick={resetBoth}>Restart</button>
+              <button style={btn('secondary')} onClick={onClose}>
+                {result === 'win' ? 'Yay' : result === 'lose' ? 'Return' : 'Okay'}
+              </button>
             </div>
           </div>
         </div>

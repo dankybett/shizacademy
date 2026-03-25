@@ -118,6 +118,17 @@ function genEventSchedule(performerName, startTs) {
   // Anchors
   push(3, 'grant', 'Emerald Patronage Grant', 'Small grant awarded', 'You receive a small grant to support your music.', 'bonus', { grantMoney: 100 });
   push(6, 'festival', 'Lantern Festival Week', 'Students hang lanterns across the courtyards and performances draw bigger crowds.', 'Local festival boosts turnout and payouts.', 'bonus', { fanMult: 1.2, payoutMult: 1.2, lanterns: true });
+  // Song Battle invites (choice events)
+  // Week 10: MC Munch challenge
+  push(10, 'songbattle_munch', 'Song Battle: MC Munch', 'A friendly challenge appears', 'MC Munch challenges you to a Song Battle. Accept?', 'choice', undefined, [
+    { label: 'Accept', effect: { songBattleOpponent: 'mcmunch' } },
+    { label: 'Skip', effect: { } },
+  ]);
+  // Week 18: Griswald challenge
+  push(18, 'songbattle_griswald', 'Song Battle: Griswald', 'A grumpy rival knocks', 'Griswald offers a stern Song Battle. Accept?', 'choice', undefined, [
+    { label: 'Accept', effect: { songBattleOpponent: 'griswald' } },
+    { label: 'Skip', effect: { } },
+  ]);
   push(12, 'sale', 'Am-Oz-on Student Sale', 'Shop items 20% off', 'Shop items 20% off', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Oz Dust Ball', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   // Special: The Iron Overture (Metal Festival)
@@ -646,6 +657,7 @@ export default function App() {
   const [debugUnlocked, setDebugUnlocked] = useState(false);
   // Song Battle (Tetris) debug modal
   const [songBattleOpen, setSongBattleOpen] = useState(false);
+  const [songBattleOpponent, setSongBattleOpponent] = useState(null); // 'mcmunch' | 'griswald'
   const [status, setStatus] = useState("Ready to work!");
   const [statsOpen, setStatsOpen] = useState(false);
   const [releaseOpen, setReleaseOpen] = useState(false);
@@ -1844,7 +1856,7 @@ function stationTarget(type) {
 
   useEffect(() => {
     if (!finalePending) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || friendModal.open || ozPediaOpen || gliOpen;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || historyOpen || !!eventModal || !!eventInfoModal || friendModal.open || ozPediaOpen || gliOpen || songBattleOpen;
     if (!overlaysOpen) {
       setFinalePending(false);
       setEndYearReady(true);
@@ -3194,7 +3206,7 @@ function stationTarget(type) {
     const pendingChoice = activeEvents.find(ev => ev.choices && !(eventsResolved[ev.id] && typeof eventsResolved[ev.id].choiceIndex === 'number'));
     const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
     const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen || songBattleOpen;
     if (pendingChoice && pendingChoice.key === 'iron') {
       // Show weekly info first, then the Iron choice
       setDeferredChoice(pendingChoice);
@@ -3229,7 +3241,7 @@ function stationTarget(type) {
   // When overlays clear, show any queued event info modal (including weekly)
   useEffect(() => {
     if (!queuedEventInfo) return;
-    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen;
+    const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen || songBattleOpen;
     if (overlaysOpen) return;
     // Filter out any that were marked notified while queued
     const remaining = (queuedEventInfo.events||[]).filter(ev => !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
@@ -4172,7 +4184,7 @@ function stationTarget(type) {
         )}
 
         {songBattleOpen && (
-          <SongBattleModal onClose={() => setSongBattleOpen(false)} />
+          <SongBattleModal opponent={songBattleOpponent} onClose={() => { setSongBattleOpen(false); }} />
         )}
 
         {menuOpen && !isOver && (
@@ -5108,6 +5120,11 @@ function stationTarget(type) {
                                   setIronAccepted(true);
                                 } catch (_) {}
                               }
+                              // Song Battle: open modal with selected opponent when accepted
+                              try {
+                                const opp = ch && ch.effect && ch.effect.songBattleOpponent;
+                                if (opp) { setSongBattleOpponent(opp); setSongBattleOpen(true); }
+                              } catch (_) {}
                               setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
                               setEventModal(null);
                             }}>
