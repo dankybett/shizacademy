@@ -986,8 +986,12 @@ export default function App() {
   }
 
   function checkFriendCriteria(){
-    // Lumina-O template
-    const lumLevel = friends?.luminaO?.level || 0;
+    // Lumina-O template (effective level = max(level, highest claimed))
+    const lumData = friends?.luminaO || {};
+    const lumClaimedMax = Object.entries(lumData.rewardsClaimed || {}).reduce((m, [k, v]) => {
+      const n = Number(k); return (v && Number.isFinite(n) && n > m) ? n : m;
+    }, 0);
+    const lumLevel = Math.max(lumData.level || 0, lumClaimedMax);
     const lumNext = (lumLevel || 0) + 1;
     const synthSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'synthwave');
     const hasSynth = synthSongs.length > 0;
@@ -1020,8 +1024,12 @@ export default function App() {
       enqueueFriendEvent('luminaO', 5, null);
     }
 
-    // Griswald: triggers on Rock genre, otherwise same thresholds as Lumina
-    const grisLevel = friends?.griswald?.level || 0;
+    // Griswald: triggers on Rock genre, otherwise same thresholds as Lumina (effective level)
+    const grisData = friends?.griswald || {};
+    const grisClaimedMax = Object.entries(grisData.rewardsClaimed || {}).reduce((m, [k, v]) => {
+      const n = Number(k); return (v && Number.isFinite(n) && n > m) ? n : m;
+    }, 0);
+    const grisLevel = Math.max(grisData.level || 0, grisClaimedMax);
     const grisNext = (grisLevel || 0) + 1;
     const rockSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'rock');
     const hasRock = rockSongs.length > 0;
@@ -1053,8 +1061,12 @@ export default function App() {
       enqueueFriendEvent('griswald', 5, null);
     }
 
-    // MC Munch: triggers on Hip-Hop genre
-    const munchLevel = friends?.mcmunch?.level || 0;
+    // MC Munch: triggers on Hip-Hop genre (effective level)
+    const munchData = friends?.mcmunch || {};
+    const munchClaimedMax = Object.entries(munchData.rewardsClaimed || {}).reduce((m, [k, v]) => {
+      const n = Number(k); return (v && Number.isFinite(n) && n > m) ? n : m;
+    }, 0);
+    const munchLevel = Math.max(munchData.level || 0, munchClaimedMax);
     const munchNext = (munchLevel || 0) + 1;
     const hhSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'hip-hop');
     const hasHipHop = hhSongs.length > 0;
@@ -1086,8 +1098,15 @@ export default function App() {
       enqueueFriendEvent('mcmunch', 5, null);
     }
 
-    // Aurelia Gleam: calendar-week based triggers (independent of performance)
-    const aurLevel = friends?.aureliagleam?.level || 0;
+    // Aurelle Starlight: calendar-week based triggers
+    // Quick-win robustness: treat a claimed level as effective level, so partially-read conversations that awarded gifts
+    // don't cause the same level to be re-enqueued later.
+    const aurData = friends?.aureliagleam || {};
+    const aurClaimedMax = Object.entries(aurData.rewardsClaimed || {}).reduce((m, [k, v]) => {
+      const n = Number(k);
+      return (v && Number.isFinite(n) && n > m) ? n : m;
+    }, 0);
+    const aurLevel = Math.max(aurData.level || 0, aurClaimedMax);
     const aurNext = (aurLevel || 0) + 1;
     if (aurNext === 1 && week >= 1) {
       enqueueFriendEvent('aureliagleam', 1, null); // Trigger at Week 1 (initial friend request)
@@ -1101,8 +1120,12 @@ export default function App() {
       enqueueFriendEvent('aureliagleam', 5, null);
     }
 
-    // Rivet: Metal-based trigger to LV3 after becoming friends (Top 5 Metal)
-    const rivLevel = friends?.rivet?.level || 0;
+    // Rivet: Metal-based trigger to LV3 after becoming friends (Top 5 Metal) (effective level)
+    const rivData = friends?.rivet || {};
+    const rivClaimedMax = Object.entries(rivData.rewardsClaimed || {}).reduce((m, [k, v]) => {
+      const n = Number(k); return (v && Number.isFinite(n) && n > m) ? n : m;
+    }, 0);
+    const rivLevel = Math.max(rivData.level || 0, rivClaimedMax);
     const rivNext = (rivLevel || 0) + 1;
     const metalSongs = (songHistory||[]).filter(s => (s.genre||'').toLowerCase() === 'metal');
     const latestMetal = metalSongs.slice().sort((a,b)=> (b.releaseWeek||0)-(a.releaseWeek||0))[0] || null;
@@ -4167,6 +4190,7 @@ function stationTarget(type) {
         )}
         {friendModal.open && (
           <VisualNovelModal
+            key={`${friendModal.friendId||'none'}-${friendModal.targetLevel||'x'}`}
             open={friendModal.open}
             friendModal={friendModal}
             setFriendModal={setFriendModal}

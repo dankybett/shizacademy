@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import luminaO from './scripts/luminaO.js'
 import griswald from './scripts/griswald.js'
 import mcmunch from './scripts/mcmunch.js'
@@ -18,7 +18,7 @@ export default function VisualNovelModal({
   setNudges,
   setBonusRolls,
   setNextRollOverride,
-  pushToast,
+  pushToast: _pushToast,
   setWriting,
   setVocals,
   // Pink Bubbles (Aurelia)
@@ -83,6 +83,25 @@ export default function VisualNovelModal({
   const leftActive = !!isLeft;
   const rightActive = !isLeft;
   const friendMeta = FRIEND_META[friendId] || { name: friendId, bust: '/art/friends/luminao_bust.png' };
+
+  // Navigation click guard to avoid rapid double-advances
+  const navLockRef = useRef(false);
+  const lockNav = (ms=250) => {
+    navLockRef.current = true;
+    setTimeout(() => { navLockRef.current = false; }, ms);
+  };
+
+  // Dedup toasts locally to avoid quick repeat (e.g., Strict Mode double effects)
+  const lastToastRef = useRef({ msg: null, at: 0 });
+  const pushToast = (msg) => {
+    try {
+      const now = Date.now();
+      const last = lastToastRef.current || {};
+      if (last.msg === msg && (now - (last.at || 0)) < 500) return;
+      lastToastRef.current = { msg, at: now };
+      if (typeof _pushToast === 'function') _pushToast(msg);
+    } catch { /* ignore */ }
+  };
 
   // --- Text formatting helpers (placeholders) ---
   function latestSongNameByGenre(genreName) {
@@ -608,143 +627,53 @@ export default function VisualNovelModal({
               <button
                 style={styles.primaryBtn}
                 onClick={() => {
-                  const next = (friendModal.idx||0)+1;
-                  if (isChoiceStep) {
-                    if (choiceIndex == null) return;
-                    if (next < lines.length) {
-                      setFriendModal(prev => ({ ...prev, idx: next, choiceIndex: null }));
+                  if (navLockRef.current) return;
+                  lockNav(250);
+                  setFriendModal(prev => {
+                    const fid = prev.friendId || 'luminaO';
+                    const tgt = prev.targetLevel;
+                    const arr = (scripts[fid] && scripts[fid][tgt]) || [];
+                    const i = prev.idx || 0;
+                    const raw = arr[i];
+                    const isChoice = !!(raw && raw.type === 'choice');
+                    const cIdx = (typeof prev.choiceIndex === 'number') ? prev.choiceIndex : null;
+                    const next = i + 1;
+                    if (isChoice) {
+                      if (cIdx == null) return prev;
+                      if (next < arr.length) {
+                        return { ...prev, idx: next, choiceIndex: null };
+                      }
                     } else {
-                      // Complete at end (choice path)
-                      setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
-                      if (friendId==='aureliagleam' && friendModal.targetLevel === 5 && !(friends?.aureliagleam?.rewardsClaimed?.[5])) {
-                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
-                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 5:true } } }));
-                        pushToast('Aurelia gift: +1 Nudge and extra d6 roll (next roll uses d6)');
+                      if (next < arr.length) {
+                        return { ...prev, idx: next };
                       }
-                      if (friendId==='aureliagleam' && friendModal.targetLevel === 4 && !(friends?.aureliagleam?.rewardsClaimed?.[4])) {
-                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                        if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
-                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 4:true } } }));
-                        pushToast('Aurelia gift: Extra d6 roll (+1) - next roll uses d6');
-                      }
-                      if (friendId==='aureliagleam' && friendModal.targetLevel === 3 && !(friends?.aureliagleam?.rewardsClaimed?.[3])) {
-                        if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                        if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
-                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } } }));
-                        pushToast('Aurelia gift: Extra d12 roll (+1) - next roll uses d12');
-                      }
-                      if (friendId==='aureliagleam' && friendModal.targetLevel === 2 && !(friends?.aureliagleam?.rewardsClaimed?.[2])) {
-                        if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                        setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
-                        pushToast('Aurelia gift: +1 Nudge');
-                      }
-                      
-                      if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
-                        setNudges(n=>n+1);
-                        setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
-                        pushToast('Lumina-O shared a tip: +1 Nudge');
-                      }
-                      if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
-                        setBonusRolls(r=>r+1);
-                        try {
-                          const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
-                          const idxNew = lumIdx >= 0 ? lumIdx : 0;
-                          if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
-                          if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
-                        } catch { /* ignore */ }
-                        setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
-                        pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
-                      }
-                      if (friendId==='rowan' && friendModal.targetLevel === 1) {
-                        if (typeof setOzdustUnlocked === 'function') setOzdustUnlocked(true);
-                        pushToast('Oz Dust Ball venue unlocked');
-                      }
-                      if (friendId==='griswald' && friendModal.targetLevel === 2 && !(friends?.griswald?.rewardsClaimed?.[2])) {
-                        if (typeof setWriting === 'function') {
-                          setWriting(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
-                        }
-                        setFriends(prev => ({ ...prev, griswald: { ...prev.griswald, rewardsClaimed: { ...(prev.griswald?.rewardsClaimed||{}), 2:true } } }));
-                        pushToast('Griswald gift: Worn Lyric Notebook (+0.20 Writing)');
-                      }
-                      if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
-                        if (typeof setVocals === 'function') {
-                          setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
-                        }
-                        setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
-                        pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
-                      }
-                      setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
                     }
-                  } else if (next < lines.length) {
-                    setFriendModal(prev => ({ ...prev, idx: next }));
-                  } else {
-                    // Complete at end (normal path). Only promote level for standard levels (1-5).
-                    if (friendModal && typeof friendModal.targetLevel === 'number' && friendModal.targetLevel >= 1 && friendModal.targetLevel <= 5) {
-                      setFriends(prev => ({ ...prev, [friendId]: { ...prev[friendId], level: Math.max(prev[friendId]?.level||0, friendModal.targetLevel||0) } }));
+                    // Finish: promote level and award finish-only gifts
+                    if (typeof tgt === 'number' && tgt >= 1 && tgt <= 5) {
+                      setFriends(pf => ({ ...pf, [fid]: { ...pf[fid], level: Math.max(pf[fid]?.level||0, tgt) } }));
                     }
-                    if (friendId==='aureliagleam' && friendModal.targetLevel === 5 && !(friends?.aureliagleam?.rewardsClaimed?.[5])) {
+                    if (fid==='luminaO' && tgt === 2) {
                       if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                      if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
-                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 5:true } } }));
-                      pushToast('Aurelle gift: +1 Nudge and extra d6 roll (next roll uses d6)');
-                    }
-                    if (friendId==='aureliagleam' && friendModal.targetLevel === 4 && !(friends?.aureliagleam?.rewardsClaimed?.[4])) {
-                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                      if (typeof setNextRollOverride === 'function') setNextRollOverride(6);
-                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 4:true } } }));
-                      pushToast('Aurelle gift: Extra d6 roll (+1) - next roll uses d6');
-                    }
-                    if (friendId==='aureliagleam' && friendModal.targetLevel === 3 && !(friends?.aureliagleam?.rewardsClaimed?.[3])) {
-                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
-                      if (typeof setNextRollOverride === 'function') setNextRollOverride(12);
-                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 3:true } } }));
-                      pushToast('Aurelle gift: Extra d12 roll (+1) - next roll uses d12');
-                    }
-                    if (friendId==='aureliagleam' && friendModal.targetLevel === 2 && !(friends?.aureliagleam?.rewardsClaimed?.[2])) {
-                      if (typeof setNudges === 'function') setNudges(n=> (n||0) + 1);
-                      setFriends(prev => ({ ...prev, aureliagleam: { ...prev.aureliagleam, rewardsClaimed: { ...(prev.aureliagleam?.rewardsClaimed||{}), 2:true } } }));
-                      pushToast('Aurelle gift: +1 Nudge');
-                    }
-                    
-                    if (friendId==='luminaO' && friendModal.targetLevel === 2 && !(friends?.luminaO?.rewardsClaimed?.[2])) {
-                      setNudges(n=>n+1);
-                      setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 2:true } } }));
+                      setFriends(pf => ({ ...pf, luminaO: { ...pf.luminaO, rewardsClaimed: { ...(pf.luminaO?.rewardsClaimed||{}), 2:true } } }));
                       pushToast('Lumina-O shared a tip: +1 Nudge');
                     }
-                    if (friendId==='luminaO' && friendModal.targetLevel === 5 && !(friends?.luminaO?.rewardsClaimed?.[5])) {
-                      setBonusRolls(r=>r+1);
+                    if (fid==='luminaO' && tgt === 5) {
+                      if (typeof setBonusRolls === 'function') setBonusRolls(r=> (r||0) + 1);
                       try {
                         const lumIdx = POSTERS.findIndex(p => (p||'').includes('luminaposter.png'));
                         const idxNew = lumIdx >= 0 ? lumIdx : 0;
                         if (!(unlockedPosters||[]).includes(idxNew)) setUnlockedPosters(arr=>[...arr, idxNew]);
                         if (currentPosterIdx == null) setCurrentPosterIdx(idxNew);
                       } catch { /* ignore */ }
-                      setFriends(prev => ({ ...prev, luminaO: { ...prev.luminaO, rewardsClaimed: { ...(prev.luminaO.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
+                      setFriends(pf => ({ ...pf, luminaO: { ...pf.luminaO, rewardsClaimed: { ...(pf.luminaO?.rewardsClaimed||{}), 5:true }, posterUnlocked:true } }));
                       pushToast('Lumina-O gift: +1 Bonus Roll and a new poster!');
                     }
-                    if (friendId==='griswald' && friendModal.targetLevel === 2 && !(friends?.griswald?.rewardsClaimed?.[2])) {
-                      if (typeof setWriting === 'function') {
-                        setWriting(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
-                      }
-                      setFriends(prev => ({ ...prev, griswald: { ...prev.griswald, rewardsClaimed: { ...(prev.griswald?.rewardsClaimed||{}), 2:true } } }));
-                      pushToast('Griswald gift: Worn Lyric Notebook (+0.20 Writing)');
+                    if (fid==='rowan' && tgt === 1) {
+                      if (typeof setOzdustUnlocked === 'function') setOzdustUnlocked(true);
+                      pushToast('Oz Dust Ball venue unlocked');
                     }
-                      if (friendId==='mcmunch' && friendModal.targetLevel === 2 && !(friends?.mcmunch?.rewardsClaimed?.[2])) {
-                        if (typeof setVocals === 'function') {
-                          setVocals(v => Math.max(0, Math.min(10, (v||0) + 0.2)));
-                        }
-                        setFriends(prev => ({ ...prev, mcmunch: { ...prev.mcmunch, rewardsClaimed: { ...(prev.mcmunch?.rewardsClaimed||{}), 2:true } } }));
-                        pushToast('MC Munch gift: Warm-Up Tape (+0.20 Vocals)');
-                      }
-                      if (friendId==='rowan' && friendModal.targetLevel === 1) {
-                        if (typeof setOzdustUnlocked === 'function') setOzdustUnlocked(true);
-                        pushToast('Oz Dust Ball venue unlocked');
-                      }
-                      setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null });
-                  }
+                    return { open:false, friendId:null, targetLevel:null, idx:0, choiceIndex: null };
+                  });
                 }}
               >{isChoiceStep ? ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish') : ((friendModal.idx||0) < lines.length-1 ? 'Next' : 'Finish')}</button>
             )}
