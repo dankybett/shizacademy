@@ -4203,16 +4203,21 @@ function stationTarget(type) {
           <SongBattleModal
             opponent={songBattleOpponent}
             playerName={performerName}
+            showUnlockHint={!((friends && songBattleOpponent && friends[songBattleOpponent] && friends[songBattleOpponent].songBattleUnlocked) || false)}
             onClose={() => { setSongBattleOpen(false); }}
             onResult={(res) => {
               try {
                 const outcome = (res && typeof res === 'object') ? res.outcome : res;
                 const d12 = (res && typeof res === 'object' && Number.isFinite(res.d12)) ? Math.max(0, res.d12|0) : 0;
+                const opp = (res && typeof res === 'object' && typeof res.opponent === 'string') ? res.opponent : songBattleOpponent || null;
                 if (outcome === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} }
                 if (d12 > 0) {
                   setBonusRolls(r => r + d12);
                   setOverrideQueue(q => q.concat(Array(d12).fill(12)));
                   try { pushToast(`+${d12} rolls added (Song Battle)`); } catch(_) {}
+                }
+                if (opp) {
+                  setFriends(prev => ({ ...prev, [opp]: { ...(prev[opp]||{}), songBattleUnlocked: true } }));
                 }
               } catch (_) {}
             }}
@@ -4953,6 +4958,17 @@ function stationTarget(type) {
                                           <li key={i} style={{ fontSize: 13, lineHeight: 1.4, opacity: 0.95 }}>{b}</li>
                                         ))}
                                       </ul>
+                                    )}
+                                    {/* Song Battle quick-start when unlocked */}
+                                    {((fid === 'mcmunch' || fid === 'griswald') && fsel.songBattleUnlocked) && (
+                                      <div style={{ display:'flex', justifyContent:'center', marginTop:10 }}>
+                                        <button
+                                          style={{ background:'transparent', color:'#362e46', border:'1px solid rgba(54,46,70,.25)', borderRadius:12, padding:'8px 10px', fontWeight:700, fontFamily: "'Fredoka', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" }}
+                                          onClick={() => { setSongBattleOpponent(fid); setSongBattleOpen(true); }}
+                                        >
+                                          Start Song Battle
+                                        </button>
+                                      </div>
                                     )}
                                     {/* Back button removed; use left-rail Friends icon to return */}
                                   </div>

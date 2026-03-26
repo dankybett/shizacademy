@@ -16,7 +16,7 @@ const calcAttack = ({ cleared, combo, isB2B }) => {
   return base + b2b + c;
 };
 
-export default function BattleManager({ onClose, initialOpponent, onResult, playerName }) {
+export default function BattleManager({ onClose, initialOpponent, onResult, playerName, showUnlockHint }) {
   const player = useTetris({ enableItems: true, itemSpawnChance: 0.5 });
   const ai = useTetris();
   const { bestMove } = useTetrisAI();
@@ -1000,8 +1000,13 @@ export default function BattleManager({ onClose, initialOpponent, onResult, play
                 <>Both players ended.</>
               )}
             </div>
+            {showUnlockHint && (
+              <div style={{ fontSize:12, opacity:.9 }}>
+                You can now challenge {OPPONENTS[opponent]?.label || 'this opponent'} in MyBubble any time.
+              </div>
+            )}
             <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
-              <button style={btn('secondary')} onClick={() => { try { onResult && onResult({ outcome: result, d12: d12Count||0 }); } catch(_) {}; onClose && onClose(); }}>
+              <button style={btn('secondary')} onClick={() => { try { onResult && onResult({ outcome: result, d12: d12Count||0, opponent }); } catch(_) {}; onClose && onClose(); }}>
                 {result === 'win' ? 'Yay' : result === 'lose' ? 'Return' : 'Okay'}
               </button>
             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import BattleManager from './BattleManager.jsx';
 
-export default function SongBattleModal({ onClose, opponent, onResult, playerName }) {
+export default function SongBattleModal({ onClose, opponent, onResult, playerName, showUnlockHint }) {
   const [started, setStarted] = React.useState(false);
 
   return (
@@ -37,7 +37,7 @@ export default function SongBattleModal({ onClose, opponent, onResult, playerNam
         {started ? (
           <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: '1 1 auto', minHeight: 0 }}>
             <div style={{ width:'100%', flex: '1 1 auto', minHeight: 0 }}>
-              <BattleManager onClose={onClose} initialOpponent={opponent} onResult={onResult} playerName={playerName} />
+              <BattleManager onClose={onClose} initialOpponent={opponent} onResult={onResult} playerName={playerName} showUnlockHint={showUnlockHint} />
             </div>
           </div>
         ) : (
