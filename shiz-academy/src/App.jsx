@@ -780,16 +780,16 @@ export default function App() {
       rewardsClaimed: {},
       posterUnlocked: false,
       bio: {
-        title: 'Aurelia Gleam',
+        title: 'Aurelle Starlight',
         bullets: [
           'Genre: Arcane Pop / Anthemic Stage Pop',
           'Role: Senior Prefect of Performance Studies',
           'Known For: Poised live performances & unwavering composure'
         ],
         summary:
-          'Senior Prefect of Performance Studies at Shiz Academy, Aurelia Gleam is known for radiant stage presence and meticulous preparation. ' +
+          'Senior Prefect of Performance Studies at Shiz Academy, Aurelle Starlight is known for radiant stage presence and meticulous preparation. ' +
           'A consistent presence on the Shizy-Fi charts, she approaches performance with grace, believing that confidence is something you practice rather than wait for. ' +
-          'Admired for her steady guidance and polished delivery, Aurelia views every stage as both responsibility and gift.',
+          'Admired for her steady guidance and polished delivery, Aurelle views every stage as both responsibility and gift.',
       },
     },
     rivet: {
@@ -2692,7 +2692,7 @@ function stationTarget(type) {
     } catch {}
   }, [friends?.aureliagleam?.level]);
 
-  // Deliver Aurelia Gleam shared track on the scheduled week
+  // Deliver Aurelia (Aurelle Starlight) shared track on the scheduled week
   useEffect(() => {
     try {
       const f = friends?.aureliagleam || {};
@@ -2701,8 +2701,8 @@ function stationTarget(type) {
           id: `share-aurelia-${week}`,
           friendId: 'aureliagleam',
           title: 'The Power',
-          artist: 'Aurelia Gleam',
-          audioSrc: '/audio/Aurelia Gleam - The Power.mp3',
+          artist: 'Aurelle Starlight',
+          audioSrc: '/audio/Aurelle Starlight - The Power.mp3',
           shareWeek: week,
           liked: false,
           listened: false,
@@ -4876,11 +4876,11 @@ function stationTarget(type) {
                       const fid = selectedFriendId;
                       const f = (friends && friends[fid]) || {};
                       const meta = { name: (f && f.bio && f.bio.title) || fid, bio: f.bio || { title: fid, summary:'', bullets:[] } };
-                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : (fid==='aureliagleam' ? '/art/friends/aureliagleam_bust.png' : (fid==='rivet' ? '/art/friends/rivet_bust.png' : (fid==='rowan' ? '/art/friends/rowanvire_bust.png' : '/art/friends/luminao_bust.png')))));
+                      const bust = fid==='luminaO' ? '/art/friends/luminao_bust.png' : (fid==='griswald' ? '/art/friends/griswald_bust.png' : (fid==='mcmunch' ? '/art/friends/mcmunch_bust.png' : (fid==='aureliagleam' ? '/art/friends/aurellestarlight_bust.png' : (fid==='rivet' ? '/art/friends/rivet_bust.png' : (fid==='rowan' ? '/art/friends/rowanvire_bust.png' : '/art/friends/luminao_bust.png')))));
                       const profile = fid==='luminaO' ? '/art/friends/luminao_profile.png'
                         : fid==='griswald' ? '/art/friends/griswald_profile.png'
                         : fid==='mcmunch' ? '/art/friends/mcmunch_profile.png'
-                        : fid==='aureliagleam' ? '/art/friends/aureliagleam_profile.png'
+                        : fid==='aureliagleam' ? '/art/friends/aurellestarlight_profile.png'
                         : fid==='rivet' ? '/art/friends/rivet_profile.png'
                         : fid==='rowan' ? '/art/friends/rowanvire_profile.png'
                         : '/art/friends/luminao_profile.png';
@@ -6552,7 +6552,7 @@ function stationTarget(type) {
                               <div style={{ display:'grid', gap:6 }}>
                                 {FRIENDS_ORDER.map((id) => {
                                   const lvl = Math.max(0, friends?.[id]?.level || 0);
-                                  const name = lvl > 0 ? (friends?.[id]?.bio?.title || (id==='luminaO'?'Lumina-O': id==='aureliagleam'?'Aurelia Gleam' : id.charAt(0).toUpperCase()+id.slice(1))) : '???';
+                                  const name = lvl > 0 ? (friends?.[id]?.bio?.title || (id==='luminaO'?'Lumina-O': id==='aureliagleam'?'Aurelle Starlight' : id.charAt(0).toUpperCase()+id.slice(1))) : '???';
                                   return (
                                     <div key={id} style={{ display:'flex', justifyContent:'space-between' }}>
                                       <div>{name}</div>

@@ -1,10 +1,10 @@
-// Aurelia Gleam visual novel script lines by level
+// Aurelle Starlight visual novel script lines by level
 // Triggers are calendar-week based (independent of performance)
 
 const aureliagleam = {
   1: [
     { speaker: 'aurelia', text: 'Welcome to Shiz Academy.' },
-    { speaker: 'aurelia', text: 'Im Aurelia Gleam  Senior Prefect of Performance Studies.' },
+    { speaker: 'aurelia', text: 'Im Aurelle Starlight  Senior Prefect of Performance Studies.' },
     { speaker: 'aurelia', text: 'You may hear many things about Shiz. That its prestigious. That its demanding. That it produces stars.' },
     { speaker: 'aurelia', text: 'All of that is true.' },
     { speaker: 'aurelia', text: 'But more importantly it produces artists.' },
