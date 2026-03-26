@@ -1314,6 +1314,85 @@ export default function App() {
     } catch (_) { return false; }
   }
   const [started, setStarted] = useState(false);
+  // Title screen background music
+  const titleAudioRef = useRef(null);
+  const titleFadeIntRef = useRef(null);
+  function fadeVolume(audio, to, ms, onDone) {
+    try { if (!audio) return; } catch(_) { return; }
+    try { if (titleFadeIntRef.current) { clearInterval(titleFadeIntRef.current); titleFadeIntRef.current = null; } } catch(_) {}
+    const start = Math.max(0, Math.min(1, (audio.volume ?? 0)));
+    const target = Math.max(0, Math.min(1, to ?? 0));
+    const delta = target - start;
+    if (Math.abs(delta) < 0.001 || !Number.isFinite(ms) || ms <= 0) {
+      try { audio.volume = target; } catch(_) {}
+      if (onDone) onDone();
+      return;
+    }
+    const t0 = Date.now();
+    titleFadeIntRef.current = setInterval(() => {
+      const t = Math.min(1, (Date.now() - t0) / ms);
+      const v = start + delta * t;
+      try { audio.volume = Math.max(0, Math.min(1, v)); } catch(_) {}
+      if (t >= 1) {
+        try { clearInterval(titleFadeIntRef.current); } catch(_) {}
+        titleFadeIntRef.current = null;
+        if (onDone) onDone();
+      }
+    }, 50);
+  }
+  useEffect(() => {
+    if (started) return; // only run when showing title screen
+    let destroyed = false;
+    let unlock = null;
+    try {
+      // Try multiple sources for broader codec support
+      const sources = ['/sounds/titlescreen.mp3', '/sounds/titlescreen.ogg'];
+      let idx = 0;
+      const tryNext = () => {
+        if (idx >= sources.length || destroyed) return;
+        const src = sources[idx++];
+        const a = new Audio(src);
+        a.loop = true;
+        a.preload = 'auto';
+        try { a.volume = 0; } catch(_) {}
+        a.onerror = () => { try { a.pause(); } catch(_){}; if (titleAudioRef.current === a) titleAudioRef.current = null; tryNext(); };
+        titleAudioRef.current = a;
+        a.play().catch(() => {});
+        // Fade in once we attempt to play (or immediately if already allowed)
+        fadeVolume(a, 0.5, 800);
+        // Fallback: unlock on first user gesture if autoplay is blocked
+        unlock = () => {
+          try {
+            if (titleAudioRef.current === a) {
+              if (a.paused) a.play().catch(()=>{});
+              fadeVolume(a, 0.5, 500);
+            }
+          } catch(_) {}
+          window.removeEventListener('pointerdown', unlock);
+          window.removeEventListener('keydown', unlock);
+        };
+        window.addEventListener('pointerdown', unlock, { once: true });
+        window.addEventListener('keydown', unlock, { once: true });
+      };
+      tryNext();
+    } catch (_) {}
+    return () => {
+      destroyed = true;
+      if (unlock) {
+        try { window.removeEventListener('pointerdown', unlock); } catch(_) {}
+        try { window.removeEventListener('keydown', unlock); } catch(_) {}
+      }
+      try {
+        const a = titleAudioRef.current;
+        if (a) {
+          fadeVolume(a, 0, 500, () => {
+            try { a.pause(); } catch(_) {}
+            if (titleAudioRef.current === a) titleAudioRef.current = null;
+          });
+        }
+      } catch (_) {}
+    };
+  }, [started]);
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeStep, setWelcomeStep] = useState(1); // 1: ask name, 2: intro message
   const [welcomeName, setWelcomeName] = useState('');
