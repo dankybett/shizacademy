@@ -2792,6 +2792,51 @@ function stationTarget(type) {
     } catch {}
   }, [friends?.mcmunch?.level]);
 
+  // Rowan LV1: schedule a shared track 2-5 weeks after reaching level 1; clamp to two weeks before finale
+  useEffect(() => {
+    try {
+      const f = friends?.rowan || {};
+      if (f.level >= 1) {
+        const nextState = {};
+        if (f.sharedTrackScheduledWeek == null) {
+          const lv1WeekVal = Number(f.levelReachedWeek || week);
+          const offset = 2 + Math.floor(Math.random() * 4); // 2..5
+          let sched = lv1WeekVal + offset;
+          const maxWeek = MAX_WEEKS - 2;
+          if (sched > maxWeek) sched = maxWeek;
+          nextState.sharedTrackScheduledWeek = sched;
+          nextState.sharedTrackSent = false;
+          nextState.sharedTrackId = 'rowan_perfectly_wrong';
+        }
+        if (Object.keys(nextState).length) {
+          setFriends(prev => ({ ...prev, rowan: { ...(prev.rowan||{}), ...nextState } }));
+        }
+      }
+    } catch {}
+  }, [friends?.rowan?.level]);
+
+  // Deliver Rowan shared track on the scheduled week
+  useEffect(() => {
+    try {
+      const f = friends?.rowan || {};
+      if (f.level >= 1 && f.sharedTrackScheduledWeek === week && !f.sharedTrackSent) {
+        const entry = {
+          id: `share-rowan-${week}`,
+          friendId: 'rowan',
+          title: 'Perfectly Wrong',
+          artist: 'Half-Light',
+          audioSrc: '/audio/Half Light - Perfectly Wrong.mp3',
+          shareWeek: week,
+          liked: false,
+          listened: false,
+          injectedWeek: null,
+        };
+        setSharedSongs(arr => [entry, ...arr]);
+        setFriends(prev => ({ ...prev, rowan: { ...(prev.rowan||{}), sharedTrackSent: true } }));
+      }
+    } catch {}
+  }, [week, friends]);
+
   // Deliver MC Munch shared track on the scheduled week
   useEffect(() => {
     try {
