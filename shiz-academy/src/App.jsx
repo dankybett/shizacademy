@@ -5353,7 +5353,7 @@ function stationTarget(type) {
                           </div>
                           <button
                             disabled={money < price20}
-                            onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
+                            onClick={() => { if (money>=price20){ setMoney(m=>m-price20); setBonusRolls(r=>r+1); setNextRollOverride(20); setOverrideQueue(q=> q.concat(20)); pushToast('Purchased: Extra d20 roll (+1) - next roll uses d20'); } }}
                             style={money<price20? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -5371,7 +5371,7 @@ function stationTarget(type) {
                           </div>
                           <button
                             disabled={money < price12}
-                            onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
+                            onClick={() => { if (money>=price12){ setMoney(m=>m-price12); setBonusRolls(r=>r+1); setNextRollOverride(12); setOverrideQueue(q=> q.concat(12)); pushToast('Purchased: Extra d12 roll (+1) - next roll uses d12'); } }}
                             style={money<price12? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -5389,7 +5389,7 @@ function stationTarget(type) {
                           </div>
                           <button
                             disabled={money < price6}
-                            onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
+                            onClick={() => { if (money>=price6){ setMoney(m=>m-price6); setBonusRolls(r=>r+1); setNextRollOverride(6); setOverrideQueue(q=> q.concat(6)); pushToast('Purchased: Extra d6 roll (+1) - next roll uses d6'); } }}
                             style={money<price6? { ...styles.primaryBtnDisabled, ...styles.shopBuyBtnDisabled, alignSelf:'center' } : { ...styles.smallBtn, ...styles.shopBuyBtn, alignSelf:'center' }}
                           >
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
