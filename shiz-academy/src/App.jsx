@@ -4186,6 +4186,7 @@ function stationTarget(type) {
         {songBattleOpen && (
           <SongBattleModal
             opponent={songBattleOpponent}
+            playerName={performerName}
             onClose={() => { setSongBattleOpen(false); }}
             onResult={(res) => { if (res === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} } }}
           />

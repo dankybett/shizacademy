@@ -16,7 +16,7 @@ const calcAttack = ({ cleared, combo, isB2B }) => {
   return base + b2b + c;
 };
 
-export default function BattleManager({ onClose, initialOpponent, onResult }) {
+export default function BattleManager({ onClose, initialOpponent, onResult, playerName }) {
   const player = useTetris({ enableItems: true, itemSpawnChance: 0.5 });
   const ai = useTetris();
   const { bestMove } = useTetrisAI();
@@ -887,7 +887,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
           alt={'You'}
           style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.35)', boxShadow: '0 2px 8px rgba(0,0,0,0.35)' }}
         />
-        {/* Player stats under avatar: Score, D12s */}
+        {/* Player stats under avatar: Name, Score, D12s */}
         <div
           style={{
             display:'grid',
@@ -901,6 +901,9 @@ export default function BattleManager({ onClose, initialOpponent, onResult }) {
             fontWeight:600,
           }}
         >
+          <div style={{ fontWeight:900, fontSize:13.5 }}>
+            {(playerName && String(playerName).trim()) || 'You'}
+          </div>
           <div style={{ display:'flex', gap:8 }}>
             <div>Score: <b>{player.state.score}</b></div>
             <div>Lines: <b>{player.state.lines}</b></div>
