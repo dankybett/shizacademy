@@ -848,6 +848,8 @@ export default function App() {
   const [pairFeedback, setPairFeedback] = useState(null); // 'great combination' | 'okay combination' | 'risky combination' | null
   // If set, the next roll (one action) will use these faces and buttons reflect this temporarily
   const [nextRollOverride, setNextRollOverride] = useState(null); // 20 | 12 | 6 | null
+  // Bridge queue: pending specific-die overrides to apply on upcoming rolls (consumed FIFO)
+  const [overrideQueue, setOverrideQueue] = useState([]); // e.g., [12,12,6]
   // Dice mode state (per week)
   const [rollBest, setRollBest] = useState({ sing: null, write: null, perform: null });
   const [rollHistory, setRollHistory] = useState([]); // {day, action, value, faces}
@@ -1368,7 +1370,9 @@ export default function App() {
 
   function actionButtonSrc(type) {
     // Resolve faces with one-shot override first
-    let faces = nextRollOverride || (type === 'practice' ? facesFor(vocals) : type === 'write' ? facesFor(writing) : facesFor(stage));
+    let faces = nextRollOverride
+      || ((overrideQueue && overrideQueue.length > 0) ? overrideQueue[0] : null)
+      || (type === 'practice' ? facesFor(vocals) : type === 'write' ? facesFor(writing) : facesFor(stage));
     if (type === 'practice') {
       if (faces === 12) return '/art/singd12button.png';
       if (faces === 6) return '/art/singd6button.png';
@@ -1643,6 +1647,7 @@ function stationTarget(type) {
     setRollBest({ sing: null, write: null, perform: null });
     setRollHistory([]);
     setBonusRolls(0);
+    setOverrideQueue([]);
     setRollGlow({ sing:null, write:null, perform:null });
     setWeekMode(null);
     // Clear any transient event modal
@@ -1703,7 +1708,8 @@ function stationTarget(type) {
       if (typeof s.finishedReady === "boolean") setFinishedReady(s.finishedReady);
       if (typeof s.earlyFinishEnabled === "boolean") setEarlyFinishEnabled(s.earlyFinishEnabled);
       if (typeof s.performerName === "string") setPerformerName(s.performerName);
-      if (typeof s.nextRollOverride === "number") setNextRollOverride(s.nextRollOverride);
+        if (typeof s.nextRollOverride === "number") setNextRollOverride(s.nextRollOverride);
+        if (Array.isArray(s.overrideQueue)) setOverrideQueue(s.overrideQueue);
       if (s.rollBest) setRollBest(s.rollBest);
       if (Array.isArray(s.rollHistory)) setRollHistory(s.rollHistory);
       if (s.friends && typeof s.friends === 'object') setFriends(s.friends);
@@ -2098,6 +2104,7 @@ function stationTarget(type) {
       earlyFinishEnabled,
       performerName,
       nextRollOverride,
+      overrideQueue,
       bonusRolls,
       nudges,
       eventsSchedule,
@@ -2164,7 +2171,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -2968,7 +2975,9 @@ function stationTarget(type) {
               setActivity("write");
               setStatus("Writing a catchy hook...");
               if (DICE_MODE) {
-                const faces = nextRollOverride || facesFor(writing);
+                let usedQueue = false;
+                let faces = nextRollOverride || facesFor(writing);
+                if (!nextRollOverride && (overrideQueue && overrideQueue.length > 0)) { faces = overrideQueue[0]; usedQueue = true; }
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, write: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'write', value, faces }]);
@@ -2977,31 +2986,38 @@ function stationTarget(type) {
                 setRollFxHoldMs(hold);
                 writeHold = hold;
                 if (nextRollOverride) setNextRollOverride(null);
+                else if (usedQueue) setOverrideQueue((q)=> q.slice(1));
               }
             } else if (act === "practice") {
               setActivity("singing");
               setStatus("Practicing vocal runs...");
               playSingSfx();
               if (DICE_MODE) {
-                const faces = nextRollOverride || facesFor(vocals);
+                let usedQueue = false;
+                let faces = nextRollOverride || facesFor(vocals);
+                if (!nextRollOverride && (overrideQueue && overrideQueue.length > 0)) { faces = overrideQueue[0]; usedQueue = true; }
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, sing: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'sing', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'sing' });
                 setRollFxHoldMs(5000);
                 if (nextRollOverride) setNextRollOverride(null);
+                else if (usedQueue) setOverrideQueue((q)=> q.slice(1));
               }
             } else if (act === "perform") {
               setActivity("dancing");
               setStatus("Rehearsing stage moves...");
               if (DICE_MODE) {
-                const faces = nextRollOverride || facesFor(stage);
+                let usedQueue = false;
+                let faces = nextRollOverride || facesFor(stage);
+                if (!nextRollOverride && (overrideQueue && overrideQueue.length > 0)) { faces = overrideQueue[0]; usedQueue = true; }
                 const value = rollDie(faces);
                 setRollBest((r) => ({ ...r, perform: { value, faces, nudged:false } }));
                 setRollHistory((h) => [...h, { day: TOTAL_TIME - remaining + 1, action: 'perform', value, faces }]);
                 setRollFx({ show:true, faces, current:null, final:value, settled:false, action:'perform' });
                 setRollFxHoldMs(5000);
                 if (nextRollOverride) setNextRollOverride(null);
+                else if (usedQueue) setOverrideQueue((q)=> q.slice(1));
               }
             }
             // For write, keep activity until dice FX fully hides (hold + 300ms)
@@ -4193,7 +4209,11 @@ function stationTarget(type) {
                 const outcome = (res && typeof res === 'object') ? res.outcome : res;
                 const d12 = (res && typeof res === 'object' && Number.isFinite(res.d12)) ? Math.max(0, res.d12|0) : 0;
                 if (outcome === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} }
-                if (d12 > 0) { setBonusRolls(r => r + d12); try { pushToast(`+${d12} rolls added (Song Battle)`); } catch(_) {} }
+                if (d12 > 0) {
+                  setBonusRolls(r => r + d12);
+                  setOverrideQueue(q => q.concat(Array(d12).fill(12)));
+                  try { pushToast(`+${d12} rolls added (Song Battle)`); } catch(_) {}
+                }
               } catch (_) {}
             }}
           />
