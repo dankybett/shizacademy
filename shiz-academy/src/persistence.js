@@ -1,7 +1,7 @@
 // Lightweight persistence helpers for game save data
 
 export const SAVE_KEY = 'performer-jam-save-v3';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 // Read, parse, and lightly migrate a save object from localStorage
 export function loadSave() {
@@ -59,6 +59,9 @@ function migrateSave(s, fromVersion) {
     // trendsByWeek is derived; if present from older saves, keep for backward compat.
     // actions normalization and counters are handled in App.jsx load application path.
   }
+  // v4 -> v5: add Gli-illionaire portal lock flag
+  if (fromVersion < 5) {
+    if (typeof out.gliUnlocked !== 'boolean') out.gliUnlocked = false;
+  }
   return out;
 }
-

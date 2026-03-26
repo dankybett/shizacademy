@@ -129,6 +129,10 @@ function genEventSchedule(performerName, startTs) {
     { label: 'Accept', effect: { songBattleOpponent: 'griswald' } },
     { label: 'Skip', effect: { } },
   ]);
+  // Week 14: Important Quiz-ness (introduces Gli-illionaire)
+  push(14, 'quizness', 'Important Quiz-ness', 'Attend Important Quiz-ness', 'Attend to important Quiz-ness?', 'choice', undefined, [
+    { label: 'of course', effect: { launchGli: true } },
+  ]);
   push(12, 'sale', 'Am-Oz-on Student Sale', 'Shop items 20% off', 'Shop items 20% off', 'bonus', { shopDiscount: 0.8 });
   push(20, 'festival', 'Oz Dust Ball', 'Big crowds in town', 'Major festival boosts turnout and payouts.', 'bonus', { fanMult: 1.25, payoutMult: 1.25 });
   // Special: The Iron Overture (Metal Festival)
@@ -696,6 +700,8 @@ export default function App() {
   // OzPedia and Gliâ€‘millonaire apps
   const [ozPediaOpen, setOzPediaOpen] = useState(false);
   const [gliOpen, setGliOpen] = useState(false);
+  const [gliUnlocked, setGliUnlocked] = useState(false);
+  const [gliUnlockPending, setGliUnlockPending] = useState(false);
   const [unlockedLore, setUnlockedLore] = useState([]); // array of string IDs
   const handleUnlockLore = (id) => {
     const s = String(id);
@@ -1694,6 +1700,7 @@ function stationTarget(type) {
       if (typeof s.onairOn === 'boolean') setOnairOn(s.onairOn);
       if (typeof s.fairylightsUnlocked === 'boolean') setFairylightsUnlocked(s.fairylightsUnlocked);
       if (typeof s.ozdustUnlocked === 'boolean') setOzdustUnlocked(s.ozdustUnlocked);
+      if (typeof s.gliUnlocked === 'boolean') setGliUnlocked(s.gliUnlocked);
       if (typeof s.nightMode === 'boolean') setNightMode(s.nightMode);
       if (typeof s.lampVisible === 'boolean') setLampVisible(s.lampVisible);
       if (typeof s.vinylVisible === 'boolean') setVinylVisible(s.vinylVisible);
@@ -1785,6 +1792,17 @@ function stationTarget(type) {
       setEventsSchedule(sched);
     }
   }, [eventsSchedule, performerName]);
+
+  // After playing Gli-illionaire from the event, unlock the portal upon closing
+  useEffect(() => {
+    if (!gliOpen && gliUnlockPending) {
+      setGliUnlockPending(false);
+      if (!gliUnlocked) {
+        setGliUnlocked(true);
+        try { pushToast('Glim-illionaire portal has been added to your computer.'); } catch (_) {}
+      }
+    }
+  }, [gliOpen, gliUnlockPending, gliUnlocked]);
 
   // Seed for trends (stable per run)
   useEffect(() => {
@@ -2143,7 +2161,7 @@ function stationTarget(type) {
       onairUnlocked,
       fairylightsUnlocked,
       ozdustUnlocked,
-      ozdustUnlocked,
+      gliUnlocked,
       nightMode,
       onairOn,
       lampVisible,
@@ -2171,7 +2189,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked, gliUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -3223,7 +3241,7 @@ function stationTarget(type) {
     const toNotify = activeEvents.filter(ev => !ev.choices && !(eventsResolved[ev.id] && eventsResolved[ev.id].notified));
     const upcomingNext = (eventsSchedule||[]).find(e => e.week === week + 1) || null;
     const overlaysOpen = isPerforming || releaseOpen || venueOpen || menuOpen || statsOpen || financeOpen || socialOpen || myMusicOpen || friendModal.open || calendarOpen || shopOpen || gigOpen || gigResultOpen || historyOpen || !!eventModal || !!eventInfoModal || showWelcome || friendModal.open || showConcept || ozPediaOpen || gliOpen || songBattleOpen;
-    if (pendingChoice && pendingChoice.key === 'iron') {
+    if (pendingChoice && (pendingChoice.key === 'iron' || pendingChoice.key === 'quizness')) {
       // Show weekly info first, then the Iron choice
       setDeferredChoice(pendingChoice);
       if (weeklyInfoShownWeek !== week && week > 1) {
@@ -3949,7 +3967,7 @@ function stationTarget(type) {
                                 { key: 'calendar', label: 'Calendar', title: 'Calendar', src: '/art/calendaricon.png', onClick: () => setCalendarOpen(true) },
                                 { key: 'shop', label: 'Am-Oz-on', title: 'Shop', src: '/art/shopicon.png', onClick: () => setShopOpen(true) },
                                 // Row 2
-                                { key: 'gli', label: 'Glim-illionaire', title: 'Glim-illionaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) },
+                                ... (gliUnlocked ? [{ key: 'gli', label: 'Glim-illionaire', title: 'Glim-illionaire', src: '/art/quizicon.png', onClick: () => setGliOpen(true) }] : []),
                                 { key: 'ozpedia', label: 'Oz-pedia', title: 'Oz-pedia', src: '/art/wikiicon.png', onClick: () => setOzPediaOpen(true) },
                                 { key: 'settings', label: 'Settings', title: 'Settings', src: '/art/settingicon.png', onClick: () => setMenuOpen(true) },
                               ]}
@@ -3989,7 +4007,13 @@ function stationTarget(type) {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="hide-scrollbar" style={{ width: '100%', maxHeight: '80vh', overflow: 'auto' }}>
-                        <GliMillonaire onWin={handleUnlockLore} />
+                        <GliMillonaire
+                          onWin={handleUnlockLore}
+                          onPrize={(glims) => {
+                            try { if (typeof glims === 'number' && glims > 0) { setMoney(m => m + glims); pushToast(`${glims} glims rewarded`); } } catch(_) {}
+                          }}
+                          onQuit={() => setGliOpen(false)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -5173,6 +5197,10 @@ function stationTarget(type) {
                                 const opp = ch && ch.effect && ch.effect.songBattleOpponent;
                                 if (opp) { setSongBattleOpponent(opp); setSongBattleOpen(true); }
                               } catch (_) {}
+                              // Important Quiz-ness: launch Gli-illionaire and unlock portal on completion
+                              try {
+                                if (ch && ch.effect && ch.effect.launchGli) { setGliOpen(true); setGliUnlockPending(true); }
+                              } catch (_) {}
                               setEventsResolved(r => ({ ...r, [eventModal.event.id]: { status:'choice', choiceIndex: idx } }));
                               setEventModal(null);
                             }}>
@@ -5274,9 +5302,9 @@ function stationTarget(type) {
                   return copy;
                 });
                 setEventInfoModal(null);
-                // If Iron Overture choice was deferred, show it now
+                // If a deferred choice (Iron Overture or Important Quiz-ness) exists, show it now
                 try {
-                  if (deferredChoice && deferredChoice.key === 'iron' && !(eventsResolved[deferredChoice.id] && typeof eventsResolved[deferredChoice.id].choiceIndex === 'number')) {
+                  if (deferredChoice && (deferredChoice.key === 'iron' || deferredChoice.key === 'quizness') && !(eventsResolved[deferredChoice.id] && typeof eventsResolved[deferredChoice.id].choiceIndex === 'number')) {
                     setEventModal({ event: deferredChoice });
                   }
                 } finally {

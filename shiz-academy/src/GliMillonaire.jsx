@@ -9,7 +9,7 @@ const MONEY_LADDER = [
   64000, 125000, 250000, 500000, 1000000,
 ];
 
-  function GliMillonaire({ onWin = () => {} }) {
+  function GliMillonaire({ onWin = () => {}, onPrize = () => {}, onQuit = () => {} }) {
     const [currentStep, setCurrentStep] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [celebrate, setCelebrate] = useState(false);
@@ -346,12 +346,18 @@ const MONEY_LADDER = [
     if (phase === 'feedback') {
       if (pendingWrong) {
         setPendingWrong(false);
-        setWinnings(guaranteed || 0);
+        const prize = guaranteed || 0;
+        setWinnings(prize);
+        try {
+          const award = prize >= 1000000 ? 100 : prize >= 32000 ? 32 : prize >= 1000 ? 10 : 0;
+          if (award > 0) onPrize(award);
+        } catch {}
         setGameOver(true);
         return;
       }
       if (pendingCelebrate) {
         setPendingCelebrate(false);
+        try { onPrize(100); } catch {}
         setCelebrate(true);
         return;
       }
@@ -521,19 +527,34 @@ const MONEY_LADDER = [
       >
         <div style={{ fontSize: 28, color: "#ef4444" }}>Game Over</div>
         <div style={{ opacity: 0.9 }}>You won {Number(winnings||0).toLocaleString()} glims.</div>
-        <button
-          onClick={handleTryAgain}
-          style={{
-            padding: "0.6rem 1rem",
-            borderRadius: 8,
-            border: "1px solid #4f46e5",
-            background: "#1b2340",
-            color: "#e5e7eb",
-            cursor: "pointer",
-          }}
-        >
-          Try Again
-        </button>
+        <div style={{ display:'flex', gap:10, marginTop: 4 }}>
+          <button
+            onClick={handleTryAgain}
+            style={{
+              padding: "0.6rem 1rem",
+              borderRadius: 8,
+              border: "1px solid #4f46e5",
+              background: "#1b2340",
+              color: "#e5e7eb",
+              cursor: "pointer",
+            }}
+          >
+            Try Again
+          </button>
+          <button
+            onClick={onQuit}
+            style={{
+              padding: "0.6rem 1rem",
+              borderRadius: 8,
+              border: "1px solid #253041",
+              background: "#0f1522",
+              color: "#e5e7eb",
+              cursor: "pointer",
+            }}
+          >
+            Quit
+          </button>
+        </div>
       </div>
     );
   }
