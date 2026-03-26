@@ -6605,7 +6605,7 @@ function stationTarget(type) {
           <div style={styles.overlayClear}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_mirror.png')" }}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start', color: '#362e46' }}>
                   <div style={styles.title}>Year Summary</div>
                   <div style={{ marginTop: 8 }}>
                 {(() => {
@@ -6729,7 +6729,7 @@ function stationTarget(type) {
           <div style={styles.overlayClear} onClick={() => setFinaleEndOpen(false)}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={styles.mirrorFrame}>
-                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start' }}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '12%', justifyContent: 'flex-start', color: '#362e46' }}>
                   <div style={styles.title}>Season Complete</div>
                   <div style={{ ...styles.sub, marginTop: 8 }}>Thanks for celebrating at Katie's Birthday!</div>
                   <div style={{ marginTop: 8 }}>
