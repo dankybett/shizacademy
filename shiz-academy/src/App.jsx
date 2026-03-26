@@ -52,25 +52,20 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // Posters available in public assets (ordered). Filenames include spaces; keep exact paths.
 const POSTERS = [
   '/art/posters/1.Its Munch Time.png',
-  '/art/posters/2.Straw Hat Swing.png',
+  '/art/posters/2. Half Light - Perfectly Wrong.png',
   '/art/posters/3.Tinman and the Oil Cans.png',
   '/art/posters/4.Defying Gravity.png',
   "/art/posters/5.Dorothy and the Ruby Slippers.png",
   '/art/posters/6.The Munchkin Guild Chorus.png',
-  "/art/posters/7. Emerald City Ochestra.png",
-  "/art/posters/8. Toto's Barking Bity Orchestra.png",
-  '/art/posters/9. The Flying Monkey Pilots.png',
-  "/art/posters/10. Boq's Broken Hearts.png",
-  "/art/posters/11. The Emerald City Shades.png",
-  '/art/posters/12. Scarecrow Stomp.png',
-  '/art/posters/13. Wicked Wheels.png',
-  "/art/posters/14. Candle's Wick-ed Jazz.png",
-  '/art/posters/15. The Nome King.png',
-  '/art/posters/16. Deadly Desert Dwellers.png',
-  '/art/posters/17. Mombi.png',
-  '/art/posters/18. Silent Strummers.png',
-  '/art/posters/19. Vinkus Vipers.png',
-  '/art/posters/20. Spellbound Symphony.png',
+  "/art/posters/7. Toto's Barking Bity Orchestra.png",
+  '/art/posters/8. The Flying Monkey Pilots.png',
+  "/art/posters/9. Boq's Broken Hearts.png",
+  "/art/posters/10. One Day We'll Run.png",
+  '/art/posters/11. Wicked Wheels.png',
+  '/art/posters/12. The Nome King.png',
+  '/art/posters/13. Deadly Desert Dwellers.png',
+  '/art/posters/14. Aurelle Starlight - The Almost.png',
+  '/art/posters/15. Vinkus Vipers.png',
   '/art/posters/luminaposter.png',
 ];
 // Seasonal Wizmas NPC tracks (appear in charts during Wizmas weeks only)
@@ -879,6 +874,31 @@ export default function App() {
   const [unlockedPosters, setUnlockedPosters] = useState([]); // number[]
   const [currentPosterIdx, setCurrentPosterIdx] = useState(null); // number | null
   const [posterOpen, setPosterOpen] = useState(false);
+  // Guard against invalid poster indices if poster catalog changes
+  useEffect(() => {
+    try {
+      const max = POSTERS.length;
+      setUnlockedPosters(prev => {
+        const arr = Array.isArray(prev) ? prev.filter(i => typeof i === 'number' && i >= 0 && i < max) : [];
+        return arr;
+      });
+      setCurrentPosterIdx(prev => {
+        if (typeof prev === 'number' && prev >= 0 && prev < max) return prev;
+        // pick first unlocked if available, else null
+        return (Array.isArray(unlockedPosters) && unlockedPosters.length) ? unlockedPosters[0] : null;
+      });
+    } catch(_) {}
+  }, []);
+  useEffect(() => {
+    try {
+      const max = POSTERS.length;
+      if (!(typeof currentPosterIdx === 'number' && currentPosterIdx >= 0 && currentPosterIdx < max)) {
+        if (Array.isArray(unlockedPosters) && unlockedPosters.length) {
+          setCurrentPosterIdx(unlockedPosters[0]);
+        }
+      }
+    } catch(_) {}
+  }, [unlockedPosters, currentPosterIdx]);
   const [queuedEventInfo, setQueuedEventInfo] = useState(null); // { events }
   const [deferredChoice, setDeferredChoice] = useState(null); // event to prompt after weekly info
   const [weeklyInfoShownWeek, setWeeklyInfoShownWeek] = useState(0);
