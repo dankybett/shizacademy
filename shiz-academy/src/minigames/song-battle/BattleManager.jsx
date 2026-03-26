@@ -1001,7 +1001,7 @@ export default function BattleManager({ onClose, initialOpponent, onResult, play
               )}
             </div>
             <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
-              <button style={btn('secondary')} onClick={() => { try { onResult && onResult(result); } catch(_) {}; onClose && onClose(); }}>
+              <button style={btn('secondary')} onClick={() => { try { onResult && onResult({ outcome: result, d12: d12Count||0 }); } catch(_) {}; onClose && onClose(); }}>
                 {result === 'win' ? 'Yay' : result === 'lose' ? 'Return' : 'Okay'}
               </button>
             </div>

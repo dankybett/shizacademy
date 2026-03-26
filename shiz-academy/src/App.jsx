@@ -4188,7 +4188,14 @@ function stationTarget(type) {
             opponent={songBattleOpponent}
             playerName={performerName}
             onClose={() => { setSongBattleOpen(false); }}
-            onResult={(res) => { if (res === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} } }}
+            onResult={(res) => {
+              try {
+                const outcome = (res && typeof res === 'object') ? res.outcome : res;
+                const d12 = (res && typeof res === 'object' && Number.isFinite(res.d12)) ? Math.max(0, res.d12|0) : 0;
+                if (outcome === 'win') { setMoney(m => m + 100); try { pushToast('You earned 100 glims!'); } catch(_) {} }
+                if (d12 > 0) { setBonusRolls(r => r + d12); try { pushToast(`+${d12} rolls added (Song Battle)`); } catch(_) {} }
+              } catch (_) {}
+            }}
           />
         )}
 
