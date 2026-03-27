@@ -1423,6 +1423,9 @@ export default function App() {
   const [target, setTarget] = useState(null); // {x,y} or null
   const [pendingAct, setPendingAct] = useState(null); // 'practice' | 'write' | 'perform' | null
   const [activity, setActivity] = useState("idle"); // 'idle' | 'walk' | 'write' | 'sing' | 'dance'
+  const [performerOneShot, setPerformerOneShot] = useState(null); // null | 'stroke'
+  const [performerOneShotKey, setPerformerOneShotKey] = useState(0);
+  const [performerOneShotVisible, setPerformerOneShotVisible] = useState(false);
 
   const compat = COMPAT[genre]?.[theme] ?? 0;
 
@@ -1451,6 +1454,12 @@ export default function App() {
   }, [pendingAct, rollFx.show, activity]);
 
   const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
+  const PERFORMER_STROKE_MS = 7800;
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/art/stroke.gif';
+  }, []);
 
   const gains = useMemo(() => ({
     vocals: +weekVocGain.toFixed(1),
@@ -3141,6 +3150,7 @@ function stationTarget(type) {
     const tickMs = 60;
     const id = setInterval(() => {
       setPos((p) => {
+        if (performerOneShot) return p;
         if (!target) return p;
         const dx = target.x - p.x;
         const dy = target.y - p.y;
@@ -3218,7 +3228,7 @@ function stationTarget(type) {
       });
     }, tickMs);
     return () => clearInterval(id);
-  }, [target, pendingAct]);
+  }, [target, pendingAct, performerOneShot]);
 
   function randomWalkable() {
     if (walkablePts && walkablePts.length > 0) {
@@ -3247,14 +3257,22 @@ function stationTarget(type) {
 
   // Idle roaming: pick random spots when idle and no target
   useEffect(() => {
-    if (isPerforming || target || activity !== "idle") return;
+    if (isPerforming || performerOneShot || target || activity !== "idle") return;
     const timeout = setTimeout(() => {
       const pt = randomWalkable();
       setTarget(pt);
       setActivity("walk");
     }, 1200 + Math.random() * 2000);
     return () => clearTimeout(timeout);
-  }, [isPerforming, target, activity]);
+  }, [isPerforming, performerOneShot, target, activity]);
+
+  useEffect(() => {
+    if (!performerOneShot) return;
+    if (isPerforming || (activity !== 'idle' && activity !== 'walk')) {
+      setPerformerOneShot(null);
+      setPerformerOneShotVisible(false);
+    }
+  }, [performerOneShot, isPerforming, activity]);
 
   // Compute room width to fit background image scaled by fixed height
   useEffect(() => {
@@ -3937,9 +3955,29 @@ function stationTarget(type) {
                     top: `${pos.y}%`,
                     transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
                   }}
+                  onClick={() => {
+                    if (performerOneShot || isPerforming || target || activity !== 'idle') return;
+                    setPerformerOneShot('stroke');
+                    setPerformerOneShotVisible(false);
+                    setPerformerOneShotKey((k) => k + 1);
+                    window.setTimeout(() => {
+                      setPerformerOneShotVisible(true);
+                    }, 20);
+                    window.setTimeout(() => {
+                      setPerformerOneShot((curr) => {
+                        if (curr === 'stroke') setPerformerOneShotVisible(false);
+                        return curr === 'stroke' ? null : curr;
+                      });
+                    }, PERFORMER_STROKE_MS);
+                  }}
                   title="Your performer"
                 >
-                  {isPerforming ? (
+                  {performerOneShot === 'stroke' ? (
+                    <>
+                      <img src="/art/idle.gif" alt="Performer idle" style={{ ...styles.performerImgLayer, opacity: performerOneShotVisible ? 0 : 1 }} />
+                      <img key={`stroke-${performerOneShotKey}`} src="/art/stroke.gif" alt="Performer animation" style={{ ...styles.performerImgLayer, ...styles.performerStrokeImg, opacity: performerOneShotVisible ? 1 : 0 }} />
+                    </>
+                  ) : isPerforming ? (
                     <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
                   ) : activity === 'walk' ? (
                     <img src="/art/walking.gif" alt="Performer walking" style={styles.performerImg} />
@@ -7033,6 +7071,19 @@ const styles = {
     objectFit: 'contain',
     pointerEvents: 'none',
     filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.3))',
+  },
+  performerImgLayer: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    pointerEvents: 'none',
+    filter: 'drop-shadow(0 2px 2px rgba(0,0,0,.3))',
+    transition: 'opacity 120ms ease',
+  },
+  performerStrokeImg: {
+    transform: 'translateX(-4px) scale(1)',
   },
   actionEmoji: {
     position: "absolute",
