@@ -684,6 +684,8 @@ export default function App() {
   const rollAudioRef = useRef(null);
   const typingAudioRef = useRef(null);
   const danceAudioRef = useRef(null);
+  const strokeAudioRef = useRef(null);
+  const strokeFadeIntRef = useRef(null);
   const dancePreviewAudioRef = useRef(null); // plays top-trend 5s snippet during perform roll
   const dancePreviewPlayingKeyRef = useRef(null); // track id set by preview to clear HUD later
   const dancePreviewActiveRef = useRef(false); // HUD was set by dance preview
@@ -1423,9 +1425,33 @@ export default function App() {
   const [target, setTarget] = useState(null); // {x,y} or null
   const [pendingAct, setPendingAct] = useState(null); // 'practice' | 'write' | 'perform' | null
   const [activity, setActivity] = useState("idle"); // 'idle' | 'walk' | 'write' | 'sing' | 'dance'
-  const [performerOneShot, setPerformerOneShot] = useState(null); // null | 'stroke'
-  const [performerOneShotKey, setPerformerOneShotKey] = useState(0);
-  const [performerOneShotVisible, setPerformerOneShotVisible] = useState(false);
+  const [performerStrokeActive, setPerformerStrokeActive] = useState(false);
+  const [performerStrokeKey, setPerformerStrokeKey] = useState(0);
+  const [performerStrokeVisible, setPerformerStrokeVisible] = useState(false);
+
+  function fadeAudioWithRef(audio, intervalRef, to, ms, onDone) {
+    try { if (!audio) return; } catch(_) { return; }
+    try { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } } catch(_) {}
+    const start = Math.max(0, Math.min(1, (audio.volume ?? 0)));
+    const target = Math.max(0, Math.min(1, to ?? 0));
+    const delta = target - start;
+    if (Math.abs(delta) < 0.001 || !Number.isFinite(ms) || ms <= 0) {
+      try { audio.volume = target; } catch(_) {}
+      if (onDone) onDone();
+      return;
+    }
+    const t0 = Date.now();
+    intervalRef.current = setInterval(() => {
+      const t = Math.min(1, (Date.now() - t0) / ms);
+      const v = start + delta * t;
+      try { audio.volume = Math.max(0, Math.min(1, v)); } catch(_) {}
+      if (t >= 1) {
+        try { clearInterval(intervalRef.current); } catch(_) {}
+        intervalRef.current = null;
+        if (onDone) onDone();
+      }
+    }, 50);
+  }
 
   const compat = COMPAT[genre]?.[theme] ?? 0;
 
@@ -1454,11 +1480,30 @@ export default function App() {
   }, [pendingAct, rollFx.show, activity]);
 
   const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
-  const PERFORMER_STROKE_MS = 7800;
 
   useEffect(() => {
     const img = new Image();
     img.src = '/art/stroke.gif';
+  }, []);
+
+  useEffect(() => {
+    const audio = new Audio('/sounds/stroke.mp3');
+    audio.preload = 'auto';
+    strokeAudioRef.current = audio;
+    return () => {
+      try {
+        if (strokeFadeIntRef.current) {
+          clearInterval(strokeFadeIntRef.current);
+          strokeFadeIntRef.current = null;
+        }
+      } catch (_) {}
+      try {
+        if (strokeAudioRef.current) {
+          strokeAudioRef.current.pause();
+          strokeAudioRef.current = null;
+        }
+      } catch (_) {}
+    };
   }, []);
 
   const gains = useMemo(() => ({
@@ -3150,7 +3195,7 @@ function stationTarget(type) {
     const tickMs = 60;
     const id = setInterval(() => {
       setPos((p) => {
-        if (performerOneShot) return p;
+        if (performerStrokeActive) return p;
         if (!target) return p;
         const dx = target.x - p.x;
         const dy = target.y - p.y;
@@ -3228,7 +3273,7 @@ function stationTarget(type) {
       });
     }, tickMs);
     return () => clearInterval(id);
-  }, [target, pendingAct, performerOneShot]);
+  }, [target, pendingAct, performerStrokeActive]);
 
   function randomWalkable() {
     if (walkablePts && walkablePts.length > 0) {
@@ -3257,22 +3302,22 @@ function stationTarget(type) {
 
   // Idle roaming: pick random spots when idle and no target
   useEffect(() => {
-    if (isPerforming || performerOneShot || target || activity !== "idle") return;
+    if (isPerforming || performerStrokeActive || target || activity !== "idle") return;
     const timeout = setTimeout(() => {
       const pt = randomWalkable();
       setTarget(pt);
       setActivity("walk");
     }, 1200 + Math.random() * 2000);
     return () => clearTimeout(timeout);
-  }, [isPerforming, performerOneShot, target, activity]);
+  }, [isPerforming, performerStrokeActive, target, activity]);
 
   useEffect(() => {
-    if (!performerOneShot) return;
+    if (!performerStrokeActive) return;
     if (isPerforming || (activity !== 'idle' && activity !== 'walk')) {
-      setPerformerOneShot(null);
-      setPerformerOneShotVisible(false);
+      setPerformerStrokeActive(false);
+      setPerformerStrokeVisible(false);
     }
-  }, [performerOneShot, isPerforming, activity]);
+  }, [performerStrokeActive, isPerforming, activity]);
 
   // Compute room width to fit background image scaled by fixed height
   useEffect(() => {
@@ -3955,27 +4000,79 @@ function stationTarget(type) {
                     top: `${pos.y}%`,
                     transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
                   }}
-                  onClick={() => {
-                    if (performerOneShot || isPerforming || target || activity !== 'idle') return;
-                    setPerformerOneShot('stroke');
-                    setPerformerOneShotVisible(false);
-                    setPerformerOneShotKey((k) => k + 1);
+                  onPointerDown={() => {
+                    if (performerStrokeActive || isPerforming || target || activity !== 'idle') return;
+                    setPerformerStrokeActive(true);
+                    setPerformerStrokeVisible(false);
+                    setPerformerStrokeKey((k) => k + 1);
+                    try {
+                      let audio = strokeAudioRef.current;
+                      if (!audio) {
+                        audio = new Audio('/sounds/stroke.mp3');
+                        audio.preload = 'auto';
+                        strokeAudioRef.current = audio;
+                      }
+                      try {
+                        if (strokeFadeIntRef.current) {
+                          clearInterval(strokeFadeIntRef.current);
+                          strokeFadeIntRef.current = null;
+                        }
+                      } catch (_) {}
+                      try { audio.pause(); } catch (_) {}
+                      try { audio.currentTime = 0; } catch (_) {}
+                      try { audio.volume = 0; } catch (_) {}
+                      audio.play().catch(() => {});
+                      fadeAudioWithRef(audio, strokeFadeIntRef, 0.55, 180);
+                    } catch (_) {}
                     window.setTimeout(() => {
-                      setPerformerOneShotVisible(true);
+                      setPerformerStrokeVisible(true);
                     }, 20);
-                    window.setTimeout(() => {
-                      setPerformerOneShot((curr) => {
-                        if (curr === 'stroke') setPerformerOneShotVisible(false);
-                        return curr === 'stroke' ? null : curr;
-                      });
-                    }, PERFORMER_STROKE_MS);
+                  }}
+                  onPointerUp={() => {
+                    setPerformerStrokeActive(false);
+                    setPerformerStrokeVisible(false);
+                    try {
+                      const audio = strokeAudioRef.current;
+                      if (audio) {
+                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
+                          try { audio.pause(); } catch (_) {}
+                          try { audio.currentTime = 0; } catch (_) {}
+                        });
+                      }
+                    } catch (_) {}
+                  }}
+                  onPointerCancel={() => {
+                    setPerformerStrokeActive(false);
+                    setPerformerStrokeVisible(false);
+                    try {
+                      const audio = strokeAudioRef.current;
+                      if (audio) {
+                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
+                          try { audio.pause(); } catch (_) {}
+                          try { audio.currentTime = 0; } catch (_) {}
+                        });
+                      }
+                    } catch (_) {}
+                  }}
+                  onPointerLeave={() => {
+                    setPerformerStrokeActive(false);
+                    setPerformerStrokeVisible(false);
+                    try {
+                      const audio = strokeAudioRef.current;
+                      if (audio) {
+                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
+                          try { audio.pause(); } catch (_) {}
+                          try { audio.currentTime = 0; } catch (_) {}
+                        });
+                      }
+                    } catch (_) {}
                   }}
                   title="Your performer"
                 >
-                  {performerOneShot === 'stroke' ? (
+                  {performerStrokeActive ? (
                     <>
-                      <img src="/art/idle.gif" alt="Performer idle" style={{ ...styles.performerImgLayer, opacity: performerOneShotVisible ? 0 : 1 }} />
-                      <img key={`stroke-${performerOneShotKey}`} src="/art/stroke.gif" alt="Performer animation" style={{ ...styles.performerImgLayer, ...styles.performerStrokeImg, opacity: performerOneShotVisible ? 1 : 0 }} />
+                      <img src="/art/idle.gif" alt="Performer idle" style={{ ...styles.performerImgLayer, opacity: performerStrokeVisible ? 0 : 1 }} />
+                      <img key={`stroke-${performerStrokeKey}`} src="/art/stroke.gif" alt="Performer animation" style={{ ...styles.performerImgLayer, ...styles.performerStrokeImg, opacity: performerStrokeVisible ? 1 : 0 }} />
                     </>
                   ) : isPerforming ? (
                     <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
