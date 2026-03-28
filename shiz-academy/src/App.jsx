@@ -1449,12 +1449,46 @@ export default function App() {
     } catch (_) {}
   }
 
+  function closeRoomOverlaysForStudy() {
+    setMenuOpen(false);
+    setStatsOpen(false);
+    setReleaseOpen(false);
+    setFinanceOpen(false);
+    setHistoryOpen(false);
+    setVenueOpen(false);
+    setGigOpen(false);
+    setGigResultOpen(false);
+    setProgressOpen(false);
+    setSocialOpen(false);
+    setMyBubbleMessagesOpen(false);
+    setMyMusicOpen(false);
+    setCalendarOpen(false);
+    setMyBubbleFriendsOpen(false);
+    setOzPediaOpen(false);
+    setGliOpen(false);
+    setShowFriendsList(false);
+    setFinaleOpen(false);
+    setFinaleSummaryOpen(false);
+    setFinaleEndOpen(false);
+    setShopOpen(false);
+    setNudgeOpen(false);
+    setPosterOpen(false);
+    setPolaroidOpen(false);
+    setFurnitureOpen(false);
+    setShowWelcome(false);
+    setShowConcept(false);
+    setEventModal(null);
+    setEventInfoModal(null);
+    setFriendModal({ open:false, friendId:null, targetLevel:null, idx:0 });
+  }
+
   function toggleStudyMode(next = !studyMode) {
     if (studyTransitioning) return;
     setStudyTransitioning(true);
     setStudyFadeBlack(true);
     window.setTimeout(() => {
       if (next) {
+        closeRoomOverlaysForStudy();
         studyPrevPosRef.current = pos;
         studyPrevFacingRef.current = facingLeft;
         stopPerformerStroke();
