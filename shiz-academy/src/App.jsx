@@ -4024,13 +4024,13 @@ function stationTarget(type) {
                 </div>
               )}
               {/* Room HUD: show money and rolls */}
-              {!isPerforming && (
+              {!studyMode && !isPerforming && (
                 <div style={{ ...styles.hudMoney, display:'inline-flex', alignItems:'center', gap:6 }}>
                   <span>{money}</span>
                   <img src={'/art/glimbug.png'} alt={'Glimbug'} style={{ width:16, height:16, objectFit:'contain' }} />
                 </div>
               )}
-              {!playingTrend && !isPerforming && (
+              {!studyMode && !playingTrend && !isPerforming && (
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
               {(playingTrend && ((audioRef.current && !audioRef.current.paused) || (dancePreviewActiveRef.current))) && (
