@@ -964,6 +964,7 @@ export default function App() {
   const [onairOn, setOnairOn] = useState(true);
   // Fairy Lights Jar (desk cosmetic, shares lamp spot)
   const [fairylightsUnlocked, setFairylightsUnlocked] = useState(false);
+  const [radioUnlocked, setRadioUnlocked] = useState(true);
   // Night mode (darken room + boost glows)
   const [nightMode, setNightMode] = useState(false);
   // Furniture visibility toggles
@@ -973,6 +974,7 @@ export default function App() {
   const [candleVisible, setCandleVisible] = useState(true);
   const [onairVisible, setOnairVisible] = useState(true);
   const [fairylightsVisible, setFairylightsVisible] = useState(true);
+  const [radioVisible, setRadioVisible] = useState(true);
   // Venue unlocks
   const [ozdustUnlocked, setOzdustUnlocked] = useState(false);
   // Furniture modal
@@ -1963,6 +1965,7 @@ function stationTarget(type) {
       if (typeof s.onairUnlocked === 'boolean') setOnairUnlocked(s.onairUnlocked);
       if (typeof s.onairOn === 'boolean') setOnairOn(s.onairOn);
       if (typeof s.fairylightsUnlocked === 'boolean') setFairylightsUnlocked(s.fairylightsUnlocked);
+      if (typeof s.radioUnlocked === 'boolean') setRadioUnlocked(s.radioUnlocked);
       if (typeof s.ozdustUnlocked === 'boolean') setOzdustUnlocked(s.ozdustUnlocked);
       if (typeof s.gliUnlocked === 'boolean') setGliUnlocked(s.gliUnlocked);
       if (typeof s.nightMode === 'boolean') setNightMode(s.nightMode);
@@ -1972,6 +1975,7 @@ function stationTarget(type) {
       if (typeof s.candleVisible === 'boolean') setCandleVisible(s.candleVisible);
       if (typeof s.onairVisible === 'boolean') setOnairVisible(s.onairVisible);
       if (typeof s.fairylightsVisible === 'boolean') setFairylightsVisible(s.fairylightsVisible);
+      if (typeof s.radioVisible === 'boolean') setRadioVisible(s.radioVisible);
       if (Array.isArray(s.unlockedPosters)) setUnlockedPosters(s.unlockedPosters);
       if (typeof s.currentPosterIdx === 'number') setCurrentPosterIdx(s.currentPosterIdx);
       if (typeof s.nudges === 'number') setNudges(s.nudges);
@@ -2348,6 +2352,7 @@ function stationTarget(type) {
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
     poster:   { xPct: 49.08, yPct: 38.02, wPct: 9.40 }, // undo x nudge; keep 2% smaller
     lamp:     { xPct: 55.77, yPct: 48.28, wPct: 7.6 },
+    radio:    { xPct: 56.98, yPct: 51.68, wPct: 6.6 },
     // Pillow hotspot (top-left area) to toggle Night Mode
     pillow:   { xPct: 10.34, yPct: 76.38, wPct: 12.0 },
     // Fairy lights jar anchor (slightly right of lamp, 30% smaller)
@@ -2475,6 +2480,7 @@ function stationTarget(type) {
       candleUnlocked,
       onairUnlocked,
       fairylightsUnlocked,
+      radioUnlocked,
       ozdustUnlocked,
       gliUnlocked,
       nightMode,
@@ -2485,6 +2491,7 @@ function stationTarget(type) {
       candleVisible,
       onairVisible,
       fairylightsVisible,
+      radioVisible,
       midnightHazeEnabled,
       rainfallEnabled,
       spotlightSnapEnabled,
@@ -2505,7 +2512,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, savedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked, gliUnlocked]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, savedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, radioUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, radioVisible, ozdustUnlocked, gliUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -3280,14 +3287,22 @@ function stationTarget(type) {
     } catch {}
   }, [candleVisible, onairVisible]);
 
-  // Enforce mutual exclusivity: if both lamp and fairy lights are visible, prefer Fairy Lights
+  // Enforce mutual exclusivity for the lamp slot. Radio overrides both lamp and fairy lights.
   useEffect(() => {
     try {
+      if (radioVisible && lampVisible) {
+        setLampVisible(false);
+        return;
+      }
+      if (radioVisible && fairylightsVisible) {
+        setFairylightsVisible(false);
+        return;
+      }
       if (lampVisible && fairylightsVisible) {
         setLampVisible(false);
       }
     } catch {}
-  }, [lampVisible, fairylightsVisible]);
+  }, [lampVisible, fairylightsVisible, radioVisible]);
 
   function skipPerformance() {
     try {
@@ -3890,6 +3905,11 @@ function stationTarget(type) {
                     {/* Inner vibrant core */}
                     <div style={{ position:'absolute', left:'50%', top:'48%', transform:'translate(-50%,-50%)', width: nightMode? '300%' : '220%', height: nightMode? '270%' : '200%', borderRadius:'50%', background:`radial-gradient(closest-side, rgba(210,120,255,${nightMode? '0.99':'0.97'}), rgba(210,120,255,0) ${nightMode? '90%':'84%'})`, filter:'blur(12px)', animation:'candleFlicker 2.0s ease-in-out infinite', pointerEvents:'none', mixBlendMode:'screen' }} />
                     <img src={'/art/fairylights.png'} alt={'Fairy Lights'} style={{ width:'100%', height:'auto', filter:'drop-shadow(0 3px 8px rgba(0,0,0,.5))' }} />
+                  </div>
+                )}
+                {radioUnlocked && radioVisible && (
+                  <div style={{ ...anchorStyle(ANCHORS.radio), zIndex: 4, position:'absolute', pointerEvents:'none' }} title="Radio">
+                    <img src="/art/radio.png" alt="Radio" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.28))' }} />
                   </div>
                 )}
                 {/* Microphone -> opens Create/Current Song modal */}
@@ -4523,7 +4543,7 @@ function stationTarget(type) {
                         <img src={'/art/lavalamp.png'} alt="Lamp" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
                         <div style={{ fontWeight:800, flex:1 }}>Neon Dorm Lamp</div>
                         <button style={lampVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
-                          setLampVisible(v => { const nv = !v; if (nv) setFairylightsVisible(false); return nv; });
+                          setLampVisible(v => { const nv = !v; if (nv) { setFairylightsVisible(false); setRadioVisible(false); } return nv; });
                         }}>{lampVisible ? 'Visible' : 'Hidden'}</button>
                       </div>
                     )}
@@ -4532,8 +4552,17 @@ function stationTarget(type) {
                         <img src={'/art/fairylights.png'} alt="Fairy Lights" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
                         <div style={{ fontWeight:800, flex:1 }}>Frosted Jar with Fairy Lights</div>
                         <button style={fairylightsVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
-                          setFairylightsVisible(v => { const nv = !v; if (nv) setLampVisible(false); return nv; });
+                          setFairylightsVisible(v => { const nv = !v; if (nv) { setLampVisible(false); setRadioVisible(false); } return nv; });
                         }}>{fairylightsVisible ? 'Visible' : 'Hidden'}</button>
+                      </div>
+                    )}
+                    {radioUnlocked && (
+                      <div style={{ display:'flex', alignItems:'center', gap:10, border:'1px solid rgba(255,255,255,.2)', borderRadius:10, padding:8 }}>
+                        <img src={'/art/radio.png'} alt="Radio" style={{ width:48, height:48, objectFit:'contain' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                        <div style={{ fontWeight:800, flex:1 }}>Radio</div>
+                        <button style={radioVisible ? styles.smallBtn : { ...styles.smallBtn, opacity:.7 }} onClick={() => {
+                          setRadioVisible(v => { const nv = !v; if (nv) { setLampVisible(false); setFairylightsVisible(false); } return nv; });
+                        }}>{radioVisible ? 'Visible' : 'Hidden'}</button>
                       </div>
                     )}
                     {vinylUnlocked && (
@@ -4568,7 +4597,7 @@ function stationTarget(type) {
                         }}>{onairVisible ? 'Visible' : 'Hidden'}</button>
                       </div>
                     )}
-                    {!(lampUnlocked||vinylUnlocked||polaroidUnlocked||candleUnlocked||onairUnlocked) && (
+                    {!(lampUnlocked||fairylightsUnlocked||radioUnlocked||vinylUnlocked||polaroidUnlocked||candleUnlocked||onairUnlocked) && (
                       <div style={{ ...styles.sub, marginTop: 8 }}>No furniture unlocked yet.</div>
                     )}
                   </div>
