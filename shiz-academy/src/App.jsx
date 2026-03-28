@@ -3692,9 +3692,10 @@ function stationTarget(type) {
           <button
             onClick={() => {
               try {
-                const s = resumeSaveRef.current || loadSave();
+                const s = loadSave();
                 if (!s || typeof s !== 'object') { pushToast('No save found'); return; }
                 applySaveSnapshot(s);
+                resumeSaveRef.current = s;
                 setStarted(true);
                 setHydrated(true);
                 pushToast('Loaded saved game');
@@ -6207,7 +6208,7 @@ function stationTarget(type) {
                                           onClick={(e) => { e.stopPropagation(); toggleSavedSong(item); }}
                                           title={isSaved ? 'Unsave song' : 'Save song'}
                                           aria-label={isSaved ? 'Unsave song' : 'Save song'}
-                                          style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
+                                          style={{ position:'absolute', right:18, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
                                         >
                                           <img
                                             src={'/art/shizyfi/heartbutton.png'}
@@ -6267,7 +6268,7 @@ function stationTarget(type) {
                                       onClick={(e) => { e.stopPropagation(); toggleSavedSong(item); }}
                                       title={isSaved ? 'Unsave song' : 'Save song'}
                                       aria-label={isSaved ? 'Unsave song' : 'Save song'}
-                                      style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
+                                      style={{ position:'absolute', right:18, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
                                     >
                                       <img
                                         src={'/art/shizyfi/heartbutton.png'}
