@@ -692,6 +692,7 @@ export default function App() {
   const [socialOpen, setSocialOpen] = useState(false);
   const [myBubbleMessagesOpen, setMyBubbleMessagesOpen] = useState(false);
   const [myMusicOpen, setMyMusicOpen] = useState(false);
+  const [myMusicPage, setMyMusicPage] = useState('home');
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [myBubbleFriendsOpen, setMyBubbleFriendsOpen] = useState(false);
   // OzPedia and Gliâ€‘millonaire apps
@@ -978,6 +979,7 @@ export default function App() {
   const [furnitureOpen, setFurnitureOpen] = useState(false);
   // Shared songs (friends share WIP after LV5)
   const [sharedSongs, setSharedSongs] = useState([]); // [{id, friendId, title, artist, audioSrc, shareWeek, liked, listened, injectedWeek}]
+  const [savedSongs, setSavedSongs] = useState([]); // future Shizy-Fi library entries
   const sharedAudioRef = useRef(null);
   // Wizmas seasonal injection control (weeks injected this run)
   const [wizmasInjectedWeeks, setWizmasInjectedWeeks] = useState([]);
@@ -1954,6 +1956,7 @@ function stationTarget(type) {
       if (s.eventsResolved && typeof s.eventsResolved === 'object') setEventsResolved(s.eventsResolved);
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
       if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
+      if (Array.isArray(s.savedSongs)) setSavedSongs(s.savedSongs);
       if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
       if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
       if (typeof s.candleUnlocked === 'boolean') setCandleUnlocked(s.candleUnlocked);
@@ -2126,7 +2129,7 @@ function stationTarget(type) {
 
   // Keep previews playing when My Music closes (no-op on close)
   useEffect(() => {
-    // Intentionally do not pause audio on close
+    if (!myMusicOpen) setMyMusicPage('home');
   }, [myMusicOpen]);
 
 
@@ -2461,6 +2464,7 @@ function stationTarget(type) {
       unlockedPosters,
       currentPosterIdx,
       sharedSongs,
+      savedSongs,
       wizmasInjectedWeeks,
       ts: Date.now(),
     };
@@ -2470,7 +2474,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked, gliUnlocked]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, savedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, ozdustUnlocked, gliUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -6035,7 +6039,10 @@ function stationTarget(type) {
         )}
 
         {myMusicOpen && (
-          <div style={styles.overlayClear} onClick={() => setMyMusicOpen(false)}>
+          <div style={styles.overlayClear} onClick={() => {
+            if (myMusicPage === 'saved') setMyMusicPage('home');
+            else setMyMusicOpen(false);
+          }}>
             <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
               <div style={{ ...styles.mirrorFrame, backgroundImage: "url('/art/modalframe_shizyfi.png')" }}>
                 <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: 'calc(12% + 45px)', justifyContent: 'flex-start' }}>
@@ -6046,127 +6053,195 @@ function stationTarget(type) {
                 onError={(e)=>{ e.currentTarget.style.display='none'; }}
               />
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop: 10 }}>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
-                  {(!endYearReady && !isOver) ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setMyMusicOpen(false);
-                          if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
-                        }}
-                        style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
-                        title={conceptLocked ? 'Current Song' : 'Create Song'}
-                      >
+                {myMusicPage === 'saved' ? (
+                  <>
+                    <div style={{ width:'96%', margin:'0 auto' }}>
+                      <div style={{ position:'relative' }}>
                         <img
-                          src={'/art/shizyfi/createsongbutton.png'}
-                          alt={conceptLocked ? 'Current Song' : 'Create Song'}
-                          style={{ display:'block', width:200, height:'auto' }}
+                          src={'/art/shizyfi/banner.png'}
+                          alt={''}
+                          style={{ display:'block', width:'100%', height:'auto' }}
                           onError={(e)=>{ e.currentTarget.style.display='none'; }}
                         />
-                      </button>
-                      <button
-                        onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }}
-                        style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
-                        title={'My Song History'}
-                      >
-                        <img
-                          src={'/art/shizyfi/mysonghistorybutton.png'}
-                          alt={'My Song History'}
-                          style={{ display:'block', width:200, height:'auto' }}
-                          onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                        />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => { setMyMusicOpen(false); setFinaleSummaryOpen(true); setEndYearReady(false); }}
-                        style={styles.primaryBtn}
-                      >
-                        End year
-                      </button>
-                      <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
-                    </>
-                  )}
-                </div>
-                {(!endYearReady && !isOver) && (
-                  <div style={{ width:'96%', margin:'-6px auto 0' }}>
-                    <div style={{ position:'relative' }}>
-                      <img
-                        src={'/art/shizyfi/banner.png'}
-                        alt={''}
-                        style={{ display:'block', width:'100%', height:'auto' }}
-                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                      />
-                      <div style={{ position:'absolute', left:'50%', top:'46%', transform:'translate(-50%, -50%)', fontWeight:900, fontSize:18, textAlign:'center', letterSpacing:.2, textTransform:'uppercase', whiteSpace:'nowrap' }}>
-                        Academy Trends (Week {Math.min(week, MAX_WEEKS)})
+                        <div style={{ position:'absolute', left:'50%', top:'46%', transform:'translate(-50%, -50%)', fontWeight:900, fontSize:18, textAlign:'center', letterSpacing:.2, textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                          Saved Songs
+                        </div>
+                      </div>
+                      <div className="hide-scrollbar" style={{ overflowY:'auto', overflowX:'hidden', maxHeight: 320, paddingRight:4, marginTop:8 }}>
+                        {savedSongs.length === 0 ? (
+                          <div style={{ border:'1px solid rgba(255,255,255,.16)', borderRadius:14, padding:'16px 14px', background:'rgba(255,255,255,.05)', textAlign:'center' }}>
+                            <div style={{ fontWeight:900, marginBottom:6 }}>No saved songs yet</div>
+                            <div style={styles.sub}>Later we can add hearts to the Top 5 so tracks can be saved into this library.</div>
+                          </div>
+                        ) : (
+                          <div style={{ display:'grid', gap:8 }}>
+                            {savedSongs.map((item, idx) => (
+                              <div key={`${item.id || item.title || 'saved'}-${idx}`} style={{ position:'relative', minHeight:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', overflow:'visible' }}>
+                                <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c' }}>
+                                  {(item.artist || 'Unknown Artist')} - {((item.title || 'Untitled Song').length > 38) ? `${(item.title || 'Untitled Song').slice(0, 38)}...` : (item.title || 'Untitled Song')}
+                                </div>
+                                {item.isPlayer && (
+                                  <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {(() => {
-                      const list = trendsByWeek && trendsByWeek[week];
-                      if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} 
-                      return (
-                        <div className="hide-scrollbar" style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4, marginTop:8 }}>
-                          <div style={{ display:'grid', gap:8 }}>
-                            {list.map(item => {
-                              const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
-                              const pct = Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)));
-                              return (
-                                <div
-                                  key={`${item.rank}-${item.title}`}
-                                  onClick={() => playTrendItem(item)}
-                                  style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
-                                >
-                                  <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
-                                    <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
-                                    {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
-                                  </div>
-                                  {item.isPlayer && (
-                                    <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
-                                  )}
-                                  {null}
-                                </div>
-                              );
-                            })}
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-start' }}>
+                      {(!endYearReady && !isOver) ? (
+                        <>
+                          <button
+                            onClick={() => {
+                              setMyMusicOpen(false);
+                              if (!conceptLocked) setShowConcept(true); else setProgressOpen(true);
+                            }}
+                            style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
+                            title={conceptLocked ? 'Current Song' : 'Create Song'}
+                          >
+                            <img
+                              src={'/art/shizyfi/createsongbutton.png'}
+                              alt={conceptLocked ? 'Current Song' : 'Create Song'}
+                              style={{ display:'block', width:200, height:'auto' }}
+                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                            />
+                          </button>
+                          <button
+                            onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }}
+                            style={{ background:'none', border:'none', padding:0, cursor:'pointer', flex:'0 0 auto' }}
+                            title={'My Song History'}
+                          >
+                            <img
+                              src={'/art/shizyfi/mysonghistorybutton.png'}
+                              alt={'My Song History'}
+                              style={{ display:'block', width:200, height:'auto' }}
+                              onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                            />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => { setMyMusicOpen(false); setFinaleSummaryOpen(true); setEndYearReady(false); }}
+                            style={styles.primaryBtn}
+                          >
+                            End year
+                          </button>
+                          <button onClick={() => { setMyMusicOpen(false); setHistoryOpen(true); }} style={styles.secondaryBtn}>My Song History</button>
+                        </>
+                      )}
+                    </div>
+                    {(!endYearReady && !isOver) && (
+                      <div style={{ width:'96%', margin:'-6px auto 0' }}>
+                        <div style={{ position:'relative' }}>
+                          <img
+                            src={'/art/shizyfi/banner.png'}
+                            alt={''}
+                            style={{ display:'block', width:'100%', height:'auto' }}
+                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                          />
+                          <div style={{ position:'absolute', left:'50%', top:'46%', transform:'translate(-50%, -50%)', fontWeight:900, fontSize:18, textAlign:'center', letterSpacing:.2, textTransform:'uppercase', whiteSpace:'nowrap' }}>
+                            Academy Trends (Week {Math.min(week, MAX_WEEKS)})
                           </div>
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
-                {(endYearReady || isOver) && (
-                  <div style={{ width:'100%', margin:0, overflow:'hidden' }}>
-                    <div style={{ fontWeight:900, marginBottom:6 }}>Academy Trends (Week {Math.min(week, MAX_WEEKS)})</div>
-                    {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
-                      <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
-                        <div style={{ display:'grid', gap:8 }}>
-                        {list.map(item => {
-                          const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
-                          const pct = Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)));
+                        {(() => {
+                          const list = trendsByWeek && trendsByWeek[week];
+                          if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);}
                           return (
-                            <div
-                              key={`${item.rank}-${item.title}`}
-                              onClick={() => playTrendItem(item)}
-                              style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
-                            >
-                              <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
-                                <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
-                                {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
+                            <>
+                              <div className="hide-scrollbar" style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4, marginTop:8 }}>
+                                <div style={{ display:'grid', gap:8 }}>
+                                  {list.map(item => {
+                                    const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                                    return (
+                                      <div
+                                        key={`${item.rank}-${item.title}`}
+                                        onClick={() => playTrendItem(item)}
+                                        style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
+                                      >
+                                        <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                          <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
+                                          {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
+                                        </div>
+                                        {item.isPlayer && (
+                                          <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                              {item.isPlayer && (
-                                <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
-                              )}
-                              {null}
-                            </div>
+                              <div style={{ display:'flex', justifyContent:'center', marginTop: 10 }}>
+                                <button
+                                  onClick={() => setMyMusicPage('saved')}
+                                  style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}
+                                  title={'Saved Songs'}
+                                >
+                                  <img
+                                    src={'/art/shizyfi/savedsongsbutton.png'}
+                                    alt={'Saved Songs'}
+                                    style={{ display:'block', width:200, height:'auto' }}
+                                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                                  />
+                                </button>
+                              </div>
+                            </>
                           );
-                        })}
-                        </div>
+                        })()}
                       </div>
-                    ); })()}
-                  </div>
+                    )}
+                    {(endYearReady || isOver) && (
+                      <div style={{ width:'100%', margin:0, overflow:'hidden' }}>
+                        <div style={{ fontWeight:900, marginBottom:6 }}>Academy Trends (Week {Math.min(week, MAX_WEEKS)})</div>
+                        {(() => { const list = trendsByWeek && trendsByWeek[week]; if (!list) { ensureTrendsForWeek(week); return (<div style={styles.sub}>Loading trends...</div>);} return (
+                          <>
+                            <div style={{ overflowY:'auto', overflowX:'hidden', maxHeight: (list && list.length >= 5) ? 320 : 'none', paddingRight:4 }}>
+                              <div style={{ display:'grid', gap:8 }}>
+                              {list.map(item => {
+                                const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                                return (
+                                  <div
+                                    key={`${item.rank}-${item.title}`}
+                                    onClick={() => playTrendItem(item)}
+                                    style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
+                                  >
+                                    <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                      <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
+                                      {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
+                                    </div>
+                                    {item.isPlayer && (
+                                      <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              </div>
+                            </div>
+                            <div style={{ display:'flex', justifyContent:'center', marginTop: 10 }}>
+                              <button
+                                onClick={() => setMyMusicPage('saved')}
+                                style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}
+                                title={'Saved Songs'}
+                              >
+                                <img
+                                  src={'/art/shizyfi/savedsongsbutton.png'}
+                                  alt={'Saved Songs'}
+                                  style={{ display:'block', width:200, height:'auto' }}
+                                  onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                                />
+                              </button>
+                            </div>
+                          </>
+                        ); })()}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-              {null}
                 </div>
                 <div style={styles.shizyFiScreenArea}>
                   {/* Shizy-Fi media controls bar (anchored to the internal screen area, not flex content) */}
