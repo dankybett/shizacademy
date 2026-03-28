@@ -1425,9 +1425,15 @@ export default function App() {
   const [target, setTarget] = useState(null); // {x,y} or null
   const [pendingAct, setPendingAct] = useState(null); // 'practice' | 'write' | 'perform' | null
   const [activity, setActivity] = useState("idle"); // 'idle' | 'walk' | 'write' | 'sing' | 'dance'
+  const [studyMode, setStudyMode] = useState(false);
+  const [studyFadeBlack, setStudyFadeBlack] = useState(false);
+  const [studyTransitioning, setStudyTransitioning] = useState(false);
   const [performerStrokeActive, setPerformerStrokeActive] = useState(false);
   const [performerStrokeKey, setPerformerStrokeKey] = useState(0);
   const [performerStrokeVisible, setPerformerStrokeVisible] = useState(false);
+  const studyPrevPosRef = useRef(null);
+  const studyPrevFacingRef = useRef(false);
+  const STUDY_FADE_MS = 250;
 
   function stopPerformerStroke() {
     setPerformerStrokeActive(false);
@@ -1441,6 +1447,35 @@ export default function App() {
         });
       }
     } catch (_) {}
+  }
+
+  function toggleStudyMode(next = !studyMode) {
+    if (studyTransitioning) return;
+    setStudyTransitioning(true);
+    setStudyFadeBlack(true);
+    window.setTimeout(() => {
+      if (next) {
+        studyPrevPosRef.current = pos;
+        studyPrevFacingRef.current = facingLeft;
+        stopPerformerStroke();
+        setTarget(null);
+        setPendingAct(null);
+        setActivity('idle');
+        setStudyMode(true);
+      } else {
+        setStudyMode(false);
+        stopPerformerStroke();
+        setTarget(null);
+        setPendingAct(null);
+        setActivity('idle');
+        if (studyPrevPosRef.current) setPos(studyPrevPosRef.current);
+        setFacingLeft(!!studyPrevFacingRef.current);
+      }
+      setStudyFadeBlack(false);
+      window.setTimeout(() => {
+        setStudyTransitioning(false);
+      }, STUDY_FADE_MS);
+    }, STUDY_FADE_MS);
   }
 
   function fadeAudioWithRef(audio, intervalRef, to, ms, onDone) {
@@ -1490,8 +1525,8 @@ export default function App() {
   const allDiceSet = useMemo(() => !!(rollBest?.sing && rollBest?.write && rollBest?.perform), [rollBest]);
   // Lock actions while an action is in progress (walking to station or performing the action)
   const isActionBusy = useMemo(() => {
-    return !!(pendingAct || rollFx.show || activity === 'write' || activity === 'singing' || activity === 'dancing');
-  }, [pendingAct, rollFx.show, activity]);
+    return !!(studyMode || pendingAct || rollFx.show || activity === 'write' || activity === 'singing' || activity === 'dancing');
+  }, [studyMode, pendingAct, rollFx.show, activity]);
 
   const canRelease = (remaining === 0 || (DICE_MODE && earlyFinishEnabled && allDiceSet)) && week <= MAX_WEEKS;
 
@@ -3209,6 +3244,7 @@ function stationTarget(type) {
     const tickMs = 60;
     const id = setInterval(() => {
       setPos((p) => {
+        if (studyMode) return p;
         if (performerStrokeActive) return p;
         if (!target) return p;
         const dx = target.x - p.x;
@@ -3287,7 +3323,7 @@ function stationTarget(type) {
       });
     }, tickMs);
     return () => clearInterval(id);
-  }, [target, pendingAct, performerStrokeActive]);
+  }, [studyMode, target, pendingAct, performerStrokeActive]);
 
   function randomWalkable() {
     if (walkablePts && walkablePts.length > 0) {
@@ -3316,14 +3352,14 @@ function stationTarget(type) {
 
   // Idle roaming: pick random spots when idle and no target
   useEffect(() => {
-    if (isPerforming || performerStrokeActive || target || activity !== "idle") return;
+    if (studyMode || isPerforming || performerStrokeActive || target || activity !== "idle") return;
     const timeout = setTimeout(() => {
       const pt = randomWalkable();
       setTarget(pt);
       setActivity("walk");
     }, 1200 + Math.random() * 2000);
     return () => clearTimeout(timeout);
-  }, [isPerforming, performerStrokeActive, target, activity]);
+  }, [studyMode, isPerforming, performerStrokeActive, target, activity]);
 
   useEffect(() => {
     if (!performerStrokeActive) return;
@@ -3678,6 +3714,10 @@ function stationTarget(type) {
                   ? `url('${VENUE_BG[performingVenue]}')`
                   : "url('/art/apartmentbackgroundwide.png')"
               }}>
+              {studyMode && !studyTransitioning && (
+                <div style={styles.studyExitLayer} onClick={() => toggleStudyMode(false)} title="Stop studying" />
+              )}
+              <div style={{ ...styles.studyFadeOverlay, opacity: studyFadeBlack ? 1 : 0 }} />
               {/* Night overlay (beneath anchors) */}
               {nightMode && !isPerforming && (
                 <div style={styles.nightOverlay} />
@@ -3771,9 +3811,25 @@ function stationTarget(type) {
                   <img src="/art/microphone.png" alt="Microphone" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {/* Chair (visual only) */}
-                <div style={{ ...anchorStyle(ANCHORS.chair), zIndex: 3, cursor:'pointer' }} onClick={() => setFurnitureOpen(true)} title="My Furniture">
+                <div style={{ ...anchorStyle(ANCHORS.chair), zIndex: 3, cursor: studyMode ? 'default' : 'pointer', pointerEvents: studyMode ? 'none' : 'auto' }} onClick={() => setFurnitureOpen(true)} title="My Furniture">
                   <img src="/art/chair.png" alt="Chair" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
+                {studyMode && (
+                  <div
+                    style={{
+                      position:'absolute',
+                      left:`${ANCHORS.chair.xPct}%`,
+                      top:`${ANCHORS.chair.yPct - 8.5}%`,
+                      width:`${ANCHORS.chair.wPct * 0.8}%`,
+                      transform:'translate(-40%, -60%)',
+                      zIndex:4,
+                      pointerEvents:'none',
+                    }}
+                    aria-hidden
+                  >
+                    <img src="/art/sitting.png" alt="Performer studying" style={{ width:'100%', height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.28))' }} />
+                  </div>
+                )}
                 {/* Mirror (click opens stats) */}
                 <div style={{ ...anchorStyle(ANCHORS.mirror), zIndex: 3 }} onClick={() => setStatsOpen(true)}>
                   <img src="/art/mirror.png" alt="Mirror" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
@@ -4007,72 +4063,74 @@ function stationTarget(type) {
 
                 {/* Nudge badge is rendered inside the room overlay below */}
 
-                <div
-                  style={{
-                    ...styles.performer,
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
-                  }}
-                  onPointerDown={(e) => {
-                    if (performerStrokeActive || isPerforming || target || activity !== 'idle') return;
-                    try {
-                      e.preventDefault();
-                      if (e.currentTarget.setPointerCapture) {
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                      }
-                    } catch (_) {}
-                    setPerformerStrokeActive(true);
-                    setPerformerStrokeVisible(false);
-                    setPerformerStrokeKey((k) => k + 1);
-                    try {
-                      let audio = strokeAudioRef.current;
-                      if (!audio) {
-                        audio = new Audio('/sounds/stroke.mp3');
-                        audio.preload = 'auto';
-                        strokeAudioRef.current = audio;
-                      }
+                {!studyMode && (
+                  <div
+                    style={{
+                      ...styles.performer,
+                      left: `${pos.x}%`,
+                      top: `${pos.y}%`,
+                      transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
+                    }}
+                    onPointerDown={(e) => {
+                      if (studyMode || performerStrokeActive || isPerforming || target || activity !== 'idle') return;
                       try {
-                        if (strokeFadeIntRef.current) {
-                          clearInterval(strokeFadeIntRef.current);
-                          strokeFadeIntRef.current = null;
+                        e.preventDefault();
+                        if (e.currentTarget.setPointerCapture) {
+                          e.currentTarget.setPointerCapture(e.pointerId);
                         }
                       } catch (_) {}
-                      try { audio.pause(); } catch (_) {}
-                      try { audio.currentTime = 0; } catch (_) {}
-                      try { audio.volume = 0; } catch (_) {}
-                      audio.play().catch(() => {});
-                      fadeAudioWithRef(audio, strokeFadeIntRef, 0.55, 180);
-                    } catch (_) {}
-                    window.setTimeout(() => {
-                      setPerformerStrokeVisible(true);
-                    }, 20);
-                  }}
-                  onPointerUp={stopPerformerStroke}
-                  onPointerCancel={stopPerformerStroke}
-                  onLostPointerCapture={stopPerformerStroke}
-                  title="Your performer"
-                >
-                  {performerStrokeActive ? (
-                    <>
-                      <img src="/art/idle.gif" alt="Performer idle" style={{ ...styles.performerImgLayer, opacity: performerStrokeVisible ? 0 : 1 }} />
-                      <img key={`stroke-${performerStrokeKey}`} src="/art/stroke.gif" alt="Performer animation" style={{ ...styles.performerImgLayer, ...styles.performerStrokeImg, opacity: performerStrokeVisible ? 1 : 0 }} />
-                    </>
-                  ) : isPerforming ? (
-                    <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
-                  ) : activity === 'walk' ? (
-                    <img src="/art/walking.gif" alt="Performer walking" style={styles.performerImg} />
-                  ) : activity === 'singing' ? (
-                    <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
-                  ) : activity === 'dancing' ? (
-                    <img src="/art/dancing.gif" alt="Performer dancing" style={styles.performerImg} />
-                  ) : (
-                    <img src="/art/idle.gif" alt="Performer idle" style={styles.performerImg} />
-                  )}
-                  {activity === "write" && <div style={styles.actionEmoji}>??</div>}
-                  {activity === "sing" && <div style={styles.actionEmoji}>??</div>}
-                  {activity === "dance" && <div style={styles.actionEmoji}>??</div>}
-                </div>
+                      setPerformerStrokeActive(true);
+                      setPerformerStrokeVisible(false);
+                      setPerformerStrokeKey((k) => k + 1);
+                      try {
+                        let audio = strokeAudioRef.current;
+                        if (!audio) {
+                          audio = new Audio('/sounds/stroke.mp3');
+                          audio.preload = 'auto';
+                          strokeAudioRef.current = audio;
+                        }
+                        try {
+                          if (strokeFadeIntRef.current) {
+                            clearInterval(strokeFadeIntRef.current);
+                            strokeFadeIntRef.current = null;
+                          }
+                        } catch (_) {}
+                        try { audio.pause(); } catch (_) {}
+                        try { audio.currentTime = 0; } catch (_) {}
+                        try { audio.volume = 0; } catch (_) {}
+                        audio.play().catch(() => {});
+                        fadeAudioWithRef(audio, strokeFadeIntRef, 0.55, 180);
+                      } catch (_) {}
+                      window.setTimeout(() => {
+                        setPerformerStrokeVisible(true);
+                      }, 20);
+                    }}
+                    onPointerUp={stopPerformerStroke}
+                    onPointerCancel={stopPerformerStroke}
+                    onLostPointerCapture={stopPerformerStroke}
+                    title="Your performer"
+                  >
+                    {performerStrokeActive ? (
+                      <>
+                        <img src="/art/idle.gif" alt="Performer idle" style={{ ...styles.performerImgLayer, opacity: performerStrokeVisible ? 0 : 1 }} />
+                        <img key={`stroke-${performerStrokeKey}`} src="/art/stroke.gif" alt="Performer animation" style={{ ...styles.performerImgLayer, ...styles.performerStrokeImg, opacity: performerStrokeVisible ? 1 : 0 }} />
+                      </>
+                    ) : isPerforming ? (
+                      <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
+                    ) : activity === 'walk' ? (
+                      <img src="/art/walking.gif" alt="Performer walking" style={styles.performerImg} />
+                    ) : activity === 'singing' ? (
+                      <img src="/art/singing.gif" alt="Performer singing" style={styles.performerImg} />
+                    ) : activity === 'dancing' ? (
+                      <img src="/art/dancing.gif" alt="Performer dancing" style={styles.performerImg} />
+                    ) : (
+                      <img src="/art/idle.gif" alt="Performer idle" style={styles.performerImg} />
+                    )}
+                    {activity === "write" && <div style={styles.actionEmoji}>??</div>}
+                    {activity === "sing" && <div style={styles.actionEmoji}>??</div>}
+                    {activity === "dance" && <div style={styles.actionEmoji}>??</div>}
+                  </div>
+                )}
                 {/* Performance prop: Boombox beside performer during venue performances */}
                 {isPerforming && performingVenue && (
                   <div
@@ -4173,7 +4231,7 @@ function stationTarget(type) {
                   </div>
                 )}
                 {/* Overlayed action buttons on room */}
-                {!isPerforming && !financeOpen && !endYearReady && !isOver && (
+                {!studyMode && !isPerforming && !financeOpen && !endYearReady && !isOver && (
                   <div style={styles.buttonsOverlay}>
                     <div style={styles.actionBtnWrap}>
                       <button disabled={!conceptLocked || remaining<=0 || isActionBusy} onClick={() => instruct("practice")} style={styles.actionBtn}>
@@ -4211,7 +4269,7 @@ function stationTarget(type) {
                   </div>
                 )}
                 {/* Bottom-right CTA: Choose venue & perform (replaces centered tick) */}
-                {!isPerforming && canRelease && !endYearReady && !isOver && (
+                {!studyMode && !isPerforming && canRelease && !endYearReady && !isOver && (
                   <button
                     onClick={() => { if (!finishedReady) finishSong(); setVenueOpen(true); }}
                     title="Choose venue & perform"
@@ -4220,7 +4278,7 @@ function stationTarget(type) {
                     Choose venue & perform
                   </button>
                 )}
-                {!isPerforming && (endYearReady || isOver) && (
+                {!studyMode && !isPerforming && (endYearReady || isOver) && (
                   <button
                     onClick={() => { setFinaleSummaryOpen(true); setEndYearReady(false); }}
                     title="End year"
@@ -4567,6 +4625,7 @@ function stationTarget(type) {
                     <button onClick={() => { setFans(f=>f+10); pushToast('Fans +10 (debug)'); }} style={styles.secondaryBtn}>Add 10 fans (debug)</button>
                     <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Â£100 (debug)</button>
                     <button onClick={() => { setSongBattleOpen(true); }} style={styles.secondaryBtn}>Start Song Battle (debug)</button>
+                    <button onClick={() => { setMenuOpen(false); toggleStudyMode(); }} style={styles.secondaryBtn}>{studyMode ? 'Study off' : 'Study'}</button>
                     <button onClick={() => {
                       try {
                         // Unlock all friend items
@@ -7071,6 +7130,21 @@ const styles = {
     pointerEvents: 'none',
     background: `radial-gradient(120% 120% at 50% 35%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.65) 100%), rgba(0,0,0,0.35)`,
     mixBlendMode: 'multiply'
+  },
+  studyExitLayer: {
+    position:'absolute',
+    inset:0,
+    zIndex:12,
+    background:'transparent',
+    cursor:'pointer',
+  },
+  studyFadeOverlay: {
+    position:'absolute',
+    inset:0,
+    background:'#000',
+    zIndex:30,
+    pointerEvents:'none',
+    transition:'opacity 250ms ease',
   },
   wizmasOverlay: {
     position: 'absolute',
