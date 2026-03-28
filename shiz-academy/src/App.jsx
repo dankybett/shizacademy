@@ -292,7 +292,7 @@ function genTrendsForWeek(week, performerName, seedTs, audioTracks) {
     Array.from(idxs).forEach((i) => {
       const t = audioTracks[i];
       const base = 75 + Math.floor(rnd()*18) + Math.floor((week/52)*4);
-      items.push({ rank: items.length+1, artist: t.artist, title: t.title, score: base, isPlayer:false, audioSources: t.sources, cover: t.cover });
+      items.push({ rank: items.length+1, artist: t.artist, title: t.title, score: base, isPlayer:false, audioSources: t.sources });
     });
   } else {
     for (let i=0;i<5;i++) {
@@ -910,7 +910,7 @@ export default function App() {
   // Trends state
   const [seedTs, setSeedTs] = useState(null);
   const [trendsByWeek, setTrendsByWeek] = useState({}); // week -> TrendItem[]
-  const [audioTracks, setAudioTracks] = useState([]); // [{artist,title,sources:[url,...], cover?:string}]
+  const [audioTracks, setAudioTracks] = useState([]); // [{artist,title,sources:[url,...]}]
   const [playingTrend, setPlayingTrend] = useState(null); // { key, artist, title }
   const audioRef = useRef(null);
   const [audioTime, setAudioTime] = useState({ current: 0, duration: 0 });
@@ -2093,7 +2093,7 @@ function stationTarget(type) {
         const tracks = Array.isArray(data?.tracks) ? data.tracks : [];
         const norm = tracks.map((t) => {
           // Accept {artist,title,sources:[...]}, or {file: 'Artist - Title.mp3'}
-          let artist = t.artist, title = t.title, sources = [], cover = null;
+          let artist = t.artist, title = t.title, sources = [];
           if (Array.isArray(t.sources)) {
             sources = t.sources.map((s) => (s.startsWith('/') ? s : `/audio/${s}`));
           } else if (t.file) {
@@ -2105,9 +2105,8 @@ function stationTarget(type) {
             if (!artist && mt) artist = mt[1];
             if (!title && mt) title = mt[2];
           }
-          if (t.cover) cover = t.cover.startsWith('/') ? t.cover : `/audio/${t.cover}`;
           if (!artist || !title) return null;
-          return { artist, title, sources, cover };
+          return { artist, title, sources };
         }).filter(Boolean);
         if (!cancelled) setAudioTracks(norm);
       } catch (_) {
@@ -2195,7 +2194,7 @@ function stationTarget(type) {
 
   function playTrendItem(item) {
     if (!item) return;
-    const id = `${item.artist}__${item.title}`;
+    const id = trendItemId(item);
     const isSame = playingTrend && playingTrend.id === id;
     let audio = audioRef.current;
     if (!audio) { audio = new Audio(); audioRef.current = audio; }
@@ -2230,6 +2229,38 @@ function stationTarget(type) {
       });
     };
     tryPlay();
+  }
+
+  function trendItemId(item) {
+    return `${item?.artist || 'Unknown Artist'}__${item?.title || 'Untitled Song'}`;
+  }
+
+  function normalizedSavedSong(item) {
+    return {
+      id: trendItemId(item),
+      artist: item?.artist || 'Unknown Artist',
+      title: item?.title || 'Untitled Song',
+      audioSources: Array.isArray(item?.audioSources) ? item.audioSources.slice() : [],
+      isPlayer: !!item?.isPlayer,
+      savedWeek: week,
+    };
+  }
+
+  function isSongSaved(item) {
+    const id = trendItemId(item);
+    return (savedSongs || []).some((song) => song?.id === id);
+  }
+
+  function toggleSavedSong(item) {
+    const normalized = normalizedSavedSong(item);
+    const alreadySaved = isSongSaved(normalized);
+    if (alreadySaved) {
+      setSavedSongs((prev) => prev.filter((song) => song?.id !== normalized.id));
+      pushToast('Song unsaved');
+      return;
+    }
+    setSavedSongs((prev) => [...prev, normalized]);
+    pushToast(`You saved ${normalized.title}`);
   }
 
   function fmtTime(sec) {
@@ -6071,13 +6102,17 @@ function stationTarget(type) {
                         {savedSongs.length === 0 ? (
                           <div style={{ border:'1px solid rgba(255,255,255,.16)', borderRadius:14, padding:'16px 14px', background:'rgba(255,255,255,.05)', textAlign:'center' }}>
                             <div style={{ fontWeight:900, marginBottom:6 }}>No saved songs yet</div>
-                            <div style={styles.sub}>Later we can add hearts to the Top 5 so tracks can be saved into this library.</div>
+                            <div style={styles.sub}>Save songs from the Top 5 with the heart button and they will appear here.</div>
                           </div>
                         ) : (
                           <div style={{ display:'grid', gap:8 }}>
                             {savedSongs.map((item, idx) => (
-                              <div key={`${item.id || item.title || 'saved'}-${idx}`} style={{ position:'relative', minHeight:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', overflow:'visible' }}>
-                                <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c' }}>
+                              <div
+                                key={`${item.id || item.title || 'saved'}-${idx}`}
+                                onClick={() => playTrendItem(item)}
+                                style={{ position:'relative', minHeight:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', overflow:'visible', cursor:'pointer', filter: (playingTrend && playingTrend.id === trendItemId(item)) ? 'brightness(1.05)' : 'none' }}
+                              >
+                                <div style={{ position:'absolute', left:'12%', right:'12%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#151a2c', fontStyle: (playingTrend && playingTrend.id === trendItemId(item)) ? 'italic' : 'normal' }}>
                                   {(item.artist || 'Unknown Artist')} - {((item.title || 'Untitled Song').length > 38) ? `${(item.title || 'Untitled Song').slice(0, 38)}...` : (item.title || 'Untitled Song')}
                                 </div>
                                 {item.isPlayer && (
@@ -6157,18 +6192,32 @@ function stationTarget(type) {
                                 <div style={{ display:'grid', gap:8 }}>
                                   {list.map(item => {
                                     const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                                    const isSaved = isSongSaved(item);
                                     return (
                                       <div
                                         key={`${item.rank}-${item.title}`}
                                         onClick={() => playTrendItem(item)}
                                         style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
                                       >
-                                        <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                        <div style={{ position:'absolute', left:'12%', right:'16%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
                                           <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
                                           {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
                                         </div>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); toggleSavedSong(item); }}
+                                          title={isSaved ? 'Unsave song' : 'Save song'}
+                                          aria-label={isSaved ? 'Unsave song' : 'Save song'}
+                                          style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
+                                        >
+                                          <img
+                                            src={'/art/shizyfi/heartbutton.png'}
+                                            alt={isSaved ? 'Saved' : 'Not saved'}
+                                            style={{ display:'block', width:'100%', height:'100%', objectFit:'contain', filter: isSaved ? 'none' : 'grayscale(1) saturate(.15) brightness(.72)' }}
+                                            onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                                          />
+                                        </button>
                                         {item.isPlayer && (
-                                          <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                          <div style={{ position:'absolute', right:34, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
                                         )}
                                       </div>
                                     );
@@ -6203,18 +6252,32 @@ function stationTarget(type) {
                               <div style={{ display:'grid', gap:8 }}>
                               {list.map(item => {
                                 const isActive = (playingTrend && playingTrend.id === `${item.artist}__${item.title}`);
+                                const isSaved = isSongSaved(item);
                                 return (
                                   <div
                                     key={`${item.rank}-${item.title}`}
                                     onClick={() => playTrendItem(item)}
                                     style={{ position:'relative', height:48, borderRadius:0, backgroundImage: "url('/art/shizyfi/chartscroll.png')", backgroundSize:'contain', backgroundPosition:'center', backgroundRepeat:'no-repeat', cursor:'pointer', overflow:'visible', filter: isActive ? 'brightness(1.05)' : 'none' }}
                                   >
-                                    <div style={{ position:'absolute', left:'12%', right:'8%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
+                                    <div style={{ position:'absolute', left:'12%', right:'16%', top:'50%', transform:'translateY(-50%)', textAlign:'left', fontWeight:900, fontSize:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color: isActive ? '#0f1524' : '#151a2c', fontStyle: isActive ? 'italic' : 'normal' }}>
                                       <span style={{ marginRight: 8 }}>{`#${item.rank}`}</span>
                                       {item.artist} - {(item.title && item.title.length>38) ? (item.title.slice(0,38) + '...') : item.title}
                                     </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); toggleSavedSong(item); }}
+                                      title={isSaved ? 'Unsave song' : 'Save song'}
+                                      aria-label={isSaved ? 'Unsave song' : 'Save song'}
+                                      style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', width:18, height:18, padding:0, border:'none', background:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}
+                                    >
+                                      <img
+                                        src={'/art/shizyfi/heartbutton.png'}
+                                        alt={isSaved ? 'Saved' : 'Not saved'}
+                                        style={{ display:'block', width:'100%', height:'100%', objectFit:'contain', filter: isSaved ? 'none' : 'grayscale(1) saturate(.15) brightness(.72)' }}
+                                        onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                                      />
+                                    </button>
                                     {item.isPlayer && (
-                                      <div style={{ position:'absolute', right:6, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
+                                      <div style={{ position:'absolute', right:34, top:4, fontSize:10, fontWeight:800, color:'#151a2c' }}>You</div>
                                     )}
                                   </div>
                                 );
