@@ -6391,13 +6391,21 @@ function stationTarget(type) {
                   )}
                 </div>
               )}
-              <button
-                disabled={weekMode === 'song'}
-                onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } if (activeEffects && activeEffects.ironGigLock){ pushToast('Iron Overture week: Gig booking disabled.'); return; } setCalendarOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
-                style={{ ...styles.secondaryBtn, marginTop: 10 }}
-              >
-                Book Gig (uses this week)
-              </button>
+              <div style={{ display:'flex', gap:8, marginTop: 10, flexWrap:'wrap' }}>
+                <button
+                  disabled={weekMode === 'song'}
+                  onClick={() => { if (weekMode==='song'){ pushToast("I'm too deep in the creative process to book a gig this week."); return; } if (activeEffects && activeEffects.ironGigLock){ pushToast('Iron Overture week: Gig booking disabled.'); return; } setCalendarOpen(false); setGigOpen(true); setSelectedGigSong(null); }}
+                  style={{ ...styles.secondaryBtn, flex:'1 1 220px' }}
+                >
+                  Book Gig (uses this week)
+                </button>
+                <button
+                  onClick={() => { setCalendarOpen(false); toggleStudyMode(true); }}
+                  style={{ ...styles.secondaryBtn, flex:'1 1 160px' }}
+                >
+                  Relax/Study
+                </button>
+              </div>
               {null}
                 </div>
               </div>
