@@ -2303,6 +2303,13 @@ function stationTarget(type) {
     };
   }
 
+  function studyRoomTransform() {
+    const scale = 1.4;
+    const dx = 42 - ANCHORS.chair.xPct;
+    const dy = 80 - ANCHORS.chair.yPct;
+    return `translate(${dx}%, ${dy}%) scale(${scale})`;
+  }
+
   // Load fan sprite image to compute tile sizes with padding
   useEffect(() => {
     try {
@@ -3710,6 +3717,7 @@ function stationTarget(type) {
             <div style={styles.roomOuter}>
               <div style={{
                 ...styles.room,
+                ...(studyMode ? { transform: studyRoomTransform() } : {}),
                 backgroundImage: (isPerforming && performingVenue)
                   ? `url('${VENUE_BG[performingVenue]}')`
                   : "url('/art/apartmentbackgroundwide.png')"
@@ -7113,6 +7121,8 @@ const styles = {
     boxShadow: "inset 0 -20px 30px rgba(0,0,0,.3)",
     overflow: "hidden",
     marginBottom: 0,
+    transformOrigin: 'center center',
+    transition: 'transform 250ms ease',
   },
   roomAnchors: {
     position: 'absolute',
