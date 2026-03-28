@@ -75,6 +75,15 @@ const WIZMAS_TRACKS = [
   { artist: 'Sylvie North', title: 'Cold Cocoa & Candlelight', audioSources: ["/audio/Sylvie North - Cold Cocoa & Candlelight.mp3"] },
   { artist: 'Yeti and Skelly', title: 'The Peak of the North Star', audioSources: ["/audio/Yeti and Skelly - The Peak of the North Star.mp3"] },
 ];
+const CASSETTE_TAPES = [
+  {
+    id: 'cora-first-day-at-shiz',
+    artist: 'Cora Cassette',
+    title: 'First Day at Shiz',
+    audioSources: ['/audio/Cora Cassette - First Day at Shiz.mp3'],
+    source: 'cassette',
+  },
+];
 
 // Global season length (single source of truth)
 const MAX_WEEKS = 52;
@@ -877,6 +886,8 @@ export default function App() {
   const [unlockedPosters, setUnlockedPosters] = useState([]); // number[]
   const [currentPosterIdx, setCurrentPosterIdx] = useState(null); // number | null
   const [posterOpen, setPosterOpen] = useState(false);
+  const [tapesOpen, setTapesOpen] = useState(false);
+  const [unlockedTapes, setUnlockedTapes] = useState(['cora-first-day-at-shiz']);
   // Guard against invalid poster indices if poster catalog changes
   useEffect(() => {
     try {
@@ -1959,6 +1970,7 @@ function stationTarget(type) {
       if (s && typeof s.seedTs === 'number') setSeedTs(s.seedTs);
       if (Array.isArray(s.sharedSongs)) setSharedSongs(s.sharedSongs);
       if (Array.isArray(s.savedSongs)) setSavedSongs(s.savedSongs);
+      if (Array.isArray(s.unlockedTapes)) setUnlockedTapes(s.unlockedTapes);
       if (Array.isArray(s.wizmasInjectedWeeks)) setWizmasInjectedWeeks(s.wizmasInjectedWeeks);
       if (s.wizmasGift && typeof s.wizmasGift === 'object') setWizmasGift(s.wizmasGift);
       if (typeof s.candleUnlocked === 'boolean') setCandleUnlocked(s.candleUnlocked);
@@ -2196,9 +2208,9 @@ function stationTarget(type) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function playTrendItem(item) {
+  function playAudioItem(item) {
     if (!item) return;
-    const id = trendItemId(item);
+    const id = item?.id || trendItemId(item);
     const isSame = playingTrend && playingTrend.id === id;
     let audio = audioRef.current;
     if (!audio) { audio = new Audio(); audioRef.current = audio; }
@@ -2227,12 +2239,20 @@ function stationTarget(type) {
         try { setAudioTime({ current: audio.currentTime||0, duration: audio.duration||0 }); } catch (_) {}
       };
       audio.play().then(() => {
-        setPlayingTrend({ id, artist: item.artist, title: item.title });
+        setPlayingTrend({ id, artist: item.artist, title: item.title, source: item.source || 'shizyfi' });
       }).catch(() => {
         tryPlay();
       });
     };
     tryPlay();
+  }
+
+  function playTrendItem(item) {
+    playAudioItem({ ...item, source: item?.source || 'shizyfi' });
+  }
+
+  function playTapeItem(tape) {
+    playAudioItem({ ...tape, id: tape?.id || trendItemId(tape), source: 'cassette' });
   }
 
   function trendItemId(item) {
@@ -2281,6 +2301,10 @@ function stationTarget(type) {
     if (list && list.length) playTrendItem(list[0]);
   }
 
+  function getUnlockedTapeItems() {
+    return CASSETTE_TAPES.filter((tape) => (unlockedTapes || []).includes(tape.id));
+  }
+
   function togglePlayPause() {
     let audio = audioRef.current;
     if (!audio) { audio = new Audio(); audioRef.current = audio; }
@@ -2297,13 +2321,15 @@ function stationTarget(type) {
   }
 
   function skipPreview(delta) {
-    const list = trendsByWeek && trendsByWeek[week];
-    if (!list || !list.length) { playFirstTrendIfAvailable(); return; }
-    if (!playingTrend) { playTrendItem(list[0]); return; }
+    const cassetteActive = playingTrend?.source === 'cassette';
+    const list = cassetteActive ? getUnlockedTapeItems() : (trendsByWeek && trendsByWeek[week]);
+    if (!list || !list.length) { if (!cassetteActive) playFirstTrendIfAvailable(); return; }
+    if (!playingTrend) { if (cassetteActive) playTapeItem(list[0]); else playTrendItem(list[0]); return; }
     const id = playingTrend.id;
-    const idx = list.findIndex(it => (`${it.artist}__${it.title}`) === id);
+    const idx = list.findIndex(it => ((it.id || `${it.artist}__${it.title}`) === id));
     const nextIdx = (idx < 0) ? 0 : (idx + delta + list.length) % list.length;
-    playTrendItem(list[nextIdx]);
+    if (cassetteActive) playTapeItem(list[nextIdx]);
+    else playTrendItem(list[nextIdx]);
   }
 
   function seekPreview(e) {
@@ -2503,6 +2529,7 @@ function stationTarget(type) {
       currentPosterIdx,
       sharedSongs,
       savedSongs,
+      unlockedTapes,
       wizmasInjectedWeeks,
       ts: Date.now(),
     };
@@ -2512,7 +2539,7 @@ function stationTarget(type) {
       // quota/full - ignore for now
     }
 
-  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, savedSongs, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, radioUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, radioVisible, ozdustUnlocked, gliUnlocked]);
+  }, [hydrated, week, money, fans, vocals, writing, stage, genre, theme, songName, conceptLocked, started, finishedReady, songHistory, actions, practiceT, writeT, performT, rollBest, rollHistory, weekVocGain, weekWriGain, weekStageGain, lastResult, earlyFinishEnabled, performerName, nextRollOverride, overrideQueue, bonusRolls, nudges, eventsSchedule, eventsResolved, seedTs, friends, pendingFriendEvents, lastFriendProgressWeek, friendMilestones, lampUnlocked, lampOn, midnightHazeUnlocked, midnightHazeEnabled, midnightHazeAllGenres, rainfallUnlocked, rainfallEnabled, rainfallAllGenres, spotlightSnapUnlocked, spotlightSnapEnabled, spotlightAllGenres, polaroidUnlocked, vinylUnlocked, rivetFilterUnlocked, rivetFilterEnabled, rivetFilterAllGenres, pinkBubblesUnlocked, pinkBubblesEnabled, pinkBubblesAllGenres, laserGridUnlocked, laserGridEnabled, laserGridAllGenres, unlockedPosters, currentPosterIdx, sharedSongs, savedSongs, unlockedTapes, wizmasInjectedWeeks, wizmasGift, onairUnlocked, fairylightsUnlocked, radioUnlocked, nightMode, onairOn, lampVisible, vinylVisible, polaroidVisible, candleVisible, onairVisible, fairylightsVisible, radioVisible, ozdustUnlocked, gliUnlocked]);
 
   // No auto pop-ups on start; concept modal is opened via "Create a song" in stats
   // Occasional lightning during Rock performances with Rainfall Lighting
@@ -3908,7 +3935,11 @@ function stationTarget(type) {
                   </div>
                 )}
                 {radioUnlocked && radioVisible && (
-                  <div style={{ ...anchorStyle(ANCHORS.radio), zIndex: 4, position:'absolute', pointerEvents:'none' }} title="Radio">
+                  <div
+                    style={{ ...anchorStyle(ANCHORS.radio), zIndex: 4, position:'absolute', cursor:'pointer' }}
+                    onClick={() => setTapesOpen(true)}
+                    title="My Tapes"
+                  >
                     <img src="/art/radio.png" alt="Radio" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.28))' }} />
                   </div>
                 )}
@@ -6596,6 +6627,43 @@ function stationTarget(type) {
                     </div>
                   )}
                   <button onClick={() => setPosterOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tapesOpen && (
+          <div style={styles.overlayClear} onClick={() => setTapesOpen(false)}>
+            <div style={{ ...styles.mirrorModal }} onClick={(e) => e.stopPropagation()}>
+              <div style={styles.mirrorFrame}>
+                <div className="hide-scrollbar" style={{ ...styles.mirrorInner, top: '22%', bottom: '10%', justifyContent: 'flex-start' }}>
+                  <div style={styles.title}>My Tapes</div>
+                  {getUnlockedTapeItems().length === 0 ? (
+                    <div style={{ ...styles.sub, marginTop: 8 }}>No tapes unlocked yet.</div>
+                  ) : (
+                    <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                      {getUnlockedTapeItems().map((tape) => (
+                        <button
+                          key={tape.id}
+                          onClick={() => { playTapeItem(tape); setTapesOpen(false); }}
+                          style={{
+                            display:'flex', alignItems:'center', gap:10,
+                            background:'rgba(255,255,255,.06)',
+                            border: playingTrend?.id === tape.id ? '2px solid rgba(255,255,255,.6)' : '1px solid rgba(255,255,255,.2)',
+                            borderRadius: 10, padding: '10px 12px', cursor:'pointer', textAlign:'left'
+                          }}
+                        >
+                          <img src={'/art/mixtape.png'} alt="Cassette Tape" style={{ width:44, height:44, objectFit:'contain', flex:'0 0 auto' }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          <div style={{ minWidth:0, flex:1 }}>
+                            <div style={{ fontWeight: 800 }}>{tape.artist} - {tape.title}</div>
+                            <div style={{ ...styles.sub, marginTop: 2 }}>Play tape</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={() => setTapesOpen(false)} style={{ ...styles.primaryBtn, marginTop: 12 }}>Close</button>
                 </div>
               </div>
             </div>
