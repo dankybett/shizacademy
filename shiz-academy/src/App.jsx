@@ -1428,6 +1428,8 @@ export default function App() {
   const [studyMode, setStudyMode] = useState(false);
   const [studyFadeBlack, setStudyFadeBlack] = useState(false);
   const [studyTransitioning, setStudyTransitioning] = useState(false);
+  const DEFAULT_COMPUTER_ANCHOR = { xPct: 66.70, yPct: 51.03, wPct: 12.03 };
+  const [debugComputerAnchor, setDebugComputerAnchor] = useState(DEFAULT_COMPUTER_ANCHOR);
   const [performerStrokeActive, setPerformerStrokeActive] = useState(false);
   const [performerStrokeKey, setPerformerStrokeKey] = useState(0);
   const [performerStrokeVisible, setPerformerStrokeVisible] = useState(false);
@@ -2306,7 +2308,7 @@ function stationTarget(type) {
   // --- Room anchor overlay (anchors props to the background artboard)
   const APT = { w: 3168, h: 1344 }; // apartmentbackgroundwide.png
   const ANCHORS = {
-    computer: { xPct: 68.85, yPct: 50.67, wPct: 12.03 },
+    computer: debugComputerAnchor,
     mic:      { xPct: 49.97, yPct: 54.82, wPct: 19.35 },
     chair:    { xPct: 62.50, yPct: 72.54, wPct: 10.61 },
     mirror:   { xPct: 85.23, yPct: 71.17, wPct: 20.31 },
@@ -2335,6 +2337,19 @@ function stationTarget(type) {
       transform: 'translate(-50%, -50%)',
       width: `${a.wPct}%`,
     };
+  }
+
+  function updateDebugComputerAnchor(key, value) {
+    const ranges = {
+      xPct: { min: 0, max: 100 },
+      yPct: { min: 0, max: 100 },
+      wPct: { min: 1, max: 40 },
+    };
+    const num = Number(value);
+    if (!Number.isFinite(num) || !ranges[key]) return;
+    const { min, max } = ranges[key];
+    const clamped = Math.min(max, Math.max(min, num));
+    setDebugComputerAnchor(prev => ({ ...prev, [key]: clamped }));
   }
 
   function studyRoomTransform() {
@@ -3670,7 +3685,7 @@ function stationTarget(type) {
         </div>
       )}
         <div style={styles.card}>
-          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } } @keyframes laserSweepBack { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes laserSweepMid { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } } @keyframes laserPulse { 0% { opacity: .4; } 50% { opacity: .9; } 100% { opacity: .4; } } @keyframes lanternDrift { 0% { top: var(--lanTop); left: var(--lanStartX); opacity: .98; } 100% { top: -16%; left: var(--lanEndX); opacity: .98; } } @keyframes lanternSway { 0% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } 50% { transform: translateX(var(--lanSway)) rotate(2deg); } 100% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } } @keyframes lanternGlow { 0% { opacity: .22; transform: translate(-50%, -50%) scale(0.97); } 50% { opacity: .35; transform: translate(-50%, -50%) scale(1.03); } 100% { opacity: .24; transform: translate(-50%, -50%) scale(1.00); } } @keyframes lanternImgFlicker { 0% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.28)); } 50% { filter: drop-shadow(0 3px 8px rgba(255,210,130,.45)); } 100% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.32)); } }`}</style>
+          <style>{`@keyframes hazeShimmer { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes rainDriftSlow { 0% { background-position: 0 0; } 100% { background-position: -60px 400px; } } @keyframes rainDrift { 0% { background-position: 0 0; } 100% { background-position: -80px 600px; } } @keyframes rainDriftFast { 0% { background-position: 0 0; } 100% { background-position: -100px 800px; } } @keyframes snowFallSlow { 0% { background-position: 0 0, 40px -30px; } 100% { background-position: -40px 300px, 0px 270px; } } @keyframes snowFallMid { 0% { background-position: 0 0, -50px 20px; } 100% { background-position: -60px 450px, -10px 420px; } } @keyframes snowFallFast { 0% { background-position: 0 0, 20px -10px; } 100% { background-position: -80px 600px, -40px 560px; } } @keyframes lightFlash { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: .2; } 70% { opacity: 1; } 100% { opacity: 0; } } @keyframes spotlightDim { 0% { opacity: 0; } 15% { opacity: .35; } 60% { opacity: .15; } 100% { opacity: 0; } } @keyframes spotlightPulse { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); } 20% { opacity: 1; } 45% { transform: translate(-50%, -50%) scale(1.06); } 70% { transform: translate(-50%, -50%) scale(1.0); } 100% { opacity: 0; } } @keyframes scanFlicker { 0% { opacity: .18; } 12% { opacity: .32; } 25% { opacity: .22; } 36% { opacity: .28; } 48% { opacity: .20; } 60% { opacity: .30; } 72% { opacity: .24; } 84% { opacity: .34; } 100% { opacity: .18; } } @keyframes scanScroll { 0% { background-position: 0 0; } 100% { background-position: 0 2px; } } @keyframes candleFlicker { 0% { opacity: .18; transform: translate(-50%, -50%) scale(0.96);} 25% { opacity: .34; transform: translate(-50%, -50%) scale(1.02);} 50% { opacity: .26; transform: translate(-50%, -50%) scale(1.00);} 75% { opacity: .38; transform: translate(-50%, -50%) scale(1.04);} 100% { opacity: .18; transform: translate(-50%, -50%) scale(0.98);} } @keyframes bubbleRiseSlow { 0% { background-position: 0px 140%; } 25% { background-position: 24px 90%; } 50% { background-position: 0px 40%; } 75% { background-position: -24px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseMid { 0% { background-position: 0px 140%; } 20% { background-position: 36px 95%; } 40% { background-position: 0px 55%; } 60% { background-position: -36px 15%; } 80% { background-position: 0px -25%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseFast { 0% { background-position: 0px 140%; } 20% { background-position: 48px 100%; } 40% { background-position: 0px 65%; } 60% { background-position: -48px 30%; } 80% { background-position: 0px -10%; } 100% { background-position: 0px -140%; } } @keyframes bubbleRiseDom { 0% { transform: translate3d(0, 0, 0); opacity: 0; } 5% { opacity: .9; } 100% { transform: translate3d(0, -116%, 0); opacity: .95; } } 5% { opacity: .85; } 100% { transform: translate3d(0, -16%, 0); opacity: .9; } } @keyframes bubbleSwayDom { 0% { transform: translateX(calc(-1 * var(--amp))); } 100% { transform: translateX(var(--amp)); } } @keyframes laserSweepBack { 0% { background-position: 0 0; } 100% { background-position: 600px 0; } } @keyframes laserSweepMid { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } } @keyframes laserPulse { 0% { opacity: .4; } 50% { opacity: .9; } 100% { opacity: .4; } } @keyframes lanternDrift { 0% { top: var(--lanTop); left: var(--lanStartX); opacity: .98; } 100% { top: -16%; left: var(--lanEndX); opacity: .98; } } @keyframes lanternSway { 0% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } 50% { transform: translateX(var(--lanSway)) rotate(2deg); } 100% { transform: translateX(calc(-1 * var(--lanSway))) rotate(-2deg); } } @keyframes lanternGlow { 0% { opacity: .22; transform: translate(-50%, -50%) scale(0.97); } 50% { opacity: .35; transform: translate(-50%, -50%) scale(1.03); } 100% { opacity: .24; transform: translate(-50%, -50%) scale(1.00); } } @keyframes lanternImgFlicker { 0% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.28)); } 50% { filter: drop-shadow(0 3px 8px rgba(255,210,130,.45)); } 100% { filter: drop-shadow(0 2px 6px rgba(255,200,120,.32)); } } @keyframes mugSteamRise { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.72); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(calc(-50% + var(--steam-drift, 0px)), -18px) scale(1.06); } } @keyframes mugSteamSway { 0% { margin-left: -4px; } 100% { margin-left: 4px; } }`}</style>
         {/* Header removed for mobile-first apartment view */}
 
         {/* Streamlined: hide resource pills for a cleaner main view */}
@@ -3857,20 +3872,41 @@ function stationTarget(type) {
                   <img src="/art/chair.png" alt="Chair" style={{ width:'100%', height:'auto', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.25))' }} />
                 </div>
                 {studyMode && (
-                  <div
-                    style={{
-                      position:'absolute',
-                      left:`${ANCHORS.chair.xPct}%`,
-                      top:`${ANCHORS.chair.yPct - 8.5}%`,
-                      width:`${ANCHORS.chair.wPct * 0.8}%`,
-                      transform:'translate(-40%, -60%)',
-                      zIndex:4,
-                      pointerEvents:'none',
-                    }}
-                    aria-hidden
-                  >
-                    <img src="/art/sitting.png" alt="Performer studying" style={{ width:'100%', height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.28))' }} />
-                  </div>
+                  <>
+                    <div
+                      style={{
+                        position:'absolute',
+                        left:`${ANCHORS.chair.xPct}%`,
+                        top:`${ANCHORS.chair.yPct - 8.5}%`,
+                        width:`${ANCHORS.chair.wPct * 0.8}%`,
+                        transform:'translate(-40%, -60%)',
+                        zIndex:4,
+                        pointerEvents:'none',
+                      }}
+                      aria-hidden
+                    >
+                      <img src="/art/sitting.png" alt="Performer studying" style={{ width:'100%', height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 6px rgba(0,0,0,.28))' }} />
+                    </div>
+                    <div
+                      style={{
+                        position:'absolute',
+                        left:`${ANCHORS.chair.xPct + 9.3}%`,
+                        top:`${ANCHORS.chair.yPct - 10}%`,
+                        width:`${ANCHORS.chair.wPct * 0.40}%`,
+                        transform:'translate(-50%, -50%)',
+                        zIndex:4,
+                        pointerEvents:'none',
+                      }}
+                      aria-hidden
+                    >
+                      <div style={{ position:'absolute', left:'54%', bottom:'78%', width:'240%', height:'110%', transform:'translateX(-50%)', pointerEvents:'none', overflow:'visible', zIndex: 6 }}>
+                        <div style={{ position:'absolute', left:'42%', bottom:'0%', width:'34%', height:'44%', borderRadius:'999px', background:'rgba(255,255,255,.92)', filter:'blur(10px)', opacity:.95, '--steam-drift':'-10px', animation:'mugSteamRise 3.4s ease-out .1s infinite, mugSteamSway 1.8s ease-in-out 0s infinite alternate' }} />
+                        <div style={{ position:'absolute', left:'58%', bottom:'6%', width:'28%', height:'40%', borderRadius:'999px', background:'rgba(255,255,255,.82)', filter:'blur(9px)', opacity:.86, '--steam-drift':'8px', animation:'mugSteamRise 3s ease-out .8s infinite, mugSteamSway 1.5s ease-in-out .4s infinite alternate' }} />
+                        <div style={{ position:'absolute', left:'50%', bottom:'-2%', width:'22%', height:'36%', borderRadius:'999px', background:'rgba(255,255,255,.72)', filter:'blur(8px)', opacity:.78, '--steam-drift':'2px', animation:'mugSteamRise 3.8s ease-out 1.3s infinite, mugSteamSway 2.1s ease-in-out .2s infinite alternate' }} />
+                      </div>
+                      <img src="/art/mug.png" alt="Study mug" style={{ width:'100%', height:'auto', objectFit:'contain', filter:'drop-shadow(0 2px 5px rgba(0,0,0,.22))' }} />
+                    </div>
+                  </>
                 )}
                 {/* Mirror (click opens stats) */}
                 <div style={{ ...anchorStyle(ANCHORS.mirror), zIndex: 3 }} onClick={() => setStatsOpen(true)}>
@@ -4668,6 +4704,35 @@ function stationTarget(type) {
                     <button onClick={() => { setMoney(m=>m+100); pushToast('Money +Â£100 (debug)'); }} style={styles.secondaryBtn}>Add Â£100 (debug)</button>
                     <button onClick={() => { setSongBattleOpen(true); }} style={styles.secondaryBtn}>Start Song Battle (debug)</button>
                     <button onClick={() => { setMenuOpen(false); toggleStudyMode(); }} style={styles.secondaryBtn}>{studyMode ? 'Study off' : 'Study'}</button>
+                    <div style={{ marginTop: 4, padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.04)' }}>
+                      <div style={{ ...styles.label, marginTop: 0 }}>Computer anchor (debug)</div>
+                      <div style={{ ...styles.sub, marginTop: 4 }}>
+                        x {debugComputerAnchor.xPct.toFixed(2)} | y {debugComputerAnchor.yPct.toFixed(2)} | w {debugComputerAnchor.wPct.toFixed(2)}
+                      </div>
+                      <label style={{ display:'block', marginTop: 8 }}>
+                        <div style={{ ...styles.sub, marginTop: 0 }}>Horizontal</div>
+                        <input type="range" min="0" max="100" step="0.01" value={debugComputerAnchor.xPct} onChange={(e) => updateDebugComputerAnchor('xPct', e.target.value)} style={{ width:'100%' }} />
+                      </label>
+                      <label style={{ display:'block', marginTop: 8 }}>
+                        <div style={{ ...styles.sub, marginTop: 0 }}>Vertical</div>
+                        <input type="range" min="0" max="100" step="0.01" value={debugComputerAnchor.yPct} onChange={(e) => updateDebugComputerAnchor('yPct', e.target.value)} style={{ width:'100%' }} />
+                      </label>
+                      <label style={{ display:'block', marginTop: 8 }}>
+                        <div style={{ ...styles.sub, marginTop: 0 }}>Size</div>
+                        <input type="range" min="1" max="40" step="0.01" value={debugComputerAnchor.wPct} onChange={(e) => updateDebugComputerAnchor('wPct', e.target.value)} style={{ width:'100%' }} />
+                      </label>
+                      <div style={{ display:'flex', gap:8, marginTop: 10 }}>
+                        <button onClick={() => setDebugComputerAnchor(DEFAULT_COMPUTER_ANCHOR)} style={{ ...styles.secondaryBtn, flex:1 }}>Reset computer</button>
+                        <button
+                          onClick={() => {
+                            try { pushToast(`computer: { xPct: ${debugComputerAnchor.xPct.toFixed(2)}, yPct: ${debugComputerAnchor.yPct.toFixed(2)}, wPct: ${debugComputerAnchor.wPct.toFixed(2)} }`); } catch (_) {}
+                          }}
+                          style={{ ...styles.secondaryBtn, flex:1 }}
+                        >
+                          Show values
+                        </button>
+                      </div>
+                    </div>
                     <button onClick={() => {
                       try {
                         // Unlock all friend items
