@@ -4070,7 +4070,7 @@ function stationTarget(type) {
                 <div style={styles.hudRolls}>Available rolls: {Math.max(0, remaining)}</div>
               )}
               {(playingTrend && ((audioRef.current && !audioRef.current.paused) || (dancePreviewActiveRef.current))) && (
-                <div style={styles.hudListening} title={`${playingTrend.artist} - ${playingTrend.title}`}>
+                <div style={studyMode ? styles.hudListeningStudy : styles.hudListening} title={`${playingTrend.artist} - ${playingTrend.title}`}>
                   <span style={{ marginRight: 6, opacity: .9 }}></span>
                   <b style={{ fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth: 220 }}>{playingTrend.artist} - {playingTrend.title}</b>
                 </div>
@@ -7798,6 +7798,22 @@ const styles = {
     position: 'absolute',
     top: 8,
     left: 8,
+    background: 'rgba(0,0,0,.55)',
+    border: '1px solid rgba(255,255,255,.35)',
+    padding: '4px 8px',
+    borderRadius: 10,
+    fontSize: 11,
+    zIndex: 5,
+    maxWidth: 260,
+    display: 'flex',
+    alignItems: 'baseline',
+    pointerEvents: 'none'
+  },
+  hudListeningStudy: {
+    position: 'absolute',
+    top: '16%',
+    left: '41%',
+    transform: 'translate(-50%, -50%)',
     background: 'rgba(0,0,0,.55)',
     border: '1px solid rgba(255,255,255,.35)',
     padding: '4px 8px',
