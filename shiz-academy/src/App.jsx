@@ -2338,8 +2338,8 @@ function stationTarget(type) {
   }
 
   function studyRoomTransform() {
-    const scale = 1.4;
-    const dx = 42 - ANCHORS.chair.xPct;
+    const scale = 1.38;
+    const dx = 44 - ANCHORS.chair.xPct;
     const dy = 80 - ANCHORS.chair.yPct;
     return `translate(${dx}%, ${dy}%) scale(${scale})`;
   }
