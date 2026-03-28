@@ -1429,6 +1429,20 @@ export default function App() {
   const [performerStrokeKey, setPerformerStrokeKey] = useState(0);
   const [performerStrokeVisible, setPerformerStrokeVisible] = useState(false);
 
+  function stopPerformerStroke() {
+    setPerformerStrokeActive(false);
+    setPerformerStrokeVisible(false);
+    try {
+      const audio = strokeAudioRef.current;
+      if (audio) {
+        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
+          try { audio.pause(); } catch (_) {}
+          try { audio.currentTime = 0; } catch (_) {}
+        });
+      }
+    } catch (_) {}
+  }
+
   function fadeAudioWithRef(audio, intervalRef, to, ms, onDone) {
     try { if (!audio) return; } catch(_) { return; }
     try { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } } catch(_) {}
@@ -4000,8 +4014,14 @@ function stationTarget(type) {
                     top: `${pos.y}%`,
                     transform: `translate(-50%, -50%) scaleX(${activity === 'walk' && facingLeft ? -1 : 1}) scale(${(activity === 'walk' ? 1.15 : activity === 'singing' ? 1.06 : activity === 'dancing' ? 1.26 : 1) * ((isPerforming && performingVenue === 'ozdustball') ? 0.9 : 1) * ((isPerforming && performingVenue === 'iron') ? 0.5 : 1)})${activity === 'dancing' ? ' rotate(2deg)' : ''}${(isPerforming && performingVenue === 'busking') ? ' translate(120px, 20px)' : ''}${(isPerforming && performingVenue === 'ozdustball') ? ' translate(-50px, 15px)' : ''}${(isPerforming && performingVenue === 'iron') ? ' translate(0px, 60px)' : ''}`,
                   }}
-                  onPointerDown={() => {
+                  onPointerDown={(e) => {
                     if (performerStrokeActive || isPerforming || target || activity !== 'idle') return;
+                    try {
+                      e.preventDefault();
+                      if (e.currentTarget.setPointerCapture) {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                      }
+                    } catch (_) {}
                     setPerformerStrokeActive(true);
                     setPerformerStrokeVisible(false);
                     setPerformerStrokeKey((k) => k + 1);
@@ -4028,45 +4048,9 @@ function stationTarget(type) {
                       setPerformerStrokeVisible(true);
                     }, 20);
                   }}
-                  onPointerUp={() => {
-                    setPerformerStrokeActive(false);
-                    setPerformerStrokeVisible(false);
-                    try {
-                      const audio = strokeAudioRef.current;
-                      if (audio) {
-                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
-                          try { audio.pause(); } catch (_) {}
-                          try { audio.currentTime = 0; } catch (_) {}
-                        });
-                      }
-                    } catch (_) {}
-                  }}
-                  onPointerCancel={() => {
-                    setPerformerStrokeActive(false);
-                    setPerformerStrokeVisible(false);
-                    try {
-                      const audio = strokeAudioRef.current;
-                      if (audio) {
-                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
-                          try { audio.pause(); } catch (_) {}
-                          try { audio.currentTime = 0; } catch (_) {}
-                        });
-                      }
-                    } catch (_) {}
-                  }}
-                  onPointerLeave={() => {
-                    setPerformerStrokeActive(false);
-                    setPerformerStrokeVisible(false);
-                    try {
-                      const audio = strokeAudioRef.current;
-                      if (audio) {
-                        fadeAudioWithRef(audio, strokeFadeIntRef, 0, 160, () => {
-                          try { audio.pause(); } catch (_) {}
-                          try { audio.currentTime = 0; } catch (_) {}
-                        });
-                      }
-                    } catch (_) {}
-                  }}
+                  onPointerUp={stopPerformerStroke}
+                  onPointerCancel={stopPerformerStroke}
+                  onLostPointerCapture={stopPerformerStroke}
                   title="Your performer"
                 >
                   {performerStrokeActive ? (
@@ -6018,49 +6002,49 @@ function stationTarget(type) {
               </div>
               {null}
                 </div>
-                {/* Shizy-Fi media controls bar (anchored to frame so it scales with the artwork) */}
-                <div style={styles.shizyFiControlsBar}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'4.5%', width:'100%' }}>
-                    <div style={styles.shizyFiTransportGroup}>
-                      <button title="Play" onClick={playPreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                        <div style={styles.shizyFiTransportBtn}>
-                          <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
-                          <img src={'/art/shizyfi/play.png'} alt={"Play"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                        </div>
-                      </button>
-                      <button title="Pause" onClick={pausePreview} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                        <div style={styles.shizyFiTransportBtn}>
-                          <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
-                          <img src={'/art/shizyfi/pause.png'} alt={"Pause"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                        </div>
-                      </button>
-                      <button title="Skip" onClick={() => skipPreview(1)} style={{ background:'none', border:'none', padding:0, cursor:'pointer' }}>
-                        <div style={styles.shizyFiTransportBtn}>
-                          <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
-                          <img src={'/art/shizyfi/skip.png'} alt={"Skip"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
-                        </div>
-                      </button>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
-                      <div onClick={seekPreview} style={{ flex:1, height:8, borderRadius:999, background:'rgba(255,255,255,.18)', overflow:'hidden', cursor:'pointer' }}>
-                        <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
+                <div style={styles.shizyFiScreenArea}>
+                  {/* Shizy-Fi media controls bar (anchored to the internal screen area, not flex content) */}
+                  <div style={styles.shizyFiControlsBar}>
+                    <div style={styles.shizyFiControlsRow}>
+                      <div style={styles.shizyFiTransportGroup}>
+                        <button title="Play" onClick={playPreview} style={{ ...styles.shizyFiTransportHit, justifySelf:'center' }}>
+                          <div style={styles.shizyFiTransportBtn}>
+                            <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                            <img src={'/art/shizyfi/play.png'} alt={"Play"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          </div>
+                        </button>
+                        <button title="Pause" onClick={pausePreview} style={{ ...styles.shizyFiTransportHit, justifySelf:'center' }}>
+                          <div style={styles.shizyFiTransportBtn}>
+                            <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                            <img src={'/art/shizyfi/pause.png'} alt={"Pause"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          </div>
+                        </button>
+                        <button title="Skip" onClick={() => skipPreview(1)} style={{ ...styles.shizyFiTransportHit, justifySelf:'center' }}>
+                          <div style={styles.shizyFiTransportBtn}>
+                            <div style={{ position:'absolute', inset:0, borderRadius:'50%', background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.34) 0%, rgba(148,129,250,.12) 50%, rgba(148,129,250,0) 80%)', filter:'blur(1px)', pointerEvents:'none' }} />
+                            <img src={'/art/shizyfi/skip.png'} alt={"Skip"} style={{ display:'block', width:'62%', height:'auto', position:'relative', zIndex:1 }} onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+                          </div>
+                        </button>
                       </div>
-                      <div style={{ fontSize:11, opacity:.9, minWidth:70, textAlign:'right' }}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
+                      <div style={styles.shizyFiProgressWrap}>
+                        <div onClick={seekPreview} style={styles.shizyFiProgressTrack}>
+                          <div style={{ width: `${Math.max(0, Math.min(100, (audioTime.duration>0? (audioTime.current/audioTime.duration)*100 : 0)))}%`, height:'100%', background:'white' }} />
+                        </div>
+                        <div style={styles.shizyFiTimeLabel}>{fmtTime(audioTime.current)} / {fmtTime(audioTime.duration)}</div>
+                      </div>
                     </div>
                   </div>
+                  {/* Now Playing record UI */}
+                  <div style={styles.shizyFiRecordGlow} />
+                  <style>{`@keyframes recordSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  <img
+                    src={'/art/shizyfi/nowplaying.png'}
+                    alt={''}
+                    style={{ ...styles.shizyFiRecord, animation: (audioRef.current && !audioRef.current.paused) ? 'recordSpin 6s linear infinite' : 'none', opacity: (audioRef.current && !audioRef.current.paused) ? 1 : 0.95 }}
+                    onError={(e)=>{ e.currentTarget.style.display='none'; }}
+                  />
+                  <div style={styles.shizyFiScanlines} />
                 </div>
-                {/* Now Playing record UI (rotates while playing) */}
-                {/* Circular glow behind the record */}
-                <div style={styles.shizyFiRecordGlow} />
-                <style>{`@keyframes recordSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-                <img
-                  src={'/art/shizyfi/nowplaying.png'}
-                  alt={''}
-                  style={{ ...styles.shizyFiRecord, animation: (audioRef.current && !audioRef.current.paused) ? 'recordSpin 6s linear infinite' : 'none', opacity: (audioRef.current && !audioRef.current.paused) ? 1 : 0.95 }}
-                  onError={(e)=>{ e.currentTarget.style.display='none'; }}
-                />
-                {/* Scanlines overlay reduced width and anchored to the frame screen area */}
-                <div style={styles.shizyFiScanlines} />
               </div>
             </div>
           </div>
@@ -7161,6 +7145,9 @@ const styles = {
     boxShadow: "none",
     transition: "transform 120ms ease",
     cursor: "pointer",
+    touchAction: 'none',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
   },
   performerImg: {
     width: '100%',
@@ -7877,37 +7864,84 @@ const styles = {
     zIndex: 4,
     animation: 'scanFlicker 6s ease-in-out infinite, scanScroll 1.5s linear infinite',
   },
+  shizyFiScreenArea: {
+    position:'absolute',
+    top:'16%',
+    right:'6%',
+    bottom:'8%',
+    left:'6%',
+    pointerEvents:'none',
+  },
   shizyFiControlsBar: {
     position:'absolute',
-    left:'27%',
-    right:'12%',
-    bottom:'12.5%',
+    left:'23%',
+    right:'7%',
+    bottom:'6%',
     display:'flex',
     flexDirection:'column',
     gap:6,
     zIndex:2,
+    pointerEvents:'auto',
+  },
+  shizyFiControlsRow: {
+    display:'grid',
+    gridTemplateColumns:'minmax(88px, 0.32fr) minmax(0, 0.68fr)',
+    alignItems:'center',
+    gap:'4.5%',
   },
   shizyFiTransportGroup: {
-    display:'flex',
+    display:'grid',
+    gridTemplateColumns:'repeat(3, minmax(0, 1fr))',
     alignItems:'center',
-    gap:'8%',
-    width:'22%',
-    minWidth:96,
-    flex:'0 0 22%',
+    gap:'9%',
+    minWidth:0,
+  },
+  shizyFiTransportHit: {
+    background:'none',
+    border:'none',
+    padding:0,
+    cursor:'pointer',
+    width:'100%',
+    minWidth:0,
   },
   shizyFiTransportBtn: {
     position:'relative',
     width:'100%',
+    maxWidth:'clamp(24px, 4.2vw, 34px)',
     aspectRatio:'1 / 1',
     display:'flex',
     alignItems:'center',
     justifyContent:'center',
   },
+  shizyFiProgressWrap: {
+    display:'grid',
+    gridTemplateColumns:'minmax(0, 1fr) auto',
+    alignItems:'center',
+    gap:'clamp(6px, 1.2vw, 10px)',
+    minWidth:0,
+  },
+  shizyFiProgressTrack: {
+    height:'clamp(6px, 1.2vw, 8px)',
+    borderRadius:999,
+    background:'rgba(255,255,255,.18)',
+    overflow:'hidden',
+    cursor:'pointer',
+    minWidth:0,
+  },
+  shizyFiTimeLabel: {
+    fontSize:'clamp(9px, 1.6vw, 11px)',
+    lineHeight:1.1,
+    opacity:.9,
+    textAlign:'right',
+    whiteSpace:'nowrap',
+    fontVariantNumeric:'tabular-nums',
+    flex:'0 0 auto',
+  },
   shizyFiRecordGlow: {
     position:'absolute',
-    left:'7.5%',
-    bottom:'7.2%',
-    width:'19.8%',
+    left:'1.5%',
+    bottom:'0%',
+    width:'22.5%',
     aspectRatio:'1 / 1',
     borderRadius:'50%',
     background:'radial-gradient(circle at 50% 50%, rgba(148,129,250,.42) 0%, rgba(148,129,250,.22) 40%, rgba(148,129,250,0) 75%)',
@@ -7917,19 +7951,16 @@ const styles = {
   },
   shizyFiRecord: {
     position:'absolute',
-    left:'7.8%',
-    bottom:'9.7%',
-    width:'16.2%',
+    left:'2.3%',
+    bottom:'2.7%',
+    width:'18.5%',
     height:'auto',
     transformOrigin:'50% 50%',
     zIndex:2,
   },
   shizyFiScanlines: {
     position:'absolute',
-    top:'16%',
-    right:'6%',
-    bottom:'12%',
-    left:'6%',
+    inset:0,
     background: 'repeating-linear-gradient(180deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.28) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px)',
     mixBlendMode: 'multiply',
     opacity: .28,
